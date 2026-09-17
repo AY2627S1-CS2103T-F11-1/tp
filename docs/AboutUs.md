@@ -3,57 +3,56 @@ layout: page
 title: About Us
 ---
 
-We are a team based in the [School of Computing, National University of Singapore](https://www.comp.nus.edu.sg).
+We are team **CS2103T-F11-1** based in the [School of Computing, National University of Singapore](https://www.comp.nus.edu.sg).
 
-You can reach us at the email `seer[at]comp.nus.edu.sg`
+## Project Team
 
-## Project team
-
-### John Doe
+### Kieran M
 
 <img src="images/johndoe.png" width="200px">
 
-[[homepage](http://www.comp.nus.edu.sg/~damithch)]
-[[github](https://github.com/johndoe)]
-[[portfolio](team/johndoe.md)]
-
-* Role: Project Advisor
-
-### Jane Doe
-
-<img src="images/johndoe.png" width="200px">
-
-[[github](http://github.com/johndoe)]
-[[portfolio](team/johndoe.md)]
-
-* Role: Team Lead
-* Responsibilities: UI
-
-### Johnny Doe
-
-<img src="images/johndoe.png" width="200px">
-
-[[github](http://github.com/johndoe)] [[portfolio](team/johndoe.md)]
+[[github](https://github.com/Kimame04)]
+[[portfolio](team/kimame04.md)]
 
 * Role: Developer
-* Responsibilities: Data
+* Responsibilities: Documentation, UI & Integration
 
-### Jean Doe
+### Teammate 2
 
 <img src="images/johndoe.png" width="200px">
 
-[[github](http://github.com/johndoe)]
+[[github](https://github.com)]
 [[portfolio](team/johndoe.md)]
 
 * Role: Developer
-* Responsibilities: Dev Ops + Threading
+* Responsibilities: Logic & Architecture
 
-### James Doe
+### Teammate 3
 
 <img src="images/johndoe.png" width="200px">
 
-[[github](http://github.com/johndoe)]
+[[github](https://github.com)]
 [[portfolio](team/johndoe.md)]
 
 * Role: Developer
-* Responsibilities: UI
+* Responsibilities: Storage & Data Persistence
+
+### Teammate 4
+
+<img src="images/johndoe.png" width="200px">
+
+[[github](https://github.com)]
+[[portfolio](team/johndoe.md)]
+
+* Role: Developer
+* Responsibilities: Model & Data Validation
+
+### Teammate 5
+
+<img src="images/johndoe.png" width="200px">
+
+[[github](https://github.com)]
+[[portfolio](team/johndoe.md)]
+
+* Role: Developer
+* Responsibilities: Testing & DevOps
