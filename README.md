@@ -4,19 +4,22 @@
 
 ![Ui](docs/images/Ui.png)
 
-### Our Story
+## About
 KeyBossWarriorsPro is a desktop application for managing contacts for an artisan keyboard shop. It helps users keep track of suppliers, employees, customers, and other personal contacts, with support for organizing and finding contacts using tags.
 
-### Features
+## Features
 
-- Manage contact details such as names, phone numbers, email addresses, and tags.
+- **Manage contacts:** Add, edit, list, find, and delete contact records.
+- **Store contact details:** Keep names, phone numbers, email addresses, and other supported information in one place.
+- **Save data automatically:** Changes are saved locally, so you don’t need to export data manually.
+- **Get command help:** Use the built-in `help` command to view available commands.
 
-### Acknowledgements
+## Getting started
+
+- To install and use the application, start with the [Quick Start section of the User Guide](docs/UserGuide.md#quick-start).
+- For development setup and implementation details, see the [Developer Guide](docs/DeveloperGuide.md).
+- To meet the people behind the project, visit [About Us](docs/AboutUs.md).
+
+## Acknowledgements
 
 This project is based on the AddressBook-Level3 project created by the [SE-EDU initiative](https://se-education.org).
-
-### Getting started
-
-For installation instructions, usage examples, and the complete command reference, see the [User Guide](docs/UserGuide.md).
-
-For information about the project’s design and implementation, see the [Developer Guide](docs/DeveloperGuide.md).
