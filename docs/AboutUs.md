@@ -9,29 +9,30 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 
 ### Kieran M
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/kimame04.png" width="200px">
 
+[[homepage](https://kimame04.github.io)]
 [[github](https://github.com/Kimame04)]
 [[portfolio](team/kimame04.md)]
 
 * Role: Developer
 * Responsibilities: Documentation, UI & Integration
 
-### Teammate 2
+### Xavier
 
-<img src="images/chester-wong-33.png" width="200px">
+<img src="images/chiacxx.png" width="200px">
 
-[[github](https://github.com/chester-wong-33)]
-[[portfolio](team/johndoe.md)]
+[[github](https://github.com/chiacxx)]
+[[portfolio](team/chiacxx.md)]
 
 * Role: Developer
 * Responsibilities: Logic & Architecture
 
-### Teammate 3
+### Chester
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/chester-wong-33.png" width="200px">
 
-[[github](https://github.com)]
+[[github](https://github.com/chester-wong-33)]
 [[portfolio](team/johndoe.md)]
 
 * Role: Developer
@@ -47,12 +48,11 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 * Role: Developer
 * Responsibilities: Model & Data Validation
 
-### Teammate 5
+### Ken Tay
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/ken-tat.png" width="200px">
 
-[[github](https://github.com)]
-[[portfolio](team/johndoe.md)]
+[[github](https://github.com/Ken-Tat)]
 
 * Role: Developer
 * Responsibilities: Testing & DevOps
