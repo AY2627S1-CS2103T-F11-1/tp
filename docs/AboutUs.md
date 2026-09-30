@@ -28,11 +28,11 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 * Role: Developer
 * Responsibilities: Logic & Architecture
 
-### Teammate 3
+### Chester
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/chester-wong-33.png" width="200px">
 
-[[github](https://github.com)]
+[[github](https://github.com/chester-wong-33)]
 [[portfolio](team/johndoe.md)]
 
 * Role: Developer
