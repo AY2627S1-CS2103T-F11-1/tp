@@ -1,6 +1,6 @@
 package seedu.address.logic.commands;
 
-import static seedu.address.logic.commands.CommandTestUtil.assertCommandSuccess;
+import static seedu.address.logic.commands.CommandTestUtil.assertCommandFailure;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +24,7 @@ public class RemarkCommandTest {
 
     @Test
     public void execute_returnsPlaceholderMsg() {
-        assertCommandSuccess(new RemarkCommand(), model, RemarkCommand.PLACEHOLDER_SUCCESS_STRING, model);
+        assertCommandFailure(new RemarkCommand(), model, RemarkCommand.MESSAGE_NOT_IMPLEMENTED_YET);
     }
 
 }
