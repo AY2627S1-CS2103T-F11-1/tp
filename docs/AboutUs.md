@@ -47,12 +47,11 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 * Role: Developer
 * Responsibilities: Model & Data Validation
 
-### Teammate 5
+### Ken Tay
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/ken-tat.png" width="200px">
 
-[[github](https://github.com)]
-[[portfolio](team/johndoe.md)]
+[[github](https://github.com/Ken-Tat)]
 
 * Role: Developer
 * Responsibilities: Testing & DevOps
