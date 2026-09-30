@@ -36,17 +36,17 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 [[portfolio](team/johndoe.md)]
 
 * Role: Developer
-* Responsibilities: Storage & Data Persistence
+* Responsibilities: Model & Data Validation
 
-### Teammate 4
+### Noah
 
-<img src="images/johndoe.png" width="200px">
+<img src="images/noyoth.png" width="200px">
 
-[[github](https://github.com)]
+[[github](https://github.com/Noyoth)]
 [[portfolio](team/johndoe.md)]
 
 * Role: Developer
-* Responsibilities: Model & Data Validation
+* Responsibilities: Storage & Data Persistence
 
 ### Ken Tay
 
