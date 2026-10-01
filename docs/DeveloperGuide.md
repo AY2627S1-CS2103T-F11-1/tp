@@ -331,8 +331,28 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 ### Glossary
 
-* **Mainstream OS**: Windows, Linux, Unix, or macOS
+#### Keyboard terms
+
+* **Artisan keyboard**: A custom mechanical keyboard built from individual parts such as custom cases, switches, printed circuit boards (PCBs), and keycaps.
+* **Switch**: The mechanical mechanism seated under each keycap that opens and closes an electrical circuit on keypress. Common types include linear, tactile, and clicky switches.
+* **PCB (Printed Circuit Board)**: The internal circuit board that registers switch activations and connects to the computer, some using hot-swap sockets so users can replace switches without soldering.
+* **Keycap**: A removable plastic cover mounted on a switch stem. Keycaps are commonly molded from PBT or ABS plastic.
+* **Stabilizer**: A mechanical wire and housing assembly used on wider keys (such as space, enter, and shift) to keep the key level when pressed off-center.
+
+#### Contact terms
+
+* **Contact**: A person or commercial entity stored in the address book.
+* **Duplicate contact**: Two contact entries that share either the same phone number or the same email address.
 * **Private contact detail**: A contact detail that is not meant to be shared with others
+* **Primary role**: The required top-level classification assigned to a contact (`employee`, `supplier`, or `service provider`). Every contact has exactly one primary role.
+* **Tag**: An optional label added to a contact to record categories, supplied parts (such as `switches` or `keycaps`), or services. A contact can have zero or more tags.
+
+#### Technical terms
+
+* **Mainstream OS**: Widely used personal computer operating systems, specifically Windows, Linux, and macOS.
+* **CLI (Command Line Interface)**: A text-based interface where the user types commands into a prompt to operate the application.
+* **GUI (Graphical User Interface)**: A visual interface created with JavaFX that displays contact cards, command outputs, and application status.
+* **JSON (JavaScript Object Notation)**: A lightweight, human-readable text file format used to save address book records locally on disk.
 
 --------------------------------------------------------------------------------------------------------------------
 
