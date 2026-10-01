@@ -349,7 +349,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 #### Technical terms
 
-* **Mainstream OS**: Widely used personal computer operating systems, specifically Windows, Linux, and macOS.
+* **Mainstream OS**: Windows, Linux, Unix, or macOS.
 * **CLI (Command Line Interface)**: A text-based interface where the user types commands into a prompt to operate the application.
 * **GUI (Graphical User Interface)**: A visual interface created with JavaFX that displays contact cards, command outputs, and application status.
 * **JSON (JavaScript Object Notation)**: A lightweight, human-readable text file format used to save address book records locally on disk.
