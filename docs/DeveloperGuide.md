@@ -287,32 +287,122 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 ### Use cases
 
-(For all use cases below, the **System** is the `AddressBook` and the **Actor** is the `user`, unless specified otherwise)
+(For all use cases below, the **System** is the `KeyBossWarriorsPro` and the **Actor** is the `user`, unless specified otherwise)
 
-**Use case: Delete a person**
+**Use Case: UC1 - Add a Contact**
 
 **MSS**
 
-1.  User requests to list persons
-2.  AddressBook shows a list of persons
-3.  User requests to delete a specific person in the list
-4.  AddressBook deletes the person
+1.  User requests to add a contact, providing its name, phone number, email, address, role, and any optional tags.
+2.  `KeyBossWarriorsPro` adds the contact and confirms the addition.
 
     Use case ends.
 
 **Extensions**
 
-* 2a. The list is empty.
+*  1a. A required field is missing or a value is invalid.
 
-  Use case ends.
+  *  1a1. `KeyBossWarriorsPro` shows an error message.
+  
+     Use case ends.
 
-* 3a. The given index is invalid.
+*  1b. The phone number or email belongs to an existing contact.
 
-    * 3a1. AddressBook shows an error message.
+  *  1b1. `KeyBossWarriorsPro` shows an error message.
+  
+    Use case ends.
 
-      Use case resumes at step 2.
 
-*{More to be added}*
+**Use Case: UC2 - Find a Contact**
+
+**MSS**
+
+1.  User requests to find contacts using a name keyword.
+2.  `KeyBossWarriorsPro` displays matching contacts and their details.
+
+    Use case ends.
+
+**Extensions**
+
+*  2a. No contacts match the keyword.
+
+  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
+
+     Use case ends.
+
+
+**Use Case: UC3 - Delete a Contact**
+
+**MSS**
+
+1.  User requests to list contacts.
+2.  `KeyBossWarriorsPro` shows a list of contacts.
+3.  User requests to delete a specific person in the contact list.
+4.  `KeyBossWarriorsPro` deletes the contact.
+
+    Use case ends.
+
+**Extensions**
+
+*  2a. The list is empty.
+
+   Use case ends.
+
+*  3a. The given index is invalid.
+
+  *  3a1. `KeyBossWarriorsPro` shows an error message.
+
+     Use case resumes at step 3.
+
+
+**Use Case: UC4 - Tag a Contact**
+
+**MSS**
+
+1.  User requests to find contacts using a name keyword.
+2.  `KeyBossWarriorsPro` displays matching contacts and their details.
+3.  User requests to add one or more tags to a contact.
+4.  `KeyBossWarriorsPro` adds the tags and displays the update contact information.
+
+    Use case ends.
+
+**Extensions**
+
+*  2a. No contacts match the keyword.
+
+  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
+
+     Use case ends.
+ 
+*  3a. No tag is provided.
+ 
+  * 3a1. `KeyBossWarriorsPro` shows an error message.
+
+       Use case resumes at step 3.
+
+*  3b. Duplicate tags are provided.
+
+  *  3b1. `KeyBossWarriorsPro` retains one instance of each tag.
+  
+     Use case resumes at step 4.
+
+
+**Use Case: UC5 - List Contacts**
+
+**MSS**
+
+1.  User requests to list contacts.
+2.  `KeyBossWarriorsPro` shows a list of contacts.
+    
+    Use case ends.
+
+**Extensions**
+
+*  2a. The list is empty.
+
+  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
+
+     Use case ends.
 
 ### Non-Functional Requirements
 
