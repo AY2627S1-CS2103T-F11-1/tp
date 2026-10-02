@@ -134,4 +134,3 @@ public class RemarkCommandTest {
                 new Remark(VALID_REMARK_BOB))));
     }
 }
-
