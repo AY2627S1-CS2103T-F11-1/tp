@@ -39,13 +39,6 @@ public class Person {
         this.tags.addAll(tags);
     }
 
-    /**
-     * Overloaded constructor for backwards compatibility.
-     */
-    public Person(Name name, Phone phone, Email email, Address address, Set<Tag> tags) {
-        this(name, phone, email, address, new Role("Supplier"), tags);
-    }
-
     public Name getName() {
         return name;
     }
