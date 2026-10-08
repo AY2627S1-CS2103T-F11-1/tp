@@ -1,6 +1,7 @@
 package seedu.address;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -42,6 +43,7 @@ public class MainApp extends Application {
     protected Logic logic;
     protected Storage storage;
     protected Model model;
+    private String initialStatusMessage;
 
     @Override
     public void init() throws Exception {
@@ -57,7 +59,11 @@ public class MainApp extends Application {
 
         logic = new LogicManager(model, storage);
 
-        ui = new UiManager(logic, storage.getAddressBookFilePath());
+        ui = new UiManager(logic, storage.getAddressBookFilePath(), initialStatusMessage);
+    }
+
+    String getInitialStatusMessage() {
+        return initialStatusMessage;
     }
 
     /**
@@ -65,7 +71,7 @@ public class MainApp extends Application {
      * The data from the sample address book will be used instead if {@code storage}'s address book is not found,
      * or an empty address book will be used instead if errors occur when reading {@code storage}'s address book.
      */
-    private Model initModelManager(Storage storage, ReadOnlyUserPrefs userPrefs) {
+    protected Model initModelManager(Storage storage, ReadOnlyUserPrefs userPrefs) {
         logger.info("Using data file : " + storage.getAddressBookFilePath());
 
         Optional<ReadOnlyAddressBook> addressBookOptional;
@@ -81,6 +87,19 @@ public class MainApp extends Application {
             logger.warning("Data file at " + storage.getAddressBookFilePath() + " could not be loaded."
                     + " Will be starting with an empty AddressBook.");
             initialData = new AddressBook();
+            Path filePath = storage.getAddressBookFilePath();
+            if (Files.exists(filePath)) {
+                try {
+                    Path backupPath = storage.backupAddressBookFile();
+                    initialStatusMessage = String.format(
+                            "Warning: Data file %1$s is corrupted. A backup was created at %2$s. "
+                                    + "Starting with an empty contact book.", filePath, backupPath);
+                    logger.warning(initialStatusMessage);
+                } catch (IOException ioe) {
+                    logger.severe("Failed to create backup of corrupted data file " + filePath + ": "
+                            + ioe.getMessage());
+                }
+            }
         }
 
         return new ModelManager(initialData, userPrefs);

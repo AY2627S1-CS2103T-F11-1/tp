@@ -52,17 +52,28 @@ public class MainWindow extends UiPart<Stage> {
     @FXML
     private StackPane statusbarPlaceholder;
 
+    private String initialStatusMessage;
+
     /**
      * Creates a {@code MainWindow} with the given {@code Stage}, {@code Logic},
      * and the data file path to show in the status bar.
      */
     public MainWindow(Stage primaryStage, Logic logic, Path dataFilePath) {
+        this(primaryStage, logic, dataFilePath, null);
+    }
+
+    /**
+     * Creates a {@code MainWindow} with the given {@code Stage}, {@code Logic},
+     * the data file path to show in the status bar, and an initial status message.
+     */
+    public MainWindow(Stage primaryStage, Logic logic, Path dataFilePath, String initialStatusMessage) {
         super(FXML, primaryStage);
 
         // Set dependencies
         this.primaryStage = primaryStage;
         this.logic = logic;
         this.dataFilePath = dataFilePath;
+        this.initialStatusMessage = initialStatusMessage;
 
         // Configure the UI
         setWindowDefaultSize(logic.getGuiSettings());
@@ -119,6 +130,9 @@ public class MainWindow extends UiPart<Stage> {
 
         resultDisplay = new ResultDisplay();
         resultDisplayPlaceholder.getChildren().add(resultDisplay.getRoot());
+        if (initialStatusMessage != null && !initialStatusMessage.isBlank()) {
+            resultDisplay.setFeedbackToUser(initialStatusMessage);
+        }
 
         StatusBarFooter statusBarFooter = new StatusBarFooter(dataFilePath);
         statusbarPlaceholder.getChildren().add(statusBarFooter.getRoot());
