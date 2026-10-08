@@ -2,8 +2,10 @@ package seedu.address.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +65,20 @@ public class StorageManagerTest {
     @Test
     public void getAddressBookFilePath() {
         assertNotNull(storageManager.getAddressBookFilePath());
+    }
+
+    @Test
+    public void addressBookBackup() throws Exception {
+        /*
+         * Note: This is an integration test that verifies the StorageManager is properly wired to the
+         * {@link JsonAddressBookStorage} class for backups.
+         */
+        Path abPath = storageManager.getAddressBookFilePath();
+        Files.writeString(abPath, "corrupted content");
+
+        Path backupPath = storageManager.backupAddressBookFile();
+        assertTrue(Files.exists(backupPath));
+        assertEquals("corrupted content", Files.readString(backupPath));
     }
 
 }

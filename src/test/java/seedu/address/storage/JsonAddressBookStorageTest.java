@@ -2,13 +2,17 @@ package seedu.address.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.HOON;
 import static seedu.address.testutil.TypicalPersons.IDA;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -106,5 +110,47 @@ public class JsonAddressBookStorageTest {
     @Test
     public void saveAddressBook_nullFilePath_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> saveAddressBook(new AddressBook(), null));
+    }
+
+    @Test
+    public void backupAddressBookFile_nullFilePath_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> new JsonAddressBookStorage(Paths.get("somePath"))
+                .backupAddressBookFile(null));
+    }
+
+    @Test
+    public void backupAddressBookFile_missingFile_throwsFileNotFoundException() {
+        Path missingPath = testFolder.resolve("NonExistent.json");
+        assertThrows(FileNotFoundException.class, () -> new JsonAddressBookStorage(missingPath)
+                .backupAddressBookFile(missingPath));
+    }
+
+    @Test
+    public void backupAddressBookFile_validFile_createsBackupSuccessfully() throws Exception {
+        Path filePath = testFolder.resolve("CorruptedAddressBook.json");
+        String fileContent = "{ invalid json content }";
+        Files.writeString(filePath, fileContent);
+
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(filePath);
+        Path backupPath = storage.backupAddressBookFile();
+
+        assertTrue(Files.exists(backupPath));
+        assertTrue(backupPath.getFileName().toString().matches(
+                "CorruptedAddressBook\\.json\\.backup\\.\\d{8}_\\d{6}(_\\d+)?"));
+        assertEquals(fileContent, Files.readString(backupPath));
+    }
+
+    @Test
+    public void backupAddressBookFile_collision_resolvesWithCounter() throws Exception {
+        Path filePath = testFolder.resolve("CorruptedAddressBookCollision.json");
+        Files.writeString(filePath, "data");
+
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(filePath);
+        Path backup1 = storage.backupAddressBookFile();
+        Path backup2 = storage.backupAddressBookFile();
+
+        assertTrue(Files.exists(backup1));
+        assertTrue(Files.exists(backup2));
+        assertNotEquals(backup1, backup2);
     }
 }
