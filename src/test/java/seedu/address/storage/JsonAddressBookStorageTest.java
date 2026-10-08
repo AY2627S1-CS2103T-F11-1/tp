@@ -153,4 +153,30 @@ public class JsonAddressBookStorageTest {
         assertTrue(Files.exists(backup2));
         assertNotEquals(backup1, backup2);
     }
+
+    @Test
+    public void backupAddressBookFile_pathWithoutParent_createsBackupSuccessfully() throws Exception {
+        Path relativePath = Path.of("temp_relative_corrupted.json");
+        Path backup1 = null;
+        Path backup2 = null;
+        try {
+            Files.writeString(relativePath, "corrupted content");
+            JsonAddressBookStorage storage = new JsonAddressBookStorage(relativePath);
+            backup1 = storage.backupAddressBookFile();
+            backup2 = storage.backupAddressBookFile();
+
+            assertTrue(Files.exists(backup1));
+            assertTrue(Files.exists(backup2));
+            assertNotEquals(backup1, backup2);
+            assertEquals("corrupted content", Files.readString(backup1));
+        } finally {
+            Files.deleteIfExists(relativePath);
+            if (backup1 != null) {
+                Files.deleteIfExists(backup1);
+            }
+            if (backup2 != null) {
+                Files.deleteIfExists(backup2);
+            }
+        }
+    }
 }

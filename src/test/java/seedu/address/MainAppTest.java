@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -98,5 +99,25 @@ public class MainAppTest {
             }
         }
         assertTrue(backupFound);
+    }
+
+    @Test
+    public void initModelManager_corruptedFileBackupThrowsIoException_logsWarningAndStartsEmpty() throws Exception {
+        Path corruptedPath = testFolder.resolve("corrupted_io_exception.json");
+        Path prefsPath = testFolder.resolve("prefs.json");
+        Files.writeString(corruptedPath, "corrupted content");
+
+        JsonAddressBookStorage faultyStorage = new JsonAddressBookStorage(corruptedPath) {
+            @Override
+            public Path backupAddressBookFile(Path filePath) throws IOException {
+                throw new IOException("Simulated disk write error");
+            }
+        };
+        StorageManager storageManager = new StorageManager(faultyStorage, new JsonUserPrefsStorage(prefsPath));
+
+        Model model = mainApp.initModelManager(storageManager, userPrefs);
+
+        assertNull(mainApp.getInitialStatusMessage());
+        assertEquals(new AddressBook(), new AddressBook(model.getAddressBook()));
     }
 }
