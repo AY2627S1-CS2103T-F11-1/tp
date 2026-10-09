@@ -1,10 +1,13 @@
 package seedu.address.ui;
 
+import java.awt.Desktop;
+import java.io.IOException;
+import java.net.URI;
 import java.util.logging.Logger;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.stage.Stage;
@@ -16,7 +19,23 @@ import seedu.address.commons.core.LogsCenter;
 public class HelpWindow extends UiPart<Stage> {
 
     public static final String USERGUIDE_URL = "https://se-education.org/addressbook-level3/UserGuide.html";
-    public static final String HELP_MESSAGE = "Refer to the user guide: " + USERGUIDE_URL;
+    public static final String HELP_MESSAGE = ""
+            + "add n/NAME p/PHONE e/EMAIL a/ADDRESS r/ROLE [t/TAG]...\n"
+            + "  Add a person. Name, phone, email, address, and role are required; tags are optional.\n\n"
+            + "edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]...\n"
+            + "  Edit a person's details. Role editing is not supported yet; update this help entry when it is.\n\n"
+            + "delete INDEX\n"
+            + "  Delete the person at the displayed index.\n\n"
+            + "find KEYWORD [MORE_KEYWORDS]...\n"
+            + "  Find people whose names contain any of the keywords (case-insensitive).\n\n"
+            + "list\n"
+            + "  Show all people.\n\n"
+            + "clear\n"
+            + "  Clear the address book.\n\n"
+            + "help\n"
+            + "  Show this help window.\n\n"
+            + "exit\n"
+            + "  Close the application.";
 
     private static final Logger logger = LogsCenter.getLogger(HelpWindow.class);
     private static final String FXML = "HelpWindow.fxml";
@@ -25,7 +44,7 @@ public class HelpWindow extends UiPart<Stage> {
     private Button copyButton;
 
     @FXML
-    private Label helpMessage;
+    private TextArea helpMessage;
 
     /**
      * Creates a new HelpWindow.
@@ -98,5 +117,19 @@ public class HelpWindow extends UiPart<Stage> {
         final ClipboardContent url = new ClipboardContent();
         url.putString(USERGUIDE_URL);
         clipboard.setContent(url);
+    }
+
+    /** Opens the user guide in the system's default browser. */
+    @FXML
+    private void openUserGuide() {
+        if (!Desktop.isDesktopSupported()) {
+            logger.warning("Unable to open user guide: desktop browsing is not supported.");
+            return;
+        }
+        try {
+            Desktop.getDesktop().browse(URI.create(USERGUIDE_URL));
+        } catch (IOException | UnsupportedOperationException e) {
+            logger.warning("Unable to open user guide: " + e.getMessage());
+        }
     }
 }

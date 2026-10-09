@@ -1,5 +1,16 @@
-#copyButton, #helpMessage {
+#copyButton, #helpMessage, .help-heading {
     -fx-text-fill: white;
+}
+
+.help-heading {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+#helpMessage {
+    -fx-control-inner-background: derive(#1d1d1d, 10%);
+    -fx-font-family: monospace;
+    -fx-font-size: 12px;
 }
 
 #copyButton {
