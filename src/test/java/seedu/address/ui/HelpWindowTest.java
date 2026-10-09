@@ -16,6 +16,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javafx.application.Platform;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DataFormat;
 import javafx.stage.Stage;
 
 public class HelpWindowTest {
@@ -78,13 +81,16 @@ public class HelpWindowTest {
 
     @Test
     public void copyUrlButton_whenClicked_copiesTpUserGuideUrl() throws Exception {
-        AtomicReference<String> copiedUrl = new AtomicReference<>();
         FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Clipboard clipboard = Clipboard.getSystemClipboard();
+            ClipboardContent previousContent = saveClipboardContent(clipboard);
             Stage stage = new Stage();
             try {
-                HelpWindow helpWindow = new HelpWindow(stage, () -> true, uri -> { }, copiedUrl::set);
+                HelpWindow helpWindow = new HelpWindow(stage);
                 helpWindow.getCopyButton().fire();
+                assertEquals(HelpWindow.USERGUIDE_URL, clipboard.getString());
             } finally {
+                restoreClipboardContent(clipboard, previousContent);
                 stage.close();
             }
             return null;
@@ -92,8 +98,25 @@ public class HelpWindowTest {
 
         Platform.runLater(testOnFxThread);
         testOnFxThread.get(10, TimeUnit.SECONDS);
+    }
 
-        assertEquals(HelpWindow.USERGUIDE_URL, copiedUrl.get());
+    private static ClipboardContent saveClipboardContent(Clipboard clipboard) {
+        ClipboardContent content = new ClipboardContent();
+        for (DataFormat format : clipboard.getContentTypes()) {
+            Object value = clipboard.getContent(format);
+            if (value != null) {
+                content.put(format, value);
+            }
+        }
+        return content;
+    }
+
+    private static void restoreClipboardContent(Clipboard clipboard, ClipboardContent content) {
+        if (content.isEmpty()) {
+            clipboard.clear();
+        } else {
+            clipboard.setContent(content);
+        }
     }
 
     @Test
