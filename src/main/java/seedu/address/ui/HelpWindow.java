@@ -18,7 +18,7 @@ import seedu.address.commons.core.LogsCenter;
  */
 public class HelpWindow extends UiPart<Stage> {
 
-    public static final String USERGUIDE_URL = "https://se-education.org/addressbook-level3/UserGuide.html";
+    public static final String USERGUIDE_URL = "https://ay2627s1-cs2103t-f11-1.github.io/tp/UserGuide.html#quick-start";
     public static final String HELP_MESSAGE = ""
             + "add n/NAME p/PHONE e/EMAIL a/ADDRESS r/ROLE [t/TAG]...\n"
             + "  Add a person. Name, phone, email, address, and role are required; tags are optional.\n\n"
