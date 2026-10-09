@@ -22,14 +22,14 @@
         <URL value="@HelpWindow.css" />
       </stylesheets>
 
-      <VBox fx:id="helpMessageContainer" spacing="10.0" prefWidth="620.0">
+      <VBox fx:id="helpMessageContainer" spacing="12.0" prefWidth="820.0" prefHeight="560.0">
         <children>
           <Label text="Available commands" styleClass="help-heading" />
           <TextArea fx:id="helpMessage" editable="false" focusTraversable="false" wrapText="true"
-                    prefRowCount="15" />
+                    prefRowCount="20" VBox.vgrow="ALWAYS" />
           <HBox alignment="CENTER_LEFT" spacing="8.0">
             <children>
-              <Label text="For more detailed information:" />
+              <Label styleClass="footer-label" text="For more detailed information:" />
               <Hyperlink onAction="#openUserGuide" text="User guide" />
               <Button fx:id="copyButton" mnemonicParsing="false" onAction="#copyUrl" text="Copy URL" />
             </children>

@@ -2,6 +2,10 @@
     -fx-text-fill: white;
 }
 
+.help-heading, .footer-label {
+    -fx-text-fill: white;
+}
+
 .help-heading {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
