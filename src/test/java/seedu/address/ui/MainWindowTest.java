@@ -3,6 +3,7 @@ package seedu.address.ui;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.abort;
 import static seedu.address.logic.commands.ExitCommand.MESSAGE_EXIT_ACKNOWLEDGEMENT;
 
 import java.nio.file.Path;
@@ -48,6 +49,11 @@ public class MainWindowTest {
         } catch (IllegalStateException e) {
             // Another UI test may already have started JavaFX
             Platform.runLater(initialize);
+        } catch (UnsupportedOperationException e) {
+            if (!"Unable to open DISPLAY".equals(e.getMessage())) {
+                throw e;
+            }
+            abort("Skipping UI tests: no graphical display is available");
         }
 
         assertTrue(started.await(10, TimeUnit.SECONDS),
