@@ -54,6 +54,7 @@ public class HelpWindow extends UiPart<Stage> {
 
     private final BooleanSupplier desktopSupport;
     private final BrowserLauncher browserLauncher;
+    private final Consumer<String> clipboardWriter;
 
     /**
      * Creates a new HelpWindow.
@@ -61,13 +62,16 @@ public class HelpWindow extends UiPart<Stage> {
      * @param root Stage to use as the root of the HelpWindow.
      */
     public HelpWindow(Stage root) {
-        this(root, Desktop::isDesktopSupported, uri -> Desktop.getDesktop().browse(uri));
+        this(root, Desktop::isDesktopSupported, uri -> Desktop.getDesktop().browse(uri),
+                HelpWindow::copyUrlToSystemClipboard);
     }
 
-    HelpWindow(Stage root, BooleanSupplier desktopSupport, BrowserLauncher browserLauncher) {
+    HelpWindow(Stage root, BooleanSupplier desktopSupport, BrowserLauncher browserLauncher,
+            Consumer<String> clipboardWriter) {
         super(FXML, root);
         this.desktopSupport = desktopSupport;
         this.browserLauncher = browserLauncher;
+        this.clipboardWriter = clipboardWriter;
         helpMessage.setText(HELP_MESSAGE);
     }
 
@@ -113,6 +117,10 @@ public class HelpWindow extends UiPart<Stage> {
         return userGuideLink;
     }
 
+    Button getCopyButton() {
+        return copyButton;
+    }
+
     /**
      * Hides the help window.
      */
@@ -132,16 +140,18 @@ public class HelpWindow extends UiPart<Stage> {
      */
     @FXML
     private void copyUrl() {
-        copyUrl(url -> {
-            final Clipboard clipboard = Clipboard.getSystemClipboard();
-            final ClipboardContent content = new ClipboardContent();
-            content.putString(url);
-            clipboard.setContent(content);
-        });
+        copyUrl(clipboardWriter);
     }
 
     static void copyUrl(Consumer<String> copyAction) {
         copyAction.accept(USERGUIDE_URL);
+    }
+
+    private static void copyUrlToSystemClipboard(String url) {
+        final Clipboard clipboard = Clipboard.getSystemClipboard();
+        final ClipboardContent content = new ClipboardContent();
+        content.putString(url);
+        clipboard.setContent(content);
     }
 
     /** Opens the user guide in the system's default browser. */

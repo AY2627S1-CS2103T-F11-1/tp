@@ -46,15 +46,6 @@ public class HelpWindowTest {
     }
 
     @Test
-    public void copyUrl_copiesTpUserGuideUrl() {
-        AtomicReference<String> copiedUrl = new AtomicReference<>();
-
-        HelpWindow.copyUrl(copiedUrl::set);
-
-        assertEquals(HelpWindow.USERGUIDE_URL, copiedUrl.get());
-    }
-
-    @Test
     public void openUserGuide_whenDesktopSupported_opensTpUserGuideUrl() {
         AtomicReference<URI> openedUri = new AtomicReference<>();
 
@@ -71,7 +62,7 @@ public class HelpWindowTest {
         FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
             Stage stage = new Stage();
             try {
-                HelpWindow helpWindow = new HelpWindow(stage, () -> true, openedUri::set);
+                HelpWindow helpWindow = new HelpWindow(stage, () -> true, openedUri::set, url -> { });
                 helpWindow.getUserGuideLink().fire();
             } finally {
                 stage.close();
@@ -83,6 +74,26 @@ public class HelpWindowTest {
         testOnFxThread.get(10, TimeUnit.SECONDS);
 
         assertEquals(URI.create(HelpWindow.USERGUIDE_URL), openedUri.get());
+    }
+
+    @Test
+    public void copyUrlButton_whenClicked_copiesTpUserGuideUrl() throws Exception {
+        AtomicReference<String> copiedUrl = new AtomicReference<>();
+        FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Stage stage = new Stage();
+            try {
+                HelpWindow helpWindow = new HelpWindow(stage, () -> true, uri -> { }, copiedUrl::set);
+                helpWindow.getCopyButton().fire();
+            } finally {
+                stage.close();
+            }
+            return null;
+        });
+
+        Platform.runLater(testOnFxThread);
+        testOnFxThread.get(10, TimeUnit.SECONDS);
+
+        assertEquals(HelpWindow.USERGUIDE_URL, copiedUrl.get());
     }
 
     @Test
