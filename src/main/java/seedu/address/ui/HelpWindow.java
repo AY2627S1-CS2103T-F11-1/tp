@@ -3,6 +3,7 @@ package seedu.address.ui;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import javafx.fxml.FXML;
@@ -113,23 +114,39 @@ public class HelpWindow extends UiPart<Stage> {
      */
     @FXML
     private void copyUrl() {
-        final Clipboard clipboard = Clipboard.getSystemClipboard();
-        final ClipboardContent url = new ClipboardContent();
-        url.putString(USERGUIDE_URL);
-        clipboard.setContent(url);
+        copyUrl(url -> {
+            final Clipboard clipboard = Clipboard.getSystemClipboard();
+            final ClipboardContent content = new ClipboardContent();
+            content.putString(url);
+            clipboard.setContent(content);
+        });
+    }
+
+    static void copyUrl(Consumer<String> copyAction) {
+        copyAction.accept(USERGUIDE_URL);
     }
 
     /** Opens the user guide in the system's default browser. */
     @FXML
     private void openUserGuide() {
-        if (!Desktop.isDesktopSupported()) {
-            logger.warning("Unable to open user guide: desktop browsing is not supported.");
+        openUserGuide(Desktop.isDesktopSupported(), uri -> Desktop.getDesktop().browse(uri), logger::warning);
+    }
+
+    static void openUserGuide(boolean desktopSupported, BrowserLauncher browserLauncher,
+            Consumer<String> warningLogger) {
+        if (!desktopSupported) {
+            warningLogger.accept("Unable to open user guide: desktop browsing is not supported.");
             return;
         }
         try {
-            Desktop.getDesktop().browse(URI.create(USERGUIDE_URL));
+            browserLauncher.open(URI.create(USERGUIDE_URL));
         } catch (IOException | UnsupportedOperationException e) {
-            logger.warning("Unable to open user guide: " + e.getMessage());
+            warningLogger.accept("Unable to open user guide: " + e.getMessage());
         }
+    }
+
+    @FunctionalInterface
+    interface BrowserLauncher {
+        void open(URI uri) throws IOException;
     }
 }
