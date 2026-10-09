@@ -96,8 +96,10 @@ public class MainApp extends Application {
                                     + "Starting with an empty contact book.", filePath, backupPath);
                     logger.warning(initialStatusMessage);
                 } catch (IOException ioe) {
-                    logger.severe("Failed to create backup of corrupted data file " + filePath + ": "
-                            + ioe.getMessage());
+                    initialStatusMessage = String.format(
+                            "Warning: Data file %1$s is corrupted, and creating a backup failed: %2$s. "
+                                    + "Starting with an empty contact book.", filePath, ioe.getMessage());
+                    logger.severe(initialStatusMessage);
                 }
             }
         }

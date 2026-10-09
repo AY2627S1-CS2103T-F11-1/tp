@@ -102,7 +102,8 @@ public class MainAppTest {
     }
 
     @Test
-    public void initModelManager_corruptedFileBackupThrowsIoException_logsWarningAndStartsEmpty() throws Exception {
+    public void initModelManager_corruptedFileBackupThrowsIoException_setsFallbackWarningAndStartsEmpty()
+            throws Exception {
         Path corruptedPath = testFolder.resolve("corrupted_io_exception.json");
         Path prefsPath = testFolder.resolve("prefs.json");
         Files.writeString(corruptedPath, "corrupted content");
@@ -117,7 +118,11 @@ public class MainAppTest {
 
         Model model = mainApp.initModelManager(storageManager, userPrefs);
 
-        assertNull(mainApp.getInitialStatusMessage());
+        String warningMessage = mainApp.getInitialStatusMessage();
+        assertTrue(warningMessage != null && !warningMessage.isBlank());
+        assertTrue(warningMessage.startsWith("Warning: Data file "));
+        assertTrue(warningMessage.contains("is corrupted, and creating a backup failed: Simulated disk write error."));
+        assertTrue(warningMessage.endsWith("Starting with an empty contact book."));
         assertEquals(new AddressBook(), new AddressBook(model.getAddressBook()));
     }
 }
