@@ -3,11 +3,13 @@ package seedu.address.ui;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
@@ -47,13 +49,25 @@ public class HelpWindow extends UiPart<Stage> {
     @FXML
     private TextArea helpMessage;
 
+    @FXML
+    private Hyperlink userGuideLink;
+
+    private final BooleanSupplier desktopSupport;
+    private final BrowserLauncher browserLauncher;
+
     /**
      * Creates a new HelpWindow.
      *
      * @param root Stage to use as the root of the HelpWindow.
      */
     public HelpWindow(Stage root) {
+        this(root, Desktop::isDesktopSupported, uri -> Desktop.getDesktop().browse(uri));
+    }
+
+    HelpWindow(Stage root, BooleanSupplier desktopSupport, BrowserLauncher browserLauncher) {
         super(FXML, root);
+        this.desktopSupport = desktopSupport;
+        this.browserLauncher = browserLauncher;
         helpMessage.setText(HELP_MESSAGE);
     }
 
@@ -95,6 +109,10 @@ public class HelpWindow extends UiPart<Stage> {
         return getRoot().isShowing();
     }
 
+    Hyperlink getUserGuideLink() {
+        return userGuideLink;
+    }
+
     /**
      * Hides the help window.
      */
@@ -129,7 +147,7 @@ public class HelpWindow extends UiPart<Stage> {
     /** Opens the user guide in the system's default browser. */
     @FXML
     private void openUserGuide() {
-        openUserGuide(Desktop.isDesktopSupported(), uri -> Desktop.getDesktop().browse(uri), logger::warning);
+        openUserGuide(desktopSupport.getAsBoolean(), browserLauncher, logger::warning);
     }
 
     static void openUserGuide(boolean desktopSupported, BrowserLauncher browserLauncher,

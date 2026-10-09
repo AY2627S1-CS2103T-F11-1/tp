@@ -30,7 +30,7 @@
           <HBox alignment="CENTER_LEFT" spacing="8.0">
             <children>
               <Label styleClass="footer-label" text="For more detailed information:" />
-              <Hyperlink onAction="#openUserGuide" text="User guide" />
+              <Hyperlink fx:id="userGuideLink" onAction="#openUserGuide" text="User guide" />
               <Button fx:id="copyButton" mnemonicParsing="false" onAction="#copyUrl" text="Copy URL" />
             </children>
           </HBox>
