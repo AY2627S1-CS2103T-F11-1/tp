@@ -3,6 +3,7 @@ package seedu.address.ui;
 import java.nio.file.Path;
 import java.util.logging.Logger;
 
+import javafx.animation.PauseTransition;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.MenuItem;
@@ -11,6 +12,7 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.logic.Logic;
@@ -52,17 +54,28 @@ public class MainWindow extends UiPart<Stage> {
     @FXML
     private StackPane statusbarPlaceholder;
 
+    private String initialStatusMessage;
+
     /**
      * Creates a {@code MainWindow} with the given {@code Stage}, {@code Logic},
      * and the data file path to show in the status bar.
      */
     public MainWindow(Stage primaryStage, Logic logic, Path dataFilePath) {
+        this(primaryStage, logic, dataFilePath, null);
+    }
+
+    /**
+     * Creates a {@code MainWindow} with the given {@code Stage}, {@code Logic},
+     * the data file path to show in the status bar, and an initial status message.
+     */
+    public MainWindow(Stage primaryStage, Logic logic, Path dataFilePath, String initialStatusMessage) {
         super(FXML, primaryStage);
 
         // Set dependencies
         this.primaryStage = primaryStage;
         this.logic = logic;
         this.dataFilePath = dataFilePath;
+        this.initialStatusMessage = initialStatusMessage;
 
         // Configure the UI
         setWindowDefaultSize(logic.getGuiSettings());
@@ -119,6 +132,9 @@ public class MainWindow extends UiPart<Stage> {
 
         resultDisplay = new ResultDisplay();
         resultDisplayPlaceholder.getChildren().add(resultDisplay.getRoot());
+        if (initialStatusMessage != null && !initialStatusMessage.isBlank()) {
+            resultDisplay.setFeedbackToUser(initialStatusMessage);
+        }
 
         StatusBarFooter statusBarFooter = new StatusBarFooter(dataFilePath);
         statusbarPlaceholder.getChildren().add(statusBarFooter.getRoot());
@@ -156,6 +172,17 @@ public class MainWindow extends UiPart<Stage> {
     }
 
     /**
+     * Delays closure so the exit acknowledgement can be read.
+     */
+    private void handleDelayedExit() {
+        commandBoxPlaceholder.setDisable(true);
+
+        PauseTransition delay = new PauseTransition(Duration.seconds(1));
+        delay.setOnFinished(event -> handleExit());
+        delay.play();
+    }
+
+    /**
      * Closes the application.
      */
     @FXML
@@ -187,7 +214,7 @@ public class MainWindow extends UiPart<Stage> {
             }
 
             if (commandResult.isExit()) {
-                handleExit();
+                handleDelayedExit();
             }
 
             return commandResult;
