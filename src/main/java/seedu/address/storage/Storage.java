@@ -54,4 +54,12 @@ public interface Storage {
      */
     void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException;
 
+    /**
+     * Creates a timestamped backup of the current address book data file.
+     *
+     * @return the {@code Path} of the created backup file.
+     * @throws IOException if an error occurs while creating the backup.
+     */
+    Path backupAddressBookFile() throws IOException;
+
 }
