@@ -25,6 +25,8 @@ public class DeleteCommand extends Command {
 
     public static final String MESSAGE_DELETE_PERSON_SUCCESS = "Deleted person: %1$s";
 
+    public static final String MESSAGE_NO_CONTACTS_TO_DELETE = "There are no contacts to delete.";
+
     private final Index targetIndex;
 
     public DeleteCommand(Index targetIndex) {
@@ -35,6 +37,10 @@ public class DeleteCommand extends Command {
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
         List<Person> lastShownList = model.getFilteredPersonList();
+
+        if (lastShownList.isEmpty()) {
+            throw new CommandException(MESSAGE_NO_CONTACTS_TO_DELETE);
+        }
 
         if (targetIndex.getZeroBased() >= lastShownList.size()) {
             throw new CommandException(Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);

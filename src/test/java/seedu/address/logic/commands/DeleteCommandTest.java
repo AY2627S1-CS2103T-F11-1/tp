@@ -28,6 +28,14 @@ public class DeleteCommandTest {
     private Model model = new ModelManager(getTypicalAddressBook(), new UserPrefs());
 
     @Test
+    public void execute_emptyList_throwsCommandException() {
+        Model emptyModel = new ModelManager();
+        DeleteCommand deleteCommand = new DeleteCommand(INDEX_FIRST_PERSON);
+
+        assertCommandFailure(deleteCommand, emptyModel, DeleteCommand.MESSAGE_NO_CONTACTS_TO_DELETE);
+    }
+
+    @Test
     public void execute_validIndexUnfilteredList_success() {
         Person personToDelete = model.getFilteredPersonList().get(INDEX_FIRST_PERSON.getZeroBased());
         DeleteCommand deleteCommand = new DeleteCommand(INDEX_FIRST_PERSON);
