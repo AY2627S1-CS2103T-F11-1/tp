@@ -11,7 +11,6 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -24,15 +23,20 @@ import javafx.stage.Stage;
 public class HelpWindowTest {
 
     @BeforeAll
-    public static void initializeJavaFx() throws InterruptedException {
+    public static void initializeJavaFx() throws Exception {
         CountDownLatch started = new CountDownLatch(1);
-        Platform.startup(started::countDown);
-        assertTrue(started.await(10, TimeUnit.SECONDS));
-    }
+        Runnable initialize = () -> {
+            Platform.setImplicitExit(false);
+            started.countDown();
+        };
 
-    @AfterAll
-    public static void shutdownJavaFx() {
-        Platform.exit();
+        try {
+            Platform.startup(initialize);
+        } catch (IllegalStateException e) {
+            Platform.runLater(initialize);
+        }
+
+        assertTrue(started.await(10, TimeUnit.SECONDS), "JavaFX did not initialize");
     }
 
     @Test
