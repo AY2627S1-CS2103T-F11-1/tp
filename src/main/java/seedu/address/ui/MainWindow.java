@@ -3,6 +3,7 @@ package seedu.address.ui;
 import java.nio.file.Path;
 import java.util.logging.Logger;
 
+import javafx.animation.PauseTransition;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.MenuItem;
@@ -11,6 +12,7 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.logic.Logic;
@@ -156,6 +158,17 @@ public class MainWindow extends UiPart<Stage> {
     }
 
     /**
+     * Delays closure so the exit acknowledgement can be read.
+     */
+    private void handleDelayedExit() {
+        commandBoxPlaceholder.setDisable(true);
+
+        PauseTransition delay = new PauseTransition(Duration.seconds(1));
+        delay.setOnFinished(event -> handleExit());
+        delay.play();
+    }
+
+    /**
      * Closes the application.
      */
     @FXML
@@ -187,7 +200,7 @@ public class MainWindow extends UiPart<Stage> {
             }
 
             if (commandResult.isExit()) {
-                handleExit();
+                handleDelayedExit();
             }
 
             return commandResult;
