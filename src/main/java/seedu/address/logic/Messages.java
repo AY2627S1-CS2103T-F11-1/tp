@@ -1,5 +1,6 @@
 package seedu.address.logic;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -18,6 +19,8 @@ public class Messages {
     public static final String MESSAGE_PERSONS_LISTED_OVERVIEW = "%1$d person(s) listed!";
     public static final String MESSAGE_DUPLICATE_FIELDS =
                 "Multiple values specified for the following single-valued field(s): ";
+    public static final String MESSAGE_MISSING_PARAMETERS =
+            "Missing mandatory parameter(s): ";
 
     /**
      * Returns an error message indicating the duplicate prefixes.
@@ -29,6 +32,19 @@ public class Messages {
                 Stream.of(duplicatePrefixes).map(Prefix::toString).collect(Collectors.toSet());
 
         return MESSAGE_DUPLICATE_FIELDS + String.join(" ", duplicateFields);
+    }
+
+    /**
+     * Returns an error message indicating the missing prefixes.
+     */
+    public static String getErrorMessageForMissingPrefixes(Prefix... missingPrefixes) {
+        assert missingPrefixes.length > 0;
+
+        List<String> missingFields = Stream.of(missingPrefixes)
+                .map(Prefix::toString)
+                .collect(Collectors.toList());
+
+        return MESSAGE_MISSING_PARAMETERS + String.join(" ", missingFields);
     }
 
     /**
