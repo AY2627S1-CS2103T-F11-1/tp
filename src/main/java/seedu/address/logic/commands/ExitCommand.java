@@ -1,5 +1,6 @@
 package seedu.address.logic.commands;
 
+import seedu.address.commons.util.ToStringBuilder;
 import seedu.address.model.Model;
 
 /**
@@ -26,6 +27,27 @@ public class ExitCommand extends Command {
         } else {
             return new CommandResult(MESSAGE_EXIT_ACKNOWLEDGEMENT, false, true);
         }
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        }
+
+        // instanceof handles nulls
+        if (!(other instanceof ExitCommand otherExitCommand)) {
+            return false;
+        }
+
+        return hasExtraArgs == otherExitCommand.hasExtraArgs;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .add("hasExtraArgs", hasExtraArgs)
+                .toString();
     }
 
 }
