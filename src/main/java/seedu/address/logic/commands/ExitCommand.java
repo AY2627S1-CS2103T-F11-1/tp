@@ -11,8 +11,8 @@ public class ExitCommand extends Command {
     public static final String COMMAND_WORD = "exit";
 
     public static final String MESSAGE_EXIT_ACKNOWLEDGEMENT = "Exiting Address Book as requested ...";
-    public static final String MESSAGE_EXIT_DISCLAIMER
-            = "exit takes no parameters. Extra text is ignored. Exiting Address Book ...";
+    public static final String MESSAGE_EXIT_DISCLAIMER =
+            "exit takes no parameters. Extra text is ignored. Exiting Address Book ...";
 
     private final boolean hasExtraArgs;
 
