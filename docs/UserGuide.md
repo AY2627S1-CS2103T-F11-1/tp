@@ -161,8 +161,12 @@ AddressBook automatically saves data after every command. You do not need to sav
 AddressBook data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
 
 <div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
-If your changes make the data file invalid, AddressBook starts with an empty address book at the next run. The invalid file remains on disk until you run a command (AddressBook saves after every command). Still, we recommend backing up the file before editing it.<br>
-Furthermore, certain edits can cause the AddressBook to behave in unexpected ways (e.g., if a value entered is outside of the acceptable range). Therefore, edit the data file only if you are confident that you can update it correctly.
+If manual edits make the data file invalid or corrupted:
+* AddressBook automatically creates a timestamped backup copy in the `data/` folder (for example, `addressbook.json.backup.20261012_123456`).
+* A warning message appears in the result box on launch showing the backup file path.
+* AddressBook starts with an empty contact book so that you can continue using the application without immediately overwriting your corrupted data file.
+* To restore your contacts, close AddressBook, open the backup file in a text editor to fix any syntax errors, and rename it back to `addressbook.json` before relaunching the app.<br>
+Certain invalid values can also cause unexpected behavior. Edit the data file only if you are confident in editing JSON formatted files.
 </div>
 
 ### Archiving data files `[coming in v2.0]`
@@ -175,6 +179,9 @@ _Details coming soon ..._
 
 **Q**: How do I transfer my data to another computer?<br>
 **A**: Install the app on the other computer and overwrite the data file it creates with the data file from your previous AddressBook home folder.
+
+**Q**: What should I do if my data file is corrupted?<br>
+**A**: When AddressBook detects a corrupted data file on startup, it automatically creates a timestamped backup in the `data/` folder and starts with an empty contact list. Close AddressBook, open the backup file in a text editor to fix any invalid syntax, and rename it back to `addressbook.json` before relaunching the app.
 
 --------------------------------------------------------------------------------------------------------------------
 
