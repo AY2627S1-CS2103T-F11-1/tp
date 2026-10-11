@@ -59,7 +59,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
 * Extraneous parameters for commands that take no parameters, such as `help`, `list`, `exit`, and `clear`, are ignored.<br>
-  For example, `help 123` is interpreted as `help`.
+  For example, `help 123` is interpreted as `help`. For `exit`, a message also explains that any extra text is ignored before the application closes.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </div>
@@ -148,9 +148,13 @@ Format: `clear`
 
 ### Exiting the program: `exit`
 
-Exits the program.
+Exits the program after displaying a closing message for a short time.
 
 Format: `exit`
+
+Any extra text after `exit` is ignored. The closing message explains this, and the application exits without asking for confirmation.
+
+For example, `exit -f` exits in the same way as `exit`.
 
 ### Saving the data
 
