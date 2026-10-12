@@ -55,8 +55,15 @@ public class AddCommand extends Command {
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
 
-        if (model.hasPerson(toAdd)) {
-            throw new CommandException(MESSAGE_DUPLICATE_PERSON);
+        boolean hasPhone = model.hasPhone(toAdd.getPhone());
+        boolean hasEmail = model.hasEmail(toAdd.getEmail());
+
+        if (hasPhone && hasEmail) {
+            throw new CommandException(Messages.MESSAGE_DUPLICATE_PHONE_AND_EMAIL);
+        } else if (hasPhone) {
+            throw new CommandException(Messages.MESSAGE_DUPLICATE_PHONE);
+        } else if (hasEmail) {
+            throw new CommandException(Messages.MESSAGE_DUPLICATE_EMAIL);
         }
 
         model.addPerson(toAdd);

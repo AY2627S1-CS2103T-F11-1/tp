@@ -46,12 +46,35 @@ public class AddCommandTest {
     }
 
     @Test
-    public void execute_duplicatePerson_throwsCommandException() {
+    public void execute_duplicatePhoneAndEmail_throwsCommandException() {
         Person validPerson = new PersonBuilder().build();
         AddCommand addCommand = new AddCommand(validPerson);
         ModelStub modelStub = new ModelStubWithPerson(validPerson);
 
-        assertThrows(CommandException.class, AddCommand.MESSAGE_DUPLICATE_PERSON, () -> addCommand.execute(modelStub));
+        assertThrows(CommandException.class, Messages.MESSAGE_DUPLICATE_PHONE_AND_EMAIL, () ->
+                addCommand.execute(modelStub));
+    }
+
+    @Test
+    public void execute_duplicatePhoneOnly_throwsCommandException() {
+        Person existingPerson = new PersonBuilder().withPhone("98765432").withEmail("amy@example.com").build();
+        Person personWithSamePhone = new PersonBuilder().withPhone("98765432").withEmail("bob@example.com").build();
+        AddCommand addCommand = new AddCommand(personWithSamePhone);
+        ModelStub modelStub = new ModelStubWithPerson(existingPerson);
+
+        assertThrows(CommandException.class, Messages.MESSAGE_DUPLICATE_PHONE, () ->
+                addCommand.execute(modelStub));
+    }
+
+    @Test
+    public void execute_duplicateEmailOnly_throwsCommandException() {
+        Person existingPerson = new PersonBuilder().withPhone("98765432").withEmail("amy@example.com").build();
+        Person personWithSameEmail = new PersonBuilder().withPhone("12345678").withEmail("amy@example.com").build();
+        AddCommand addCommand = new AddCommand(personWithSameEmail);
+        ModelStub modelStub = new ModelStubWithPerson(existingPerson);
+
+        assertThrows(CommandException.class, Messages.MESSAGE_DUPLICATE_EMAIL, () ->
+                addCommand.execute(modelStub));
     }
 
     @Test
