@@ -328,16 +328,22 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **Extensions**
 
-*  1a. A required field is missing or a value is invalid.
+*  1a. One or more mandatory fields are missing.
 
-  *  1a1. `KeyBossWarriorsPro` shows an error message.
-  
+  *  1a1. `KeyBossWarriorsPro` shows an error message indicating the missing parameter(s).
+
      Use case ends.
 
-*  1b. The phone number or email belongs to an existing contact.
+*  1b. A provided field value is invalid or extraneous arguments are provided.
 
   *  1b1. `KeyBossWarriorsPro` shows an error message.
-  
+
+     Use case ends.
+
+*  1c. The phone number or email belongs to an existing contact.
+
+  *  1c1. `KeyBossWarriorsPro` shows an error message.
+
     Use case ends.
 
 

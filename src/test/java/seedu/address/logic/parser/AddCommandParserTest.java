@@ -159,31 +159,38 @@ public class AddCommandParserTest {
 
     @Test
     public void parse_compulsoryFieldMissing_failure() {
-        String expectedMessage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddCommand.MESSAGE_USAGE);
-
         // missing name prefix
         assertParseFailure(parser, VALID_NAME_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB
-                + ROLE_DESC_BOB, expectedMessage);
+                + ROLE_DESC_BOB, Messages.getErrorMessageForMissingPrefixes(PREFIX_NAME));
 
         // missing phone prefix
         assertParseFailure(parser, NAME_DESC_BOB + VALID_PHONE_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB
-                + ROLE_DESC_BOB, expectedMessage);
+                + ROLE_DESC_BOB, Messages.getErrorMessageForMissingPrefixes(PREFIX_PHONE));
 
         // missing email prefix
         assertParseFailure(parser, NAME_DESC_BOB + PHONE_DESC_BOB + VALID_EMAIL_BOB + ADDRESS_DESC_BOB
-                + ROLE_DESC_BOB, expectedMessage);
+                + ROLE_DESC_BOB, Messages.getErrorMessageForMissingPrefixes(PREFIX_EMAIL));
 
         // missing address prefix
         assertParseFailure(parser, NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + VALID_ADDRESS_BOB
-                + ROLE_DESC_BOB, expectedMessage);
+                + ROLE_DESC_BOB, Messages.getErrorMessageForMissingPrefixes(PREFIX_ADDRESS));
 
         // missing role prefix
         assertParseFailure(parser, NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB
-                + VALID_ROLE_BOB, expectedMessage);
+                + VALID_ROLE_BOB, Messages.getErrorMessageForMissingPrefixes(PREFIX_ROLE));
+
+        // multiple prefixes missing
+        assertParseFailure(parser, NAME_DESC_BOB + ROLE_DESC_BOB,
+                Messages.getErrorMessageForMissingPrefixes(PREFIX_PHONE, PREFIX_EMAIL, PREFIX_ADDRESS));
 
         // all prefixes missing
         assertParseFailure(parser, VALID_NAME_BOB + VALID_PHONE_BOB + VALID_EMAIL_BOB + VALID_ADDRESS_BOB
-                + VALID_ROLE_BOB, expectedMessage);
+                + VALID_ROLE_BOB, Messages.getErrorMessageForMissingPrefixes(
+                PREFIX_NAME, PREFIX_PHONE, PREFIX_EMAIL, PREFIX_ADDRESS, PREFIX_ROLE));
+
+        // empty input
+        assertParseFailure(parser, "", Messages.getErrorMessageForMissingPrefixes(
+                PREFIX_NAME, PREFIX_PHONE, PREFIX_EMAIL, PREFIX_ADDRESS, PREFIX_ROLE));
     }
 
     @Test
