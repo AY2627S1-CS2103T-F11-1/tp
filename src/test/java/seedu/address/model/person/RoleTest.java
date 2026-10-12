@@ -1,6 +1,8 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
@@ -53,5 +55,22 @@ public class RoleTest {
 
         // different values -> returns false
         assertFalse(role.equals(new Role("Employee")));
+    }
+
+    @Test
+    public void hashcode() {
+        Role role = new Role("Supplier");
+
+        // same values -> returns same hashcode
+        assertEquals(role.hashCode(), new Role("Supplier").hashCode());
+
+        // different values -> returns different hashcode
+        assertNotEquals(role.hashCode(), new Role("Employee").hashCode());
+    }
+
+    @Test
+    public void toStringMethod() {
+        Role role = new Role("Supplier");
+        assertEquals("Supplier", role.toString());
     }
 }
