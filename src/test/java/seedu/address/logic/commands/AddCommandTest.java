@@ -21,7 +21,9 @@ import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.ReadOnlyUserPrefs;
+import seedu.address.model.person.Email;
 import seedu.address.model.person.Person;
+import seedu.address.model.person.Phone;
 import seedu.address.testutil.PersonBuilder;
 
 public class AddCommandTest {
@@ -123,6 +125,26 @@ public class AddCommandTest {
         }
 
         @Override
+        public boolean hasPhone(Phone phone) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public boolean hasPhone(Phone phone, Person excludePerson) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public boolean hasEmail(Email email) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
+        public boolean hasEmail(Email email, Person excludePerson) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
         public void deletePerson(Person target) {
             throw new AssertionError("This method should not be called.");
         }
@@ -159,6 +181,32 @@ public class AddCommandTest {
             requireNonNull(person);
             return this.person.isSamePerson(person);
         }
+
+        @Override
+        public boolean hasPhone(Phone phone) {
+            requireNonNull(phone);
+            return this.person.getPhone().equals(phone);
+        }
+
+        @Override
+        public boolean hasPhone(Phone phone, Person excludePerson) {
+            requireNonNull(phone);
+            return (excludePerson == null || !this.person.equals(excludePerson))
+                    && this.person.getPhone().equals(phone);
+        }
+
+        @Override
+        public boolean hasEmail(Email email) {
+            requireNonNull(email);
+            return this.person.getEmail().equals(email);
+        }
+
+        @Override
+        public boolean hasEmail(Email email, Person excludePerson) {
+            requireNonNull(email);
+            return (excludePerson == null || !this.person.equals(excludePerson))
+                    && this.person.getEmail().equals(email);
+        }
     }
 
     /**
@@ -171,6 +219,34 @@ public class AddCommandTest {
         public boolean hasPerson(Person person) {
             requireNonNull(person);
             return personsAdded.stream().anyMatch(person::isSamePerson);
+        }
+
+        @Override
+        public boolean hasPhone(Phone phone) {
+            requireNonNull(phone);
+            return personsAdded.stream().anyMatch(p -> p.getPhone().equals(phone));
+        }
+
+        @Override
+        public boolean hasPhone(Phone phone, Person excludePerson) {
+            requireNonNull(phone);
+            return personsAdded.stream()
+                    .filter(p -> excludePerson == null || !p.equals(excludePerson))
+                    .anyMatch(p -> p.getPhone().equals(phone));
+        }
+
+        @Override
+        public boolean hasEmail(Email email) {
+            requireNonNull(email);
+            return personsAdded.stream().anyMatch(p -> p.getEmail().equals(email));
+        }
+
+        @Override
+        public boolean hasEmail(Email email, Person excludePerson) {
+            requireNonNull(email);
+            return personsAdded.stream()
+                    .filter(p -> excludePerson == null || !p.equals(excludePerson))
+                    .anyMatch(p -> p.getEmail().equals(email));
         }
 
         @Override
