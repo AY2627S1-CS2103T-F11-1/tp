@@ -82,7 +82,7 @@ public class ArgumentMultimap {
      */
     public void verifyNoMissingPrefixesFor(Prefix... prefixes) throws ParseException {
         Prefix[] missingPrefixes = Stream.of(prefixes).distinct()
-                .filter(prefix -> !argMultimap.containsKey(prefix) || argMultimap.get(prefix).isEmpty())
+                .filter(prefix -> !argMultimap.containsKey(prefix))
                 .toArray(Prefix[]::new);
 
         if (missingPrefixes.length > 0) {
