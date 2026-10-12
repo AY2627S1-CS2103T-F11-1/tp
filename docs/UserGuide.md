@@ -160,12 +160,20 @@ AddressBook automatically saves data after every command. You do not need to sav
 
 AddressBook data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
 
-<div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
+<div markdown="block" class="alert alert-warning">
+
+:exclamation: **Caution:**<br>
+
 If manual edits make the data file invalid or corrupted:
+
 * AddressBook automatically creates a timestamped backup copy in the `data/` folder (for example, `addressbook.json.backup.20261012_123456`).
+
 * A warning message appears in the result box on launch showing the backup file path.
+
 * AddressBook starts with an empty contact book so that you can continue using the application without immediately overwriting your corrupted data file.
-* To restore your contacts, close AddressBook, open the backup file in a text editor to fix any syntax errors, and rename it back to `addressbook.json` before relaunching the app.<br>
+
+* To restore your contacts, close AddressBook, open the backup file in a text editor to fix any syntax errors, and rename it back to `addressbook.json` before relaunching the app.
+
 Certain invalid values can also cause unexpected behavior. Edit the data file only if you are confident in editing JSON formatted files.
 </div>
 
