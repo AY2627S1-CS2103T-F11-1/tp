@@ -34,10 +34,29 @@ public class DeleteCommand extends Command {
     public static final String MESSAGE_INDEX_OUT_OF_RANGE = "Error: INDEX %1$d is outside the displayed contact list "
             + "(valid range: 1-%2$d)";
 
+    public static final String MESSAGE_SINGLE_INDEX_OUT_OF_RANGE =
+            "Error: INDEX %1$d is outside the displayed contact list (valid index: 1)";
+
     private final Index targetIndex;
 
     public DeleteCommand(Index targetIndex) {
         this.targetIndex = targetIndex;
+    }
+
+    /**
+     * Returns an error message for an index outside the displayed contact list.
+     * Uses singular wording when only one contact is displayed.
+     *
+     * @param index the one-based index supplied by the user
+     * @param displayedListSize the number of contacts currently displayed
+     * @return an appropriate out-of-range error message
+     */
+    private static String getIndexOutOfRangeMessage(int index, int displayedListSize) {
+        if (displayedListSize == 1) {
+            return String.format(MESSAGE_SINGLE_INDEX_OUT_OF_RANGE, index);
+        }
+
+        return String.format(MESSAGE_INDEX_OUT_OF_RANGE, index, displayedListSize);
     }
 
     /**
@@ -59,11 +78,7 @@ public class DeleteCommand extends Command {
 
         // Execution error: index out of range
         if (targetIndex.getZeroBased() >= lastShownList.size()) {
-            throw new CommandException(String.format(
-                    MESSAGE_INDEX_OUT_OF_RANGE,
-                    targetIndex.getOneBased(),
-                    lastShownList.size()
-            ));
+            throw new CommandException(getIndexOutOfRangeMessage(targetIndex.getOneBased(), lastShownList.size()));
         }
 
         Person personToDelete = lastShownList.get(targetIndex.getZeroBased());

@@ -50,7 +50,9 @@ public class DeleteCommandTest {
     }
 
     @Test
-    public void execute_invalidIndexUnfilteredList_throwsCommandException() {
+    public void execute_invalidIndexMultipleContacts_throwsCommandException() {
+        assertTrue(model.getFilteredPersonList().size() > 1);
+
         Index outOfBoundIndex = Index.fromOneBased(model.getFilteredPersonList().size() + 1);
         DeleteCommand deleteCommand = new DeleteCommand(outOfBoundIndex);
 
@@ -80,8 +82,10 @@ public class DeleteCommandTest {
     }
 
     @Test
-    public void execute_invalidIndexFilteredList_throwsCommandException() {
+    public void execute_invalidIndexSingleContact_throwsCommandException() {
         showPersonAtIndex(model, INDEX_FIRST_PERSON);
+
+        assertEquals(1, model.getFilteredPersonList().size());
 
         Index outOfBoundIndex = INDEX_SECOND_PERSON;
         // ensures that outOfBoundIndex is still in bounds of address book list
@@ -90,9 +94,8 @@ public class DeleteCommandTest {
         DeleteCommand deleteCommand = new DeleteCommand(outOfBoundIndex);
 
         String expectedMessage = String.format(
-                DeleteCommand.MESSAGE_INDEX_OUT_OF_RANGE,
-                outOfBoundIndex.getOneBased(),
-                model.getFilteredPersonList().size());
+                DeleteCommand.MESSAGE_SINGLE_INDEX_OUT_OF_RANGE,
+                outOfBoundIndex.getOneBased());
 
         assertCommandFailure(deleteCommand, model, expectedMessage);
     }
