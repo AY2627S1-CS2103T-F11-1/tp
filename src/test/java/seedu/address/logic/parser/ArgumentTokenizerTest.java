@@ -1,11 +1,15 @@
 package seedu.address.logic.parser;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.testutil.Assert.assertThrows;
 
 import org.junit.jupiter.api.Test;
+
+import seedu.address.logic.parser.exceptions.ParseException;
 
 public class ArgumentTokenizerTest {
 
@@ -147,4 +151,25 @@ public class ArgumentTokenizerTest {
         assertNotEquals(aaa, new Prefix("aab"));
     }
 
+    @Test
+    public void verifyNoMissingPrefixesFor() {
+        ArgumentMultimap argMultimap = ArgumentTokenizer.tokenize("Some text p/ 12345", pSlash);
+
+        // all required prefixes present -> passes
+        assertDoesNotThrow(() -> argMultimap.verifyNoMissingPrefixesFor(pSlash));
+
+        // missing required prefix -> throws ParseException
+        assertThrows(ParseException.class, () -> argMultimap.verifyNoMissingPrefixesFor(pSlash, dashT));
+    }
+
+    @Test
+    public void verifyNoDuplicatePrefixesFor() {
+        ArgumentMultimap argMultimap = ArgumentTokenizer.tokenize("Some text p/ 12345 p/ 67890", pSlash);
+
+        // duplicate prefix -> throws ParseException
+        assertThrows(ParseException.class, () -> argMultimap.verifyNoDuplicatePrefixesFor(pSlash));
+
+        // non-duplicated prefix -> passes
+        assertDoesNotThrow(() -> argMultimap.verifyNoDuplicatePrefixesFor(dashT));
+    }
 }

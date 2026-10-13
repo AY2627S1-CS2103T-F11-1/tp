@@ -28,7 +28,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 
    * `list` : Lists all contacts.
 
-   * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01` : Adds a contact named `John Doe` to the Address Book.
+   * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01 r/Supplier` : Adds a contact named `John Doe` to the Address Book.
 
    * `delete 3` : Deletes the 3rd contact shown in the current list.
 
@@ -59,7 +59,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
 * Extraneous parameters for commands that take no parameters, such as `help`, `list`, `exit`, and `clear`, are ignored.<br>
-  For example, `help 123` is interpreted as `help`.
+  For example, `help 123` is interpreted as `help`. For `exit`, a message also explains that any extra text is ignored before the application closes.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </div>
@@ -77,15 +77,17 @@ Format: `help`
 
 Adds a person to the address book.
 
-Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]…​`
+Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…​`
+
+* `ROLE` represents the person's role or affiliation in your keyboard shop (e.g., `Supplier`, `Employee`, `Partner`, `Customer`). It cannot be empty.
 
 <div markdown="span" class="alert alert-primary">:bulb: **Tip:**
 A person can have any number of tags, including zero.
 </div>
 
 Examples:
-* `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01`
-* `add n/Betsy Crowe t/friend e/betsycrowe@example.com a/Newgate Prison p/1234567 t/criminal`
+* `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01 r/Supplier`
+* `add n/Betsy Crowe t/friend e/betsycrowe@example.com a/Newgate Prison p/1234567 r/Employee t/criminal`
 
 ### Listing all persons: `list`
 
@@ -148,9 +150,13 @@ Format: `clear`
 
 ### Exiting the program: `exit`
 
-Exits the program.
+Exits the program after displaying a closing message for a short time.
 
 Format: `exit`
+
+Any extra text after `exit` is ignored. The closing message explains this, and the application exits without asking for confirmation.
+
+For example, `exit -f` exits in the same way as `exit`.
 
 ### Saving the data
 
@@ -162,9 +168,21 @@ Data saves are performed atomically. The application writes updates to a tempora
 
 AddressBook data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
 
-<div markdown="span" class="alert alert-warning">:exclamation: **Caution:**
-If your changes make the data file invalid, AddressBook starts with an empty address book at the next run. The invalid file remains on disk until you run a command (AddressBook saves after every command). Still, we recommend backing up the file before editing it.<br>
-Furthermore, certain edits can cause the AddressBook to behave in unexpected ways (e.g., if a value entered is outside of the acceptable range). Therefore, edit the data file only if you are confident that you can update it correctly.
+<div markdown="block" class="alert alert-warning">
+
+:exclamation: **Caution:**<br>
+
+If manual edits make the data file invalid or corrupted:
+
+* AddressBook automatically creates a timestamped backup copy in the `data/` folder (for example, `addressbook.json.backup.20261012_123456`).
+
+* A warning message appears in the result box on launch showing the backup file path.
+
+* AddressBook starts with an empty contact book so that you can continue using the application without immediately overwriting your corrupted data file.
+
+* To restore your contacts, close AddressBook, open the backup file in a text editor to fix any syntax errors, and rename it back to `addressbook.json` before relaunching the app.
+
+Certain invalid values can also cause unexpected behavior. Edit the data file only if you are confident in editing JSON formatted files.
 </div>
 
 ### Archiving data files `[coming in v2.0]`
@@ -177,6 +195,9 @@ _Details coming soon ..._
 
 **Q**: How do I transfer my data to another computer?<br>
 **A**: Install the app on the other computer and overwrite the data file it creates with the data file from your previous AddressBook home folder.
+
+**Q**: What should I do if my data file is corrupted?<br>
+**A**: When AddressBook detects a corrupted data file on startup, it automatically creates a timestamped backup in the `data/` folder and starts with an empty contact list. Close AddressBook, open the backup file in a text editor to fix any invalid syntax, and rename it back to `addressbook.json` before relaunching the app.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -191,7 +212,7 @@ _Details coming soon ..._
 
 Action | Format, Examples
 --------|------------------
-**Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS [t/TAG]…​` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 t/friend t/colleague`
+**Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…​` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 r/Supplier t/friend t/colleague`
 **Clear** | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [t/TAG]…​`<br> e.g., `edit 2 n/James Lee e/jameslee@example.com`

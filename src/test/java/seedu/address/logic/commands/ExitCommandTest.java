@@ -1,10 +1,15 @@
 package seedu.address.logic.commands;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandSuccess;
 import static seedu.address.logic.commands.ExitCommand.MESSAGE_EXIT_ACKNOWLEDGEMENT;
+import static seedu.address.logic.commands.ExitCommand.MESSAGE_EXIT_DISCLAIMER;
 
 import org.junit.jupiter.api.Test;
 
+import seedu.address.logic.parser.ExitCommandParser;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 
@@ -13,8 +18,52 @@ public class ExitCommandTest {
     private Model expectedModel = new ModelManager();
 
     @Test
-    public void execute_exit_success() {
+    public void execute_noAdditionalArgs_success() {
         CommandResult expectedCommandResult = new CommandResult(MESSAGE_EXIT_ACKNOWLEDGEMENT, false, true);
-        assertCommandSuccess(new ExitCommand(), model, expectedCommandResult, expectedModel);
+        assertCommandSuccess(new ExitCommand(false), model, expectedCommandResult, expectedModel);
+    }
+
+    @Test
+    public void execute_whitespaceArgs_success() {
+        ExitCommand command = new ExitCommandParser().parse(" \t ");
+        CommandResult expectedCommandResult = new CommandResult(MESSAGE_EXIT_ACKNOWLEDGEMENT, false, true);
+        assertCommandSuccess(command, model, expectedCommandResult, expectedModel);
+    }
+
+    @Test
+    public void execute_additionalArgs_success() {
+        ExitCommand command = new ExitCommandParser().parse(" -f");
+        CommandResult expectedCommandResult = new CommandResult(MESSAGE_EXIT_DISCLAIMER, false, true);
+        assertCommandSuccess(command, model, expectedCommandResult, expectedModel);
+    }
+
+    @Test
+    public void equals() {
+        ExitCommand exitFirstCommand = new ExitCommand(true);
+        ExitCommand exitSecondCommand = new ExitCommand(false);
+
+        // same object -> returns true
+        assertTrue(exitFirstCommand.equals(exitFirstCommand));
+
+        // same values -> returns true
+        ExitCommand exitFirstCommandCopy = new ExitCommand(true);
+        assertTrue(exitFirstCommand.equals(exitFirstCommandCopy));
+
+        // different types -> returns false
+        assertFalse(exitFirstCommand.equals(1));
+
+        // null -> returns false
+        assertFalse(exitFirstCommand.equals(null));
+
+        // different values -> returns false
+        assertFalse(exitFirstCommand.equals(exitSecondCommand));
+    }
+
+    @Test
+    public void toStringMethod() {
+        boolean hasExtraArgs = true;
+        ExitCommand exitCommand = new ExitCommand(hasExtraArgs);
+        String expected = ExitCommand.class.getCanonicalName() + "{hasExtraArgs=" + hasExtraArgs + "}";
+        assertEquals(expected, exitCommand.toString());
     }
 }

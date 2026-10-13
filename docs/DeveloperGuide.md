@@ -143,6 +143,7 @@ The `Model` component,
 The `Storage` component,
 * can save both address book data and user preference data in JSON format, and read them back into corresponding objects.
 * is implemented by `StorageManager`, which delegates the actual JSON file access to `JsonAddressBookStorage` and `JsonUserPrefsStorage` (one class per data file).
+* can create a timestamped backup copy of the address book data file when corrupted or invalid data is encountered on launch.
 * writes files atomically using `FileUtil#writeToFile`, writing to a temporary sibling file before replacing the target file to prevent data corruption.
 * depends on some classes in the `Model` component (because the `Storage` component's job is to save/retrieve objects that belong to the `Model`).
 
@@ -354,16 +355,22 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **Extensions**
 
-*  1a. A required field is missing or a value is invalid.
+*  1a. One or more mandatory fields are missing.
 
-  *  1a1. `KeyBossWarriorsPro` shows an error message.
-  
+  *  1a1. `KeyBossWarriorsPro` shows an error message indicating the missing parameter(s).
+
      Use case ends.
 
-*  1b. The phone number or email belongs to an existing contact.
+*  1b. A provided field value is invalid or extraneous arguments are provided.
 
   *  1b1. `KeyBossWarriorsPro` shows an error message.
-  
+
+     Use case ends.
+
+*  1c. The phone number or email belongs to an existing contact.
+
+  *  1c1. `KeyBossWarriorsPro` shows an error message.
+
     Use case ends.
 
 
@@ -549,6 +556,19 @@ testers are expected to do more *exploratory* testing.
 
 1. Dealing with missing/corrupted data files
 
-   1. _{Explain how to simulate missing or corrupted data files and state the expected behavior.}_
+   1. Missing data file
+      1. Prerequisites: Close the application. Delete `data/addressbook.json` if it exists.
+      1. Test case: Launch the application.<br>
+         Expected: The application starts normally and creates a new `data/addressbook.json` file populated with sample contact data. No backup file is created.
+
+   1. Corrupted data file
+      1. Prerequisites: Close the application. Open `data/addressbook.json` in a text editor and corrupt its content (e.g., enter `{ invalid json content }` or delete required closing brackets).
+      1. Test case: Launch the application.<br>
+         Expected: The application starts with an empty contact list. A timestamped backup file named `data/addressbook.json.backup.YYYYMMDD_HHMMSS` (or with a `_1`, `_2` suffix if a file with the same name already exists) is created in the `data/` folder with the exact corrupted content. A warning message appears in the result display stating that the file is corrupted, identifying the backup path, and indicating that the application started with an empty contact book.
+
+   1. Corrupted data file with failed backup (e.g., write-protected folder)
+      1. Prerequisites: Close the application. Corrupt `data/addressbook.json` and make the `data/` directory read-only to prevent writing new files.
+      1. Test case: Launch the application.<br>
+         Expected: The application starts with an empty contact list. A warning message appears in the result display stating that the data file is corrupted and creating a backup failed.
 
 1. _{ more test cases …​ }_
