@@ -2,13 +2,18 @@ package seedu.address.commons.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -109,6 +114,59 @@ public class FileUtilTest {
         String actualContent = FileUtil.readFromFile(file);
 
         assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    public void writeToFile_nullFileMover_throwsNullPointerException() {
+        Path file = testFolder.resolve("test.txt");
+        assertThrows(NullPointerException.class, () -> FileUtil.writeToFile(file, "content", null));
+    }
+
+    @Test
+    public void writeToFile_atomicMoveNotSupported_fallsBackToReplaceExisting() throws IOException {
+        Path file = testFolder.resolve("fallback.txt");
+        String content = "Fallback content";
+        AtomicBoolean fallbackCalled = new AtomicBoolean(false);
+
+        FileUtil.FileMover mover = (source, target, options) -> {
+            boolean hasAtomicMove = Arrays.asList(options).contains(StandardCopyOption.ATOMIC_MOVE);
+            if (hasAtomicMove) {
+                throw new AtomicMoveNotSupportedException(
+                        source.toString(), target.toString(), "Atomic move unsupported");
+            }
+            fallbackCalled.set(true);
+            Files.move(source, target, options);
+        };
+
+        FileUtil.writeToFile(file, content, mover);
+
+        assertTrue(fallbackCalled.get());
+        assertTrue(Files.exists(file));
+        assertEquals(content, FileUtil.readFromFile(file));
+        assertNoTempFilesRemain(testFolder);
+    }
+
+    @Test
+    public void writeToFile_moveThrowsIoException_cleansUpTempFileAndThrowsException() {
+        Path file = testFolder.resolve("ioError.txt");
+        String content = "Error content";
+
+        FileUtil.FileMover mover = (source, target, options) -> {
+            throw new IOException("Simulated disk error during move");
+        };
+
+        assertThrows(IOException.class, () -> FileUtil.writeToFile(file, content, mover));
+        assertFalse(Files.exists(file));
+        try {
+            assertNoTempFilesRemain(testFolder);
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    @Test
+    public void constructor_instantiatesWithoutError() {
+        assertNotNull(new FileUtil());
     }
 
     private void assertNoTempFilesRemain(Path directory) throws IOException {

@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -14,6 +15,14 @@ import java.nio.file.StandardCopyOption;
 public class FileUtil {
 
     private static final String CHARSET = "UTF-8";
+
+    /**
+     * Functional interface for file move operations to facilitate testing.
+     */
+    @FunctionalInterface
+    interface FileMover {
+        void move(Path source, Path target, CopyOption... options) throws IOException;
+    }
 
     /**
      * Creates a file if it does not exist along with its missing parent directories.
@@ -56,8 +65,16 @@ public class FileUtil {
      * @throws IOException if an error occurs during writing or moving the file.
      */
     public static void writeToFile(Path file, String content) throws IOException {
+        writeToFile(file, content, Files::move);
+    }
+
+    /**
+     * Writes given string to a file atomically using the specified {@code FileMover}.
+     */
+    static void writeToFile(Path file, String content, FileMover fileMover) throws IOException {
         requireNonNull(file);
         requireNonNull(content);
+        requireNonNull(fileMover);
 
         createParentDirsOfFile(file);
 
@@ -69,9 +86,9 @@ public class FileUtil {
         try {
             Files.write(tempFile, content.getBytes(CHARSET));
             try {
-                Files.move(tempFile, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                fileMover.move(tempFile, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             } catch (AtomicMoveNotSupportedException e) {
-                Files.move(tempFile, file, StandardCopyOption.REPLACE_EXISTING);
+                fileMover.move(tempFile, file, StandardCopyOption.REPLACE_EXISTING);
             }
         } finally {
             Files.deleteIfExists(tempFile);
