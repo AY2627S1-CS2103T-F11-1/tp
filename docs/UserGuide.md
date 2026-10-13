@@ -140,7 +140,7 @@ Format: `delete INDEX`
 
 Examples:
 * `list` followed by `delete 2` deletes the second contact in the currently displayed list.
-* `find Betsy` followed by `delete 1` deletes the 1st person in the results of the `find` command.
+* `find Betsy` followed by `delete 1` deletes the 1st contact in the results of the `find` command.
 
 Common error messages include:
 * `delete` displays `Error: INDEX is required`.
