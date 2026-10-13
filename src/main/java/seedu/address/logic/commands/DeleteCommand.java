@@ -12,7 +12,7 @@ import seedu.address.model.Model;
 import seedu.address.model.person.Person;
 
 /**
- * Deletes a person identified using its displayed index from the address book.
+ * Deletes a contact identified by a one-based index in the currently displayed contact list.
  */
 public class DeleteCommand extends Command {
 
@@ -25,7 +25,14 @@ public class DeleteCommand extends Command {
 
     public static final String MESSAGE_DELETE_PERSON_SUCCESS = "Deleted person: %1$s";
 
-    public static final String MESSAGE_NO_CONTACTS_TO_DELETE = "There are no contacts to delete.";
+    public static final String MESSAGE_INDEX_REQUIRED = "Error: INDEX is required";
+
+    public static final String MESSAGE_EXTRA_ARGUMENTS = "Error: DELETE accepts only one INDEX";
+
+    public static final String MESSAGE_NO_CONTACTS_TO_DELETE = "Error: There are no contacts to delete";
+
+    public static final String MESSAGE_INDEX_OUT_OF_RANGE = "Error: INDEX %1$d is outside the displayed contact list "
+            + "(valid range: 1-%2$d)";
 
     private final Index targetIndex;
 
@@ -33,17 +40,30 @@ public class DeleteCommand extends Command {
         this.targetIndex = targetIndex;
     }
 
+    /**
+     * Deletes the contact at the target one-based index from the currently displayed contact list.
+     *
+     * @param model {@code Model} containing the displayed contact list
+     * @return a success result containing the deleted contact's details
+     * @throws CommandException if no contacts are displayed or the target index is outside the displayed contact list
+     */
     @Override
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
         List<Person> lastShownList = model.getFilteredPersonList();
 
+        // Execution error: empty list
         if (lastShownList.isEmpty()) {
             throw new CommandException(MESSAGE_NO_CONTACTS_TO_DELETE);
         }
 
+        // Execution error: index out of range
         if (targetIndex.getZeroBased() >= lastShownList.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+            throw new CommandException(String.format(
+                    MESSAGE_INDEX_OUT_OF_RANGE,
+                    targetIndex.getOneBased(),
+                    lastShownList.size()
+            ));
         }
 
         Person personToDelete = lastShownList.get(targetIndex.getZeroBased());

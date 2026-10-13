@@ -128,19 +128,27 @@ Examples:
 * `find alex david` returns `Alex Yeoh`, `David Li`<br>
   ![result for 'find alex david'](images/findAlexDavidResult.png)
 
-### Deleting a person: `delete`
+### Deleting a contact: `delete`
 
-Deletes the specified person from the address book.
+Deletes the specified contact from the address book using its position in the currently displayed contact list.
 
 Format: `delete INDEX`
 
-* Deletes the person at the specified `INDEX`.
-* The index refers to the index number shown in the displayed person list.
-* The index **must be a positive integer** 1, 2, 3, …​
+* `INDEX` **must be a positive integer** 1, 2, 3, …​
+* `INDEX` refers to the contact's position in the contact list currently displayed to the user.
+* The index is temporary and may change when commands such as `list`, `find`, `add`, `edit`, or `delete` change the displayed list.
 
 Examples:
-* `list` followed by `delete 2` deletes the 2nd person in the address book.
+* `list` followed by `delete 2` deletes the second contact in the currently displayed list.
 * `find Betsy` followed by `delete 1` deletes the 1st person in the results of the `find` command.
+
+Common error messages include:
+* `delete` displays `Error: INDEX is required`.
+* `delete 1 2` displays `Error: DELETE accepts only one INDEX`.
+* `delete abc`, `delete 0`, and `delete -1` display `Error: INDEX must be a positive integer`.
+* If no contacts are displayed, the application displays `Error: There are no contacts to delete`.
+* If the requested index is outside the displayed list, the application displays an error such as `Error: INDEX 5 is outside the displayed contact list (valid range: 1-3)`.
+
 
 ### Clearing all entries: `clear`
 
