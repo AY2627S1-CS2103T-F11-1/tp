@@ -373,7 +373,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 *  `KeyBossWarriorsPro` is running and a contact list is displayed.
 
 **MSS**
-1.  User requests to delete a contact by specifying its index in the currently displayed contact list.  
+1.  User requests to delete a contact by specifying its index in the currently displayed contact list.
 2.  `KeyBossWarriorsPro` deletes the selected contact.
 
     Use case ends.
@@ -389,7 +389,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 *  1b. The DELETE request contains a missing or invalid argument.
 
   * 1b1. `KeyBossWarriorsPro` shows an error message.
-    
+
     Use case ends.
 
 
