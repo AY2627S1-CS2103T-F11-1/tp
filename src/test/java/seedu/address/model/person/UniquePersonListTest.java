@@ -46,12 +46,12 @@ public class UniquePersonListTest {
     }
 
     @Test
-    public void containsOther_nullTarget_throwsNullPointerException() {
+    public void containsOther_nullToCheck_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> uniquePersonList.containsOther(null, ALICE));
     }
 
     @Test
-    public void containsOther_nullToCheck_throwsNullPointerException() {
+    public void containsOther_nullExcludePerson_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> uniquePersonList.containsOther(ALICE, null));
     }
 
@@ -66,7 +66,7 @@ public class UniquePersonListTest {
         uniquePersonList.add(ALICE);
         uniquePersonList.add(BOB);
         Person toCheck = new PersonBuilder().withPhone(BOB.getPhone().value).build();
-        assertTrue(uniquePersonList.containsOther(ALICE, toCheck));
+        assertTrue(uniquePersonList.containsOther(toCheck, ALICE));
     }
 
     @Test
@@ -74,7 +74,7 @@ public class UniquePersonListTest {
         uniquePersonList.add(ALICE);
         uniquePersonList.add(BOB);
         Person toCheck = new PersonBuilder().withEmail(BOB.getEmail().value).build();
-        assertTrue(uniquePersonList.containsOther(ALICE, toCheck));
+        assertTrue(uniquePersonList.containsOther(toCheck, ALICE));
     }
 
     @Test
@@ -82,7 +82,7 @@ public class UniquePersonListTest {
         uniquePersonList.add(ALICE);
         uniquePersonList.add(BOB);
         Person toCheck = new PersonBuilder().withPhone("11112222").withEmail("unique@example.com").build();
-        assertFalse(uniquePersonList.containsOther(ALICE, toCheck));
+        assertFalse(uniquePersonList.containsOther(toCheck, ALICE));
     }
 
     @Test

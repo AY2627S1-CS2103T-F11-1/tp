@@ -61,7 +61,7 @@ public class UniquePersonList implements Iterable<Person> {
             throw new PersonNotFoundException();
         }
 
-        if (containsOther(target, editedPerson)) {
+        if (containsOther(editedPerson, target)) {
             throw new DuplicatePersonException();
         }
 
@@ -69,13 +69,13 @@ public class UniquePersonList implements Iterable<Person> {
     }
 
     /**
-     * Returns true if the list contains another person (excluding {@code target})
+     * Returns true if the list contains another person (excluding {@code excludePerson})
      * that has the same identity (phone or email) as {@code toCheck}.
      */
-    public boolean containsOther(Person target, Person toCheck) {
-        requireAllNonNull(target, toCheck);
+    public boolean containsOther(Person toCheck, Person excludePerson) {
+        requireAllNonNull(toCheck, excludePerson);
         return internalList.stream()
-                .filter(person -> !person.equals(target))
+                .filter(person -> !person.equals(excludePerson))
                 .anyMatch(toCheck::isSamePerson);
     }
 

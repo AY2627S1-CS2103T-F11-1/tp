@@ -26,7 +26,7 @@ public class Messages {
     public static final String MESSAGE_DUPLICATE_EMAIL =
             "This email address already belongs to an existing contact.";
     public static final String MESSAGE_DUPLICATE_PHONE_AND_EMAIL =
-            "This phone number and email address already belong to an existing contact.";
+            "This phone number and email address are already used by existing contacts.";
 
     /**
      * Returns an error message indicating the duplicate prefixes.
