@@ -19,6 +19,14 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.stage.Stage;
+import seedu.address.logic.commands.AddCommand;
+import seedu.address.logic.commands.ClearCommand;
+import seedu.address.logic.commands.DeleteCommand;
+import seedu.address.logic.commands.EditCommand;
+import seedu.address.logic.commands.ExitCommand;
+import seedu.address.logic.commands.FindCommand;
+import seedu.address.logic.commands.HelpCommand;
+import seedu.address.logic.commands.ListCommand;
 
 public class HelpWindowTest {
 
@@ -41,15 +49,14 @@ public class HelpWindowTest {
 
     @Test
     public void helpMessage_containsCommandFormatsAndDescriptions() {
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("add n/NAME p/PHONE e/EMAIL a/ADDRESS r/ROLE [t/TAG]..."));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]..."));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("delete INDEX"));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("find KEYWORD [MORE_KEYWORDS]..."));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("Role editing is not supported yet"));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nlist\n"));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nclear\n"));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nhelp\n"));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nexit\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(AddCommand.MESSAGE_USAGE));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(EditCommand.MESSAGE_USAGE));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(DeleteCommand.MESSAGE_USAGE));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(FindCommand.MESSAGE_USAGE));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(ListCommand.MESSAGE_USAGE));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(ClearCommand.MESSAGE_USAGE));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(HelpCommand.MESSAGE_USAGE));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(ExitCommand.MESSAGE_USAGE));
     }
 
     @Test

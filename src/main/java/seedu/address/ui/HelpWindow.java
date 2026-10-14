@@ -15,6 +15,14 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.stage.Stage;
 import seedu.address.commons.core.LogsCenter;
+import seedu.address.logic.commands.AddCommand;
+import seedu.address.logic.commands.ClearCommand;
+import seedu.address.logic.commands.DeleteCommand;
+import seedu.address.logic.commands.EditCommand;
+import seedu.address.logic.commands.ExitCommand;
+import seedu.address.logic.commands.FindCommand;
+import seedu.address.logic.commands.HelpCommand;
+import seedu.address.logic.commands.ListCommand;
 
 /**
  * Controller for a help page
@@ -22,23 +30,15 @@ import seedu.address.commons.core.LogsCenter;
 public class HelpWindow extends UiPart<Stage> {
 
     public static final String USERGUIDE_URL = "https://ay2627s1-cs2103t-f11-1.github.io/tp/UserGuide.html#quick-start";
-    public static final String HELP_MESSAGE = ""
-            + "add n/NAME p/PHONE e/EMAIL a/ADDRESS r/ROLE [t/TAG]...\n"
-            + "  Add a person. Name, phone, email, address, and role are required; tags are optional.\n\n"
-            + "edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]...\n"
-            + "  Edit a person's details. Role editing is not supported yet; update this help entry when it is.\n\n"
-            + "delete INDEX\n"
-            + "  Delete the person at the displayed index.\n\n"
-            + "find KEYWORD [MORE_KEYWORDS]...\n"
-            + "  Find people whose names contain any of the keywords (case-insensitive).\n\n"
-            + "list\n"
-            + "  Show all people.\n\n"
-            + "clear\n"
-            + "  Clear the address book.\n\n"
-            + "help\n"
-            + "  Show this help window.\n\n"
-            + "exit\n"
-            + "  Close the application.";
+    public static final String HELP_MESSAGE = String.join("\n\n",
+            AddCommand.MESSAGE_USAGE,
+            EditCommand.MESSAGE_USAGE,
+            DeleteCommand.MESSAGE_USAGE,
+            FindCommand.MESSAGE_USAGE,
+            ListCommand.MESSAGE_USAGE,
+            ClearCommand.MESSAGE_USAGE,
+            HelpCommand.MESSAGE_USAGE,
+            ExitCommand.MESSAGE_USAGE);
 
     private static final Logger logger = LogsCenter.getLogger(HelpWindow.class);
     private static final String FXML = "HelpWindow.fxml";
