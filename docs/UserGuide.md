@@ -115,20 +115,24 @@ Examples:
 
 ### Locating persons by name: `find`
 
-Finds persons whose names contain any of the given keywords.
+Finds persons whose names contain any of the given keywords, including partial names.
 
 Format: `find KEYWORD [MORE_KEYWORDS]`
 
 * The search is case-insensitive; for example, `hans` matches `Hans`.
+* Keywords can match any part of a name; for example `ha`, `an`, and `ns` all match `Hans Bo`.
 * Keyword order does not matter; for example, `Hans Bo` matches `Bo Hans`.
 * The search considers only names.
-* Only full words match; for example, `Han` does not match `Hans`.
 * Persons matching at least one keyword are returned (an `OR` search); for example, `Hans Bo` returns `Hans Gruber` and `Bo Yang`.
+* Adding keywords can return more results; it does not narrow the search. Short keywords can match many names. For example, `find hans b` also matches `Robert Tan`. Use longer keywords for more selective results.
+* Each matching person appears only once, even if several keywords match their name.
 
 Examples:
 * `find John` returns `john` and `John Doe`
+* `find han` matches `Hans Bo` and `Johan Meyer`
+* `find hans bo` matches `Hans Bo` once, as well as `Hans Gruber` and `Bo Yang`
 * `find alex david` returns `Alex Yeoh`, `David Li`<br>
-  ![result for 'find alex david'](images/findAlexDavidResult.png)
+ ![result for 'find alex david'](images/findAlexDavidResult.png)
 
 ### Deleting a contact: `delete`
 

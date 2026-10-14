@@ -352,7 +352,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 
-1.  User requests to find contacts using a name keyword.
+1.  User requests to find contacts using one or more full or partial name keywords.
 2.  `KeyBossWarriorsPro` displays matching contacts and their details.
 
     Use case ends.
