@@ -368,26 +368,29 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **Use Case: UC3 - Delete a Contact**
 
-**MSS**
+**Preconditions**
 
-1.  User requests to list contacts.
-2.  `KeyBossWarriorsPro` shows a list of contacts.
-3.  User requests to delete a specific person in the contact list.
-4.  `KeyBossWarriorsPro` deletes the contact.
+*  `KeyBossWarriorsPro` is running and a contact list is displayed.
+
+**MSS**
+1.  User requests to delete a contact by specifying its index in the currently displayed contact list.
+2.  `KeyBossWarriorsPro` deletes the selected contact.
 
     Use case ends.
 
 **Extensions**
 
-*  2a. The list is empty.
+*  1a. No contacts are currently displayed (contact list is empty).
 
-   Use case ends.
+  *  1a1. `KeyBossWarriorsPro` informs the user that there are no contacts to delete.
 
-*  3a. The given index is invalid.
+     Use case ends.
 
-  *  3a1. `KeyBossWarriorsPro` shows an error message.
+*  1b. The DELETE request contains a missing or invalid argument.
 
-     Use case resumes at step 3.
+  * 1b1. `KeyBossWarriorsPro` shows an error message.
+
+    Use case ends.
 
 
 **Use Case: UC4 - Tag a Contact**
