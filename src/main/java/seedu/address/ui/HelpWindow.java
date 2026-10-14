@@ -57,16 +57,6 @@ public class HelpWindow extends UiPart<Stage> {
             COMMAND_DIVIDER,
             formatCommandUsage(ExitCommand.MESSAGE_USAGE));
 
-    private static String formatCommandUsage(String messageUsage) {
-        int descriptionStart = messageUsage.indexOf(": ");
-        if (descriptionStart < 0) {
-            return messageUsage.toUpperCase(Locale.ROOT);
-        }
-        String commandName = messageUsage.substring(0, descriptionStart).toUpperCase(Locale.ROOT);
-        String descriptionAndDetails = messageUsage.substring(descriptionStart + 2);
-        return commandName + "\n" + descriptionAndDetails;
-    }
-
     private static final Logger logger = LogsCenter.getLogger(HelpWindow.class);
     private static final String FXML = "HelpWindow.fxml";
 
@@ -107,6 +97,22 @@ public class HelpWindow extends UiPart<Stage> {
      */
     public HelpWindow() {
         this(new Stage());
+    }
+
+    /**
+     * Formats a command's usage message with its command name on a separate uppercase line.
+     *
+     * @param messageUsage the usage message to format
+     * @return the formatted usage message, or the uppercase message if it has no description separator
+     */
+    private static String formatCommandUsage(String messageUsage) {
+        int descriptionStart = messageUsage.indexOf(": ");
+        if (descriptionStart < 0) {
+            return messageUsage.toUpperCase(Locale.ROOT);
+        }
+        String commandName = messageUsage.substring(0, descriptionStart).toUpperCase(Locale.ROOT);
+        String descriptionAndDetails = messageUsage.substring(descriptionStart + 2);
+        return commandName + "\n" + descriptionAndDetails;
     }
 
     /**
