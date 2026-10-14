@@ -61,11 +61,58 @@ public class UniquePersonList implements Iterable<Person> {
             throw new PersonNotFoundException();
         }
 
-        if (!target.isSamePerson(editedPerson) && contains(editedPerson)) {
+        if (containsOther(editedPerson, target)) {
             throw new DuplicatePersonException();
         }
 
         internalList.set(index, editedPerson);
+    }
+
+    /**
+     * Returns true if the list contains another person (excluding {@code excludePerson})
+     * that has the same identity (phone or email) as {@code toCheck}.
+     */
+    public boolean containsOther(Person toCheck, Person excludePerson) {
+        requireAllNonNull(toCheck, excludePerson);
+        return internalList.stream()
+                .filter(person -> !person.equals(excludePerson))
+                .anyMatch(toCheck::isSamePerson);
+    }
+
+    /**
+     * Returns true if any person in the list has the same phone number.
+     */
+    public boolean hasPhone(Phone phone) {
+        return hasPhone(phone, null);
+    }
+
+    /**
+     * Returns true if any person in the list has the same phone number,
+     * optionally excluding {@code excludePerson}.
+     */
+    public boolean hasPhone(Phone phone, Person excludePerson) {
+        requireNonNull(phone);
+        return internalList.stream()
+                .filter(person -> excludePerson == null || !person.equals(excludePerson))
+                .anyMatch(person -> person.getPhone().equals(phone));
+    }
+
+    /**
+     * Returns true if any person in the list has the same email address.
+     */
+    public boolean hasEmail(Email email) {
+        return hasEmail(email, null);
+    }
+
+    /**
+     * Returns true if any person in the list has the same email address,
+     * optionally excluding {@code excludePerson}.
+     */
+    public boolean hasEmail(Email email, Person excludePerson) {
+        requireNonNull(email);
+        return internalList.stream()
+                .filter(person -> excludePerson == null || !person.equals(excludePerson))
+                .anyMatch(person -> person.getEmail().equals(email));
     }
 
     /**
