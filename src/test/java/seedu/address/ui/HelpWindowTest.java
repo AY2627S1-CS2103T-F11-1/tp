@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +20,14 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.stage.Stage;
+import seedu.address.logic.commands.AddCommand;
+import seedu.address.logic.commands.ClearCommand;
+import seedu.address.logic.commands.DeleteCommand;
+import seedu.address.logic.commands.EditCommand;
+import seedu.address.logic.commands.ExitCommand;
+import seedu.address.logic.commands.FindCommand;
+import seedu.address.logic.commands.HelpCommand;
+import seedu.address.logic.commands.ListCommand;
 
 public class HelpWindowTest {
 
@@ -55,6 +64,28 @@ public class HelpWindowTest {
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nHELP\nOpens the help window"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nEXIT\nExits the program."));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("----------------------------------------"));
+    }
+
+    @Test
+    public void helpMessage_containsUsageForEveryCommand() {
+        assertUsageIsDisplayed(AddCommand.MESSAGE_USAGE);
+        assertUsageIsDisplayed(EditCommand.MESSAGE_USAGE);
+        assertUsageIsDisplayed(DeleteCommand.MESSAGE_USAGE);
+        assertUsageIsDisplayed(FindCommand.MESSAGE_USAGE);
+        assertUsageIsDisplayed(ListCommand.MESSAGE_USAGE);
+        assertUsageIsDisplayed(ClearCommand.MESSAGE_USAGE);
+        assertUsageIsDisplayed(HelpCommand.MESSAGE_USAGE);
+        assertUsageIsDisplayed(ExitCommand.MESSAGE_USAGE);
+    }
+
+    private static void assertUsageIsDisplayed(String messageUsage) {
+        int separator = messageUsage.indexOf(": ");
+        assertTrue(separator >= 0, "Usage text should separate the command name and description");
+
+        String expected = messageUsage.substring(0, separator).toUpperCase(Locale.ROOT)
+                + "\n" + messageUsage.substring(separator + 2);
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(expected),
+                "Help output should include the usage text: " + messageUsage);
     }
 
     @Test
