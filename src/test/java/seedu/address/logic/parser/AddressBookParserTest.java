@@ -82,9 +82,18 @@ public class AddressBookParserTest {
     }
 
     @Test
-    public void parseCommand_list() throws Exception {
+    public void parseCommand_listWithoutArguments_returnsListCommand() throws Exception {
         assertTrue(parser.parseCommand(ListCommand.COMMAND_WORD) instanceof ListCommand);
+    }
+
+    @Test
+    public void parseCommand_listWithArguments_returnsListCommand() throws Exception {
         assertTrue(parser.parseCommand(ListCommand.COMMAND_WORD + " 3") instanceof ListCommand);
+    }
+
+    @Test
+    public void parseCommand_listWithWhitespaceOnlyArguments_returnsListCommand() throws Exception {
+        assertTrue(parser.parseCommand(ListCommand.COMMAND_WORD + " \t  ") instanceof ListCommand);
     }
 
     @Test
