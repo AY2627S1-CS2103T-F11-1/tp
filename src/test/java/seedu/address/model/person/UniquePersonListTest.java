@@ -128,6 +128,12 @@ public class UniquePersonListTest {
     }
 
     @Test
+    public void hasEmail_emailDifferentCaseInList_returnsTrue() {
+        uniquePersonList.add(ALICE);
+        assertTrue(uniquePersonList.hasEmail(new Email(ALICE.getEmail().value.toUpperCase())));
+    }
+
+    @Test
     public void hasEmail_emailNotInList_returnsFalse() {
         assertFalse(uniquePersonList.hasEmail(ALICE.getEmail()));
     }
@@ -167,6 +173,13 @@ public class UniquePersonListTest {
     public void add_personWithDuplicateEmail_throwsDuplicatePersonException() {
         uniquePersonList.add(ALICE);
         Person duplicateEmail = new PersonBuilder().withEmail(ALICE.getEmail().value).build();
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.add(duplicateEmail));
+    }
+
+    @Test
+    public void add_personWithDuplicateEmailDifferentCase_throwsDuplicatePersonException() {
+        uniquePersonList.add(ALICE);
+        Person duplicateEmail = new PersonBuilder().withEmail(ALICE.getEmail().value.toUpperCase()).build();
         assertThrows(DuplicatePersonException.class, () -> uniquePersonList.add(duplicateEmail));
     }
 
@@ -243,6 +256,14 @@ public class UniquePersonListTest {
         uniquePersonList.add(ALICE);
         uniquePersonList.add(BOB);
         Person editedBob = new PersonBuilder(BOB).withEmail(ALICE.getEmail().value).build();
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.setPerson(BOB, editedBob));
+    }
+
+    @Test
+    public void setPerson_editedPersonCollidesWithOtherPersonEmailDifferentCase_throwsDuplicatePersonException() {
+        uniquePersonList.add(ALICE);
+        uniquePersonList.add(BOB);
+        Person editedBob = new PersonBuilder(BOB).withEmail(ALICE.getEmail().value.toUpperCase()).build();
         assertThrows(DuplicatePersonException.class, () -> uniquePersonList.setPerson(BOB, editedBob));
     }
 

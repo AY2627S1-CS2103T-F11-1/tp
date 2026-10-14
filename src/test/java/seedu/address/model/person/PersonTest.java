@@ -47,6 +47,12 @@ public class PersonTest {
                 .withAddress(VALID_ADDRESS_BOB).withTags(VALID_TAG_HUSBAND).build();
         assertTrue(ALICE.isSamePerson(editedAlice));
 
+        // same email with different case, different phone and other attributes -> returns true
+        editedAlice = new PersonBuilder(ALICE).withName(VALID_NAME_BOB).withPhone(VALID_PHONE_BOB)
+                .withEmail(ALICE.getEmail().value.toUpperCase())
+                .withAddress(VALID_ADDRESS_BOB).withTags(VALID_TAG_HUSBAND).build();
+        assertTrue(ALICE.isSamePerson(editedAlice));
+
         // same name, different phone and email -> returns false
         editedAlice = new PersonBuilder(ALICE).withPhone(VALID_PHONE_BOB).withEmail(VALID_EMAIL_BOB).build();
         assertFalse(ALICE.isSamePerson(editedAlice));

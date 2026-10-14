@@ -129,6 +129,16 @@ public class EditCommandTest {
     }
 
     @Test
+    public void execute_duplicateEmailDifferentCaseUnfilteredList_failure() {
+        Person firstPerson = model.getFilteredPersonList().get(INDEX_FIRST_PERSON.getZeroBased());
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
+                .withEmail(firstPerson.getEmail().value.toUpperCase()).build();
+        EditCommand editCommand = new EditCommand(INDEX_SECOND_PERSON, descriptor);
+
+        assertCommandFailure(editCommand, model, Messages.MESSAGE_DUPLICATE_EMAIL);
+    }
+
+    @Test
     public void execute_sameNameDifferentPhoneAndEmailUnfilteredList_success() {
         Person firstPerson = model.getFilteredPersonList().get(INDEX_FIRST_PERSON.getZeroBased());
         Person secondPerson = model.getFilteredPersonList().get(INDEX_SECOND_PERSON.getZeroBased());

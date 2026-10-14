@@ -64,6 +64,15 @@ public class AddCommandIntegrationTest {
     }
 
     @Test
+    public void execute_duplicateEmailDifferentCase_throwsCommandException() {
+        Person personInList = model.getAddressBook().getPersonList().get(0);
+        Person duplicateEmailPerson = new PersonBuilder().withPhone("11112222")
+                .withEmail(personInList.getEmail().value.toUpperCase()).build();
+        assertCommandFailure(new AddCommand(duplicateEmailPerson), model,
+                Messages.MESSAGE_DUPLICATE_EMAIL);
+    }
+
+    @Test
     public void execute_sameNameDifferentPhoneAndEmail_success() {
         Person personInList = model.getAddressBook().getPersonList().get(0);
         Person sameNamePerson = new PersonBuilder().withName(personInList.getName().fullName)
