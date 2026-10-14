@@ -19,14 +19,6 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.stage.Stage;
-import seedu.address.logic.commands.AddCommand;
-import seedu.address.logic.commands.ClearCommand;
-import seedu.address.logic.commands.DeleteCommand;
-import seedu.address.logic.commands.EditCommand;
-import seedu.address.logic.commands.ExitCommand;
-import seedu.address.logic.commands.FindCommand;
-import seedu.address.logic.commands.HelpCommand;
-import seedu.address.logic.commands.ListCommand;
 
 public class HelpWindowTest {
 
@@ -48,15 +40,21 @@ public class HelpWindowTest {
     }
 
     @Test
-    public void helpMessage_containsCommandFormatsAndDescriptions() {
-        assertTrue(HelpWindow.HELP_MESSAGE.contains(AddCommand.MESSAGE_USAGE));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains(EditCommand.MESSAGE_USAGE));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains(DeleteCommand.MESSAGE_USAGE));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains(FindCommand.MESSAGE_USAGE));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains(ListCommand.MESSAGE_USAGE));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains(ClearCommand.MESSAGE_USAGE));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains(HelpCommand.MESSAGE_USAGE));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains(ExitCommand.MESSAGE_USAGE));
+    public void helpMessage_groupsCommandsAndUsesConsistentTextPattern() {
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("PEOPLE\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("ADDRESS BOOK\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("APPLICATION\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("ADD\nAdds a person to the address book."));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("Parameters: n/NAME"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("Example: add n/John Doe"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nEDIT\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nDELETE\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nFIND\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nLIST\nShows all persons"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nCLEAR\nClears all entries"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nHELP\nOpens the help window"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nEXIT\nExits the program."));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("----------------------------------------"));
     }
 
     @Test

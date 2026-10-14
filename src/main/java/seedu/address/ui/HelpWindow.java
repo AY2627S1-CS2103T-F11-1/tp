@@ -3,6 +3,7 @@ package seedu.address.ui;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Locale;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -30,15 +31,41 @@ import seedu.address.logic.commands.ListCommand;
 public class HelpWindow extends UiPart<Stage> {
 
     public static final String USERGUIDE_URL = "https://ay2627s1-cs2103t-f11-1.github.io/tp/UserGuide.html#quick-start";
-    public static final String HELP_MESSAGE = String.join("\n\n",
-            AddCommand.MESSAGE_USAGE,
-            EditCommand.MESSAGE_USAGE,
-            DeleteCommand.MESSAGE_USAGE,
-            FindCommand.MESSAGE_USAGE,
-            ListCommand.MESSAGE_USAGE,
-            ClearCommand.MESSAGE_USAGE,
-            HelpCommand.MESSAGE_USAGE,
-            ExitCommand.MESSAGE_USAGE);
+    private static final String COMMAND_DIVIDER = "----------------------------------------";
+    private static final String SECTION_DIVIDER = "========================================";
+
+    public static final String HELP_MESSAGE = String.join("\n",
+            "PEOPLE",
+            SECTION_DIVIDER,
+            formatCommandUsage(AddCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(EditCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(DeleteCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(FindCommand.MESSAGE_USAGE),
+            "",
+            "ADDRESS BOOK",
+            SECTION_DIVIDER,
+            formatCommandUsage(ListCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(ClearCommand.MESSAGE_USAGE),
+            "",
+            "APPLICATION",
+            SECTION_DIVIDER,
+            formatCommandUsage(HelpCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(ExitCommand.MESSAGE_USAGE));
+
+    private static String formatCommandUsage(String messageUsage) {
+        int descriptionStart = messageUsage.indexOf(": ");
+        if (descriptionStart < 0) {
+            return messageUsage.toUpperCase(Locale.ROOT);
+        }
+        String commandName = messageUsage.substring(0, descriptionStart).toUpperCase(Locale.ROOT);
+        String descriptionAndDetails = messageUsage.substring(descriptionStart + 2);
+        return commandName + "\n" + descriptionAndDetails;
+    }
 
     private static final Logger logger = LogsCenter.getLogger(HelpWindow.class);
     private static final String FXML = "HelpWindow.fxml";
