@@ -58,8 +58,11 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
-* Extraneous parameters for commands that take no parameters, such as `help`, `list`, `exit`, and `clear`, are ignored.<br>
-  For example, `help 123` is interpreted as `help`. For `exit`, a message also explains that any extra text is ignored before the application closes.
+* Extraneous parameters for commands that take no parameters are ignored.<br>
+  For example, `help 123` is interpreted as `help`.
+* For `list`, additional arguments are ignored and a warning is displayed.
+  For example, `list 3` lists all contacts and does not navigate to contact 3.
+* For `exit`, a message explains that any extra text is ignored before the application closes.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </div>
@@ -90,11 +93,25 @@ Examples:
 * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01 r/Supplier`
 * `add n/Betsy Crowe t/friend e/betsycrowe@example.com a/Newgate Prison p/1234567 r/Employee t/criminal`
 
-### Listing all persons: `list`
+### Listing all contacts: `list`
 
-Shows a list of all persons in the address book.
+Displays all contacts in the address book and resets any active search filter.
 
 Format: `list`
+
+Examples:
+
+* `list` displays all contacts.
+* `list 3` displays all contacts and warns that `3` was ignored.
+* `list abc xyz` displays all contacts and warns that the arguments were ignored.
+
+Whitespace-only arguments are treated as empty input.
+
+If the address book is empty, the application displays:
+
+```text
+No contacts found.
+```
 
 ### Editing a person: `edit`
 

@@ -10,6 +10,7 @@ import static seedu.address.logic.commands.CommandTestUtil.PHONE_DESC_AMY;
 import static seedu.address.logic.commands.CommandTestUtil.ROLE_DESC_AMY;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.AMY;
+import static seedu.address.testutil.TypicalPersons.BENSON;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
@@ -70,9 +71,53 @@ public class LogicManagerTest {
     }
 
     @Test
-    public void execute_validCommand_success() throws Exception {
-        String listCommand = ListCommand.COMMAND_WORD;
-        assertCommandSuccess(listCommand, ListCommand.MESSAGE_SUCCESS, model);
+    public void execute_validListOnEmptyAddressBook_showsNoContactsMessage() throws Exception {
+        assertCommandSuccess(ListCommand.COMMAND_WORD, ListCommand.MESSAGE_NO_CONTACTS, model);
+    }
+
+    @Test
+    public void execute_listWithAdditionalArgument_showsWarning() throws Exception {
+        model.addPerson(AMY);
+
+        Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
+
+        String expectedMessage = ListCommand.MESSAGE_SUCCESS + "\n" + ListCommand.MESSAGE_IGNORED_ARGUMENTS;
+
+        assertCommandSuccess("list 3", expectedMessage, expectedModel);
+    }
+
+    @Test
+    public void execute_listWithMultipleAdditionalArguments_showsWarning() throws Exception {
+        model.addPerson(AMY);
+
+        Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
+
+        String expectedMessage = ListCommand.MESSAGE_SUCCESS + "\n" + ListCommand.MESSAGE_IGNORED_ARGUMENTS;
+
+        assertCommandSuccess("list abc xyz", expectedMessage, expectedModel);
+    }
+
+    @Test
+    public void execute_listWithWhitespaceOnlyArguments_showsNoWarning() throws Exception {
+        model.addPerson(AMY);
+
+        Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
+
+        assertCommandSuccess("list \t  ", ListCommand.MESSAGE_SUCCESS, expectedModel);
+    }
+
+    @Test
+    public void execute_findThenList_showsAllContacts() throws Exception {
+        model.addPerson(AMY);
+        model.addPerson(BENSON);
+
+        logic.execute("find Amy");
+
+        assertEquals(1, logic.getFilteredPersonList().size());
+
+        Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
+
+        assertCommandSuccess("list", ListCommand.MESSAGE_SUCCESS, expectedModel);
     }
 
     @Test

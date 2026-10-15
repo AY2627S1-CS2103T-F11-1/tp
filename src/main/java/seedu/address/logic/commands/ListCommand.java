@@ -3,10 +3,11 @@ package seedu.address.logic.commands;
 import static java.util.Objects.requireNonNull;
 import static seedu.address.model.Model.PREDICATE_SHOW_ALL_PERSONS;
 
+import seedu.address.commons.util.ToStringBuilder;
 import seedu.address.model.Model;
 
 /**
- * Lists all persons in the address book to the user.
+ * Lists all contacts in the address book to the user.
  */
 public class ListCommand extends Command {
 
@@ -16,11 +17,59 @@ public class ListCommand extends Command {
 
     public static final String MESSAGE_SUCCESS = "Listed all persons.";
 
+    public static final String MESSAGE_NO_CONTACTS = "No contacts found.";
+
+    public static final String MESSAGE_IGNORED_ARGUMENTS = "Warning: Additional arguments after LIST were ignored.";
+
+    private final boolean hasExtraArgs;
+
+    public ListCommand() {
+        this(false);
+    }
+
+    public ListCommand(boolean hasExtraArgs) {
+        this.hasExtraArgs = hasExtraArgs;
+    }
 
     @Override
     public CommandResult execute(Model model) {
         requireNonNull(model);
+
         model.updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
-        return new CommandResult(MESSAGE_SUCCESS);
+
+        String feedback = model.getAddressBook().getPersonList().isEmpty()
+                ? MESSAGE_NO_CONTACTS
+                : MESSAGE_SUCCESS;
+
+        if (hasExtraArgs) {
+            feedback += "\n" + MESSAGE_IGNORED_ARGUMENTS;
+        }
+
+        return new CommandResult(feedback);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        }
+
+        if (!(other instanceof ListCommand otherListCommand)) {
+            return false;
+        }
+
+        return hasExtraArgs == otherListCommand.hasExtraArgs;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .add("hasExtraArgs", hasExtraArgs)
+                .toString();
+    }
+
+    @Override
+    public int hashCode() {
+        return Boolean.hashCode(hasExtraArgs);
     }
 }

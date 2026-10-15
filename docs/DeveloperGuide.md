@@ -456,13 +456,18 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 **MSS**
 
 1.  User requests to list contacts.
-2.  `KeyBossWarriorsPro` shows a list of contacts.
+2.  `KeyBossWarriorsPro` resets the active search filter (if any) and shows a list of contacts.
     
     Use case ends.
 
 **Extensions**
 
-*  2a. The list is empty.
+*  1a. The user supplies additional arguments.
+  *  1a1. `KeyBossWarriorsPro` displays a warning that additional arguments are ignored.
+
+     Use case resumes at step 2.
+
+*  2a. The address book is empty.
 
   *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
 
