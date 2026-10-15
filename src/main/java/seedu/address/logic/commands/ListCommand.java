@@ -13,7 +13,9 @@ public class ListCommand extends Command {
 
     public static final String COMMAND_WORD = "list";
 
-    public static final String MESSAGE_SUCCESS = "Listed all contacts.";
+    public static final String MESSAGE_USAGE = COMMAND_WORD + ": Shows all persons in the address book.";
+
+    public static final String MESSAGE_SUCCESS = "Listed all persons.";
 
     public static final String MESSAGE_NO_CONTACTS = "No contacts found.";
 

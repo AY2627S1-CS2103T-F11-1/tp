@@ -77,6 +77,52 @@ public class AddressBookTest {
     }
 
     @Test
+    public void hasPhone_nullPhone_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> addressBook.hasPhone(null));
+        assertThrows(NullPointerException.class, () -> addressBook.hasPhone(null, ALICE));
+    }
+
+    @Test
+    public void hasPhone_phoneInAddressBook_returnsTrue() {
+        addressBook.addPerson(ALICE);
+        assertTrue(addressBook.hasPhone(ALICE.getPhone()));
+    }
+
+    @Test
+    public void hasPhone_phoneNotInAddressBook_returnsFalse() {
+        assertFalse(addressBook.hasPhone(ALICE.getPhone()));
+    }
+
+    @Test
+    public void hasPhone_phoneWithExcludedPerson_returnsFalse() {
+        addressBook.addPerson(ALICE);
+        assertFalse(addressBook.hasPhone(ALICE.getPhone(), ALICE));
+    }
+
+    @Test
+    public void hasEmail_nullEmail_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> addressBook.hasEmail(null));
+        assertThrows(NullPointerException.class, () -> addressBook.hasEmail(null, ALICE));
+    }
+
+    @Test
+    public void hasEmail_emailInAddressBook_returnsTrue() {
+        addressBook.addPerson(ALICE);
+        assertTrue(addressBook.hasEmail(ALICE.getEmail()));
+    }
+
+    @Test
+    public void hasEmail_emailNotInAddressBook_returnsFalse() {
+        assertFalse(addressBook.hasEmail(ALICE.getEmail()));
+    }
+
+    @Test
+    public void hasEmail_emailWithExcludedPerson_returnsFalse() {
+        addressBook.addPerson(ALICE);
+        assertFalse(addressBook.hasEmail(ALICE.getEmail(), ALICE));
+    }
+
+    @Test
     public void getPersonList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> addressBook.getPersonList().remove(0));
     }

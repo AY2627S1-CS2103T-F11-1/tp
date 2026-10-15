@@ -21,6 +21,12 @@ public class Messages {
                 "Multiple values specified for the following single-valued field(s): ";
     public static final String MESSAGE_MISSING_PARAMETERS =
             "Missing mandatory parameter(s): ";
+    public static final String MESSAGE_DUPLICATE_PHONE =
+            "This phone number already belongs to an existing contact.";
+    public static final String MESSAGE_DUPLICATE_EMAIL =
+            "This email address already belongs to an existing contact.";
+    public static final String MESSAGE_DUPLICATE_PHONE_AND_EMAIL =
+            "This phone number and email address are already used by existing contacts.";
 
     /**
      * Returns an error message indicating the duplicate prefixes.

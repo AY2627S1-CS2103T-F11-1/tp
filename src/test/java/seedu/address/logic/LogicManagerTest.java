@@ -1,6 +1,7 @@
 package seedu.address.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
 import static seedu.address.logic.commands.CommandTestUtil.EMAIL_DESC_AMY;
@@ -13,8 +14,11 @@ import static seedu.address.testutil.TypicalPersons.BENSON;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -129,6 +133,35 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_storageAtomicWriteFails_throwsCommandExceptionAndCleansUpTempFiles() throws Exception {
+        Path invalidFilePath = temporaryFolder.resolve("invalidStorageDir");
+        Files.createDirectory(invalidFilePath);
+
+        JsonAddressBookStorage addressBookStorage = new JsonAddressBookStorage(invalidFilePath);
+        JsonUserPrefsStorage userPrefsStorage =
+                new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json"));
+        StorageManager storage = new StorageManager(addressBookStorage, userPrefsStorage);
+        logic = new LogicManager(model, storage);
+
+        String addCommand = AddCommand.COMMAND_WORD + NAME_DESC_AMY + PHONE_DESC_AMY
+                + EMAIL_DESC_AMY + ADDRESS_DESC_AMY + ROLE_DESC_AMY;
+        Person expectedPerson = new PersonBuilder(AMY).withTags().build();
+        ModelManager expectedModel = new ModelManager();
+        expectedModel.addPerson(expectedPerson);
+
+        CommandException exception = Assertions.assertThrows(CommandException.class, () -> logic.execute(addCommand));
+        String fileOpsErrorPrefix = String.format(LogicManager.FILE_OPS_ERROR_FORMAT, "").trim();
+        String fileOpsPermissionErrorSubstring = "due to insufficient permissions to write to the file or the folder";
+        boolean isExpectedMessage = exception.getMessage().contains(fileOpsErrorPrefix)
+                || exception.getMessage().contains(fileOpsPermissionErrorSubstring);
+        assertTrue(isExpectedMessage, "Expected file operation error message but got: " + exception.getMessage());
+        assertTrue(exception.getCause() instanceof IOException);
+        assertEquals(expectedModel, model);
+        assertTrue(Files.isDirectory(invalidFilePath));
+        assertNoTempFilesRemain(temporaryFolder);
+    }
+
+    @Test
     public void getFilteredPersonList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> logic.getFilteredPersonList().remove(0));
     }
@@ -216,5 +249,17 @@ public class LogicManagerTest {
         ModelManager expectedModel = new ModelManager();
         expectedModel.addPerson(expectedPerson);
         assertCommandFailure(addCommand, CommandException.class, expectedMessage, expectedModel);
+    }
+
+    /**
+     * Asserts that no temporary {@code .tmp} files remain in the given directory.
+     */
+    private void assertNoTempFilesRemain(Path directory) throws IOException {
+        try (var stream = Files.list(directory)) {
+            List<Path> tempFiles = stream
+                    .filter(path -> path.getFileName().toString().endsWith(".tmp"))
+                    .toList();
+            assertTrue(tempFiles.isEmpty(), "Unexpected temporary files found: " + tempFiles);
+        }
     }
 }

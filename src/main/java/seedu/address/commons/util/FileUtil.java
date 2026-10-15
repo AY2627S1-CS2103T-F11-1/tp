@@ -1,8 +1,13 @@
 package seedu.address.commons.util;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 /**
  * Writes and reads files
@@ -10,6 +15,14 @@ import java.nio.file.Path;
 public class FileUtil {
 
     private static final String CHARSET = "UTF-8";
+
+    /**
+     * Functional interface for file move operations to facilitate testing.
+     */
+    @FunctionalInterface
+    interface FileMover {
+        void move(Path source, Path target, CopyOption... options) throws IOException;
+    }
 
     /**
      * Creates a file if it does not exist along with its missing parent directories.
@@ -44,11 +57,42 @@ public class FileUtil {
     }
 
     /**
-     * Writes given string to a file.
-     * Will create the file if it does not exist yet.
+     * Writes given string to a file atomically.
+     * Creates the file and any missing parent directories if they do not exist yet.
+     *
+     * @param file the target file to write to. Cannot be null.
+     * @param content the string content to write. Cannot be null.
+     * @throws IOException if an error occurs during writing or moving the file.
      */
     public static void writeToFile(Path file, String content) throws IOException {
-        Files.write(file, content.getBytes(CHARSET));
+        writeToFile(file, content, Files::move);
+    }
+
+    /**
+     * Writes given string to a file atomically using the specified {@code FileMover}.
+     */
+    static void writeToFile(Path file, String content, FileMover fileMover) throws IOException {
+        requireNonNull(file);
+        requireNonNull(content);
+        requireNonNull(fileMover);
+
+        createParentDirsOfFile(file);
+
+        Path parentDir = file.getParent();
+        Path dir = parentDir == null ? Path.of(".") : parentDir;
+        String prefix = "tmp_" + file.getFileName().toString() + ".";
+        Path tempFile = Files.createTempFile(dir, prefix, ".tmp");
+
+        try {
+            Files.write(tempFile, content.getBytes(CHARSET));
+            try {
+                fileMover.move(tempFile, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                fileMover.move(tempFile, file, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
     }
 
 }

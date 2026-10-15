@@ -144,7 +144,8 @@ The `Storage` component,
 * can save both address book data and user preference data in JSON format, and read them back into corresponding objects.
 * is implemented by `StorageManager`, which delegates the actual JSON file access to `JsonAddressBookStorage` and `JsonUserPrefsStorage` (one class per data file).
 * can create a timestamped backup copy of the address book data file when corrupted or invalid data is encountered on launch.
-* depends on some classes in the `Model` component (because the `Storage` component's job is to save/retrieve objects that belong to the `Model`)
+* writes files atomically using `FileUtil#writeToFile`, writing to a temporary sibling file before replacing the target file to prevent data corruption.
+* depends on some classes in the `Model` component (because the `Storage` component's job is to save/retrieve objects that belong to the `Model`).
 
 ### Common classes
 
@@ -243,6 +244,31 @@ _{more aspects and alternatives to be added}_
 ### \[Proposed\] Data archiving
 
 _{Explain here how the data archiving feature will be implemented}_
+
+### Atomic file persistence
+
+#### Overview
+To prevent data corruption during unexpected process terminations or disk write failures, file persistence uses atomic replacement through `FileUtil#writeToFile`.
+
+#### Implementation details
+When `LogicManager` executes a command, it requests `Storage` to persist the updated address book:
+1. `JsonAddressBookStorage` serializes the address book into JSON via `JsonUtil#saveJsonFile`.
+2. `JsonUtil` delegates writing to `FileUtil#writeToFile(Path file, String content)`.
+3. `FileUtil#writeToFile` creates any missing parent directories, then creates a temporary file in the same parent directory (`tmp_<filename>.<rand>.tmp`). Using the same directory ensures the temporary file resides on the same filesystem volume, enabling atomic file replacement.
+4. The serialized JSON content is written to the temporary file using UTF-8 encoding.
+5. `FileUtil#writeToFile` atomically replaces the destination file using `Files.move(..., StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)`.
+6. If the filesystem does not support atomic moves (`AtomicMoveNotSupportedException`), it falls back to `StandardCopyOption.REPLACE_EXISTING`.
+7. If an error occurs during writing or moving, a `finally` block deletes the temporary file and the `IOException` is re-thrown.
+8. `LogicManager` catches `AccessDeniedException` or `IOException`, converts it into a `CommandException`, and `MainWindow` displays the save error to the user in the command result display. The original file on disk remains untouched.
+
+#### Design considerations
+**Aspect: How file writes are performed**
+* **Alternative 1 (current choice):** Write to a sibling temporary file and atomically replace the destination file.
+  * Pros: Guarantees file integrity. A crash during serialization or disk writing leaves the existing data file intact.
+  * Cons: Requires temporary disk space equal to the size of the saved file during the write operation.
+* **Alternative 2:** Direct in-place file write using `Files.writeString` with standard truncation.
+  * Pros: Simpler implementation without temporary files.
+  * Cons: The file is truncated before new content is written. A crash or disk error mid-write leaves the data file empty or partially written, corrupting user data.
 
 
 --------------------------------------------------------------------------------------------------------------------
@@ -352,7 +378,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 
-1.  User requests to find contacts using a name keyword.
+1.  User requests to find contacts using one or more full or partial name keywords.
 2.  `KeyBossWarriorsPro` displays matching contacts and their details.
 
     Use case ends.
@@ -368,26 +394,29 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **Use Case: UC3 - Delete a Contact**
 
-**MSS**
+**Preconditions**
 
-1.  User requests to list contacts.
-2.  `KeyBossWarriorsPro` shows a list of contacts.
-3.  User requests to delete a specific person in the contact list.
-4.  `KeyBossWarriorsPro` deletes the contact.
+*  `KeyBossWarriorsPro` is running and a contact list is displayed.
+
+**MSS**
+1.  User requests to delete a contact by specifying its index in the currently displayed contact list.
+2.  `KeyBossWarriorsPro` deletes the selected contact.
 
     Use case ends.
 
 **Extensions**
 
-*  2a. The list is empty.
+*  1a. No contacts are currently displayed (contact list is empty).
 
-   Use case ends.
+  *  1a1. `KeyBossWarriorsPro` informs the user that there are no contacts to delete.
 
-*  3a. The given index is invalid.
+     Use case ends.
 
-  *  3a1. `KeyBossWarriorsPro` shows an error message.
+*  1b. The DELETE request contains a missing or invalid argument.
 
-     Use case resumes at step 3.
+  * 1b1. `KeyBossWarriorsPro` shows an error message.
+
+    Use case ends.
 
 
 **Use Case: UC4 - Tag a Contact**
@@ -458,6 +487,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 10. **Typing-Preferred Usability:** A user with above-average typing speed for regular English text should be able to accomplish all routine contact and inventory management tasks faster using CLI commands than using a mouse.
 11. **Display Adaptability:** The user interface should remain fully functional and legible on screen resolutions of 1280x720 and above, across display scaling factors of 100% to 150%.
 12. **Single-User Scope:** The software is designed for a single artisan keyboard shop manager working locally; concurrent multi-user access is out of scope.
+13. **Data Integrity:** File saves must be atomic so that unexpected crashes or disk write errors do not leave data files truncated or partially written.
 
 ### Glossary
 
