@@ -3,6 +3,7 @@ package seedu.address.ui;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Locale;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -15,6 +16,14 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.stage.Stage;
 import seedu.address.commons.core.LogsCenter;
+import seedu.address.logic.commands.AddCommand;
+import seedu.address.logic.commands.ClearCommand;
+import seedu.address.logic.commands.DeleteCommand;
+import seedu.address.logic.commands.EditCommand;
+import seedu.address.logic.commands.ExitCommand;
+import seedu.address.logic.commands.FindCommand;
+import seedu.address.logic.commands.HelpCommand;
+import seedu.address.logic.commands.ListCommand;
 
 /**
  * Controller for a help page
@@ -22,23 +31,31 @@ import seedu.address.commons.core.LogsCenter;
 public class HelpWindow extends UiPart<Stage> {
 
     public static final String USERGUIDE_URL = "https://ay2627s1-cs2103t-f11-1.github.io/tp/UserGuide.html#quick-start";
-    public static final String HELP_MESSAGE = ""
-            + "add n/NAME p/PHONE e/EMAIL a/ADDRESS r/ROLE [t/TAG]...\n"
-            + "  Add a person. Name, phone, email, address, and role are required; tags are optional.\n\n"
-            + "edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [t/TAG]...\n"
-            + "  Edit a person's details. Role editing is not supported yet; update this help entry when it is.\n\n"
-            + "delete INDEX\n"
-            + "  Delete the person at the displayed index.\n\n"
-            + "find KEYWORD [MORE_KEYWORDS]...\n"
-            + "  Find people whose names contain any of the keywords (case-insensitive).\n\n"
-            + "list\n"
-            + "  Show all people.\n\n"
-            + "clear\n"
-            + "  Clear the address book.\n\n"
-            + "help\n"
-            + "  Show this help window.\n\n"
-            + "exit\n"
-            + "  Close the application.";
+    private static final String COMMAND_DIVIDER = "----------------------------------------";
+    private static final String SECTION_DIVIDER = "========================================";
+
+    public static final String HELP_MESSAGE = String.join("\n",
+            "PEOPLE",
+            SECTION_DIVIDER,
+            formatCommandUsage(AddCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(EditCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(DeleteCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(FindCommand.MESSAGE_USAGE),
+            "",
+            "ADDRESS BOOK",
+            SECTION_DIVIDER,
+            formatCommandUsage(ListCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(ClearCommand.MESSAGE_USAGE),
+            "",
+            "APPLICATION",
+            SECTION_DIVIDER,
+            formatCommandUsage(HelpCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(ExitCommand.MESSAGE_USAGE));
 
     private static final Logger logger = LogsCenter.getLogger(HelpWindow.class);
     private static final String FXML = "HelpWindow.fxml";
@@ -80,6 +97,22 @@ public class HelpWindow extends UiPart<Stage> {
      */
     public HelpWindow() {
         this(new Stage());
+    }
+
+    /**
+     * Formats a command's usage message with its command name on a separate uppercase line.
+     *
+     * @param messageUsage the usage message to format
+     * @return the formatted usage message, or the uppercase message if it has no description separator
+     */
+    private static String formatCommandUsage(String messageUsage) {
+        int descriptionStart = messageUsage.indexOf(": ");
+        if (descriptionStart < 0) {
+            return messageUsage.toUpperCase(Locale.ROOT);
+        }
+        String commandName = messageUsage.substring(0, descriptionStart).toUpperCase(Locale.ROOT);
+        String descriptionAndDetails = messageUsage.substring(descriptionStart + 2);
+        return commandName + "\n" + descriptionAndDetails;
     }
 
     /**

@@ -66,7 +66,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 
 ### Viewing help: `help`
 
-Shows a message explaining how to access the help page.
+Opens the help window, which lists the available commands and their usage instructions. For detailed explanations and examples, refer to this user guide.
 
 ![help message](images/helpMessage.png)
 
