@@ -33,7 +33,7 @@ public class NameContainsKeywordsPredicateTest {
         // null -> returns false
         assertFalse(firstPredicate.equals(null));
 
-        // different person -> returns false
+        // different keywords -> returns false
         assertFalse(firstPredicate.equals(secondPredicate));
     }
 
@@ -70,6 +70,51 @@ public class NameContainsKeywordsPredicateTest {
         predicate = new NameContainsKeywordsPredicate(List.of("12345", "alice@email.com", "Main", "Street"));
         assertFalse(predicate.test(new PersonBuilder().withName("Alice").withPhone("12345")
                 .withEmail("alice@email.com").withAddress("Main Street").build()));
+    }
+
+    @Test
+    public void test_nameContainsSubstring_returnsTrue() {
+        Person person = new PersonBuilder().withName("Bella Poarch").build();
+
+        // Prefix of a name
+        assertTrue(new NameContainsKeywordsPredicate(List.of("bel")).test(person));
+        assertTrue(new NameContainsKeywordsPredicate(List.of("po")).test(person));
+
+        // Middle of a name
+        assertTrue(new NameContainsKeywordsPredicate(List.of("ell")).test(person));
+        assertTrue(new NameContainsKeywordsPredicate(List.of("oar")).test(person));
+
+        // Suffix of a name
+        assertTrue(new NameContainsKeywordsPredicate(List.of("la")).test(person));
+        assertTrue(new NameContainsKeywordsPredicate(List.of("ch")).test(person));
+
+        // Mixed-case substring
+        assertTrue(new NameContainsKeywordsPredicate(List.of("BeL")).test(person));
+
+        // Single-character substring
+        assertTrue(new NameContainsKeywordsPredicate(List.of("p")).test(person));
+    }
+
+    @Test
+    public void test_substringsMatchesAnyKeyword_returnsTrue() {
+        NameContainsKeywordsPredicate firstPredicate = new NameContainsKeywordsPredicate(List.of("Bella", "p"));
+        NameContainsKeywordsPredicate secondPredicate =
+                new NameContainsKeywordsPredicate(List.of("12345", "alice@email.com", "Main", "p", "Street"));
+
+        // Both keywords match
+        assertTrue(firstPredicate.test(new PersonBuilder().withName("Bella Poarch").build()));
+
+        // Only first keyword matches
+        assertTrue(firstPredicate.test(new PersonBuilder().withName("Bella Tan").build()));
+
+        // Only second keyword matches
+        assertTrue(firstPredicate.test(new PersonBuilder().withName("Joseph Tan").build()));
+
+        // Neither keyword matches
+        assertFalse(firstPredicate.test(new PersonBuilder().withName("Alice Tan").build()));
+
+        // Only one matching keyword
+        assertTrue(secondPredicate.test(new PersonBuilder().withName("Joseph Tan").build()));
     }
 
     @Test

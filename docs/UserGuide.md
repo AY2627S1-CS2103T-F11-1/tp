@@ -80,6 +80,7 @@ Adds a person to the address book.
 Format: `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…​`
 
 * `ROLE` represents the person's role or affiliation in your keyboard shop (e.g., `Supplier`, `Employee`, `Partner`, `Customer`). It cannot be empty.
+* Contacts are identified as duplicates by phone number or email address (email comparisons are case-insensitive). You cannot add a person who shares a phone number or email address with an existing contact, but contacts may share the same name.
 
 <div markdown="span" class="alert alert-primary">:bulb: **Tip:**
 A person can have any number of tags, including zero.
@@ -104,7 +105,7 @@ Format: `edit INDEX [n/NAME] [p/PHONE] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG]…
 * Edits the person at the specified `INDEX`. The index refers to the index number shown in the displayed person list. The index **must be a positive integer** 1, 2, 3, …​
 * At least one of the optional fields must be provided.
 * Existing values will be updated to the input values.
-* `r/ROLE` updates the person's role. The role cannot be empty.
+* You cannot edit a contact's phone number or email address to match another existing contact in the address book (email comparisons are case-insensitive).
 * When editing tags, all of the person's existing tags are removed; adding tags is not cumulative.
 * To remove all of a person's tags, enter `t/` without a tag after it.
 
@@ -115,34 +116,46 @@ Examples:
 
 ### Locating persons by name: `find`
 
-Finds persons whose names contain any of the given keywords.
+Finds persons whose names contain any of the given keywords, including partial names.
 
 Format: `find KEYWORD [MORE_KEYWORDS]`
 
 * The search is case-insensitive; for example, `hans` matches `Hans`.
+* Keywords can match any part of a name; for example `ha`, `an`, and `ns` all match `Hans Bo`.
 * Keyword order does not matter; for example, `Hans Bo` matches `Bo Hans`.
 * The search considers only names.
-* Only full words match; for example, `Han` does not match `Hans`.
 * Persons matching at least one keyword are returned (an `OR` search); for example, `Hans Bo` returns `Hans Gruber` and `Bo Yang`.
+* Adding keywords can return more results; it does not narrow the search. Short keywords can match many names. For example, `find hans b` also matches `Robert Tan`. Use longer keywords for more selective results.
+* Each matching person appears only once, even if several keywords match their name.
 
 Examples:
 * `find John` returns `john` and `John Doe`
+* `find han` matches `Hans Bo` and `Johan Meyer`
+* `find hans bo` matches `Hans Bo` once, as well as `Hans Gruber` and `Bo Yang`
 * `find alex david` returns `Alex Yeoh`, `David Li`<br>
-  ![result for 'find alex david'](images/findAlexDavidResult.png)
+ ![result for 'find alex david'](images/findAlexDavidResult.png)
 
-### Deleting a person: `delete`
+### Deleting a contact: `delete`
 
-Deletes the specified person from the address book.
+Deletes the specified contact from the address book using its position in the currently displayed contact list.
 
 Format: `delete INDEX`
 
-* Deletes the person at the specified `INDEX`.
-* The index refers to the index number shown in the displayed person list.
-* The index **must be a positive integer** 1, 2, 3, …​
+* `INDEX` **must be a positive integer** 1, 2, 3, …​
+* `INDEX` refers to the contact's position in the contact list currently displayed to the user.
+* The index is temporary and may change when commands such as `list`, `find`, `add`, `edit`, or `delete` change the displayed list.
 
 Examples:
-* `list` followed by `delete 2` deletes the 2nd person in the address book.
-* `find Betsy` followed by `delete 1` deletes the 1st person in the results of the `find` command.
+* `list` followed by `delete 2` deletes the second contact in the currently displayed list.
+* `find Betsy` followed by `delete 1` deletes the 1st contact in the results of the `find` command.
+
+Common error messages include:
+* `delete` displays `Error: INDEX is required`.
+* `delete 1 2` displays `Error: DELETE accepts only one INDEX`.
+* `delete abc`, `delete 0`, and `delete -1` display `Error: INDEX must be a positive integer`.
+* If no contacts are displayed, the application displays `Error: There are no contacts to delete`.
+* If the requested index is outside the displayed list, the application displays an error such as `Error: INDEX 5 is outside the displayed contact list (valid range: 1-3)`.
+
 
 ### Clearing all entries: `clear`
 
@@ -163,6 +176,8 @@ For example, `exit -f` exits in the same way as `exit`.
 ### Saving the data
 
 AddressBook automatically saves data after every command. You do not need to save manually.
+
+Data saves are performed atomically. The application writes updates to a temporary file before replacing the saved data file. This prevents file corruption if the application closes unexpectedly or experiences a disk error during a save. If saving fails, the application leaves your existing data file untouched and displays an error message explaining the failure.
 
 ### Editing the data file
 

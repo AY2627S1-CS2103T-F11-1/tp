@@ -46,6 +46,112 @@ public class UniquePersonListTest {
     }
 
     @Test
+    public void containsOther_nullToCheck_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> uniquePersonList.containsOther(null, ALICE));
+    }
+
+    @Test
+    public void containsOther_nullExcludePerson_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> uniquePersonList.containsOther(ALICE, null));
+    }
+
+    @Test
+    public void containsOther_noOtherPerson_returnsFalse() {
+        uniquePersonList.add(ALICE);
+        assertFalse(uniquePersonList.containsOther(ALICE, ALICE));
+    }
+
+    @Test
+    public void containsOther_otherPersonSharesPhone_returnsTrue() {
+        uniquePersonList.add(ALICE);
+        uniquePersonList.add(BOB);
+        Person toCheck = new PersonBuilder().withPhone(BOB.getPhone().value).build();
+        assertTrue(uniquePersonList.containsOther(toCheck, ALICE));
+    }
+
+    @Test
+    public void containsOther_otherPersonSharesEmail_returnsTrue() {
+        uniquePersonList.add(ALICE);
+        uniquePersonList.add(BOB);
+        Person toCheck = new PersonBuilder().withEmail(BOB.getEmail().value).build();
+        assertTrue(uniquePersonList.containsOther(toCheck, ALICE));
+    }
+
+    @Test
+    public void containsOther_distinctIdentity_returnsFalse() {
+        uniquePersonList.add(ALICE);
+        uniquePersonList.add(BOB);
+        Person toCheck = new PersonBuilder().withPhone("11112222").withEmail("unique@example.com").build();
+        assertFalse(uniquePersonList.containsOther(toCheck, ALICE));
+    }
+
+    @Test
+    public void hasPhone_nullPhone_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> uniquePersonList.hasPhone(null));
+        assertThrows(NullPointerException.class, () -> uniquePersonList.hasPhone(null, ALICE));
+    }
+
+    @Test
+    public void hasPhone_phoneInList_returnsTrue() {
+        uniquePersonList.add(ALICE);
+        assertTrue(uniquePersonList.hasPhone(ALICE.getPhone()));
+    }
+
+    @Test
+    public void hasPhone_phoneNotInList_returnsFalse() {
+        assertFalse(uniquePersonList.hasPhone(ALICE.getPhone()));
+    }
+
+    @Test
+    public void hasPhone_phoneOfExcludedPerson_returnsFalse() {
+        uniquePersonList.add(ALICE);
+        assertFalse(uniquePersonList.hasPhone(ALICE.getPhone(), ALICE));
+    }
+
+    @Test
+    public void hasPhone_phoneOfNonExcludedPerson_returnsTrue() {
+        uniquePersonList.add(ALICE);
+        uniquePersonList.add(BOB);
+        assertTrue(uniquePersonList.hasPhone(ALICE.getPhone(), BOB));
+    }
+
+    @Test
+    public void hasEmail_nullEmail_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> uniquePersonList.hasEmail(null));
+        assertThrows(NullPointerException.class, () -> uniquePersonList.hasEmail(null, ALICE));
+    }
+
+    @Test
+    public void hasEmail_emailInList_returnsTrue() {
+        uniquePersonList.add(ALICE);
+        assertTrue(uniquePersonList.hasEmail(ALICE.getEmail()));
+    }
+
+    @Test
+    public void hasEmail_emailDifferentCaseInList_returnsTrue() {
+        uniquePersonList.add(ALICE);
+        assertTrue(uniquePersonList.hasEmail(new Email(ALICE.getEmail().value.toUpperCase())));
+    }
+
+    @Test
+    public void hasEmail_emailNotInList_returnsFalse() {
+        assertFalse(uniquePersonList.hasEmail(ALICE.getEmail()));
+    }
+
+    @Test
+    public void hasEmail_emailOfExcludedPerson_returnsFalse() {
+        uniquePersonList.add(ALICE);
+        assertFalse(uniquePersonList.hasEmail(ALICE.getEmail(), ALICE));
+    }
+
+    @Test
+    public void hasEmail_emailOfNonExcludedPerson_returnsTrue() {
+        uniquePersonList.add(ALICE);
+        uniquePersonList.add(BOB);
+        assertTrue(uniquePersonList.hasEmail(ALICE.getEmail(), BOB));
+    }
+
+    @Test
     public void add_nullPerson_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> uniquePersonList.add(null));
     }
@@ -54,6 +160,36 @@ public class UniquePersonListTest {
     public void add_duplicatePerson_throwsDuplicatePersonException() {
         uniquePersonList.add(ALICE);
         assertThrows(DuplicatePersonException.class, () -> uniquePersonList.add(ALICE));
+    }
+
+    @Test
+    public void add_personWithDuplicatePhone_throwsDuplicatePersonException() {
+        uniquePersonList.add(ALICE);
+        Person duplicatePhone = new PersonBuilder().withPhone(ALICE.getPhone().value).build();
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.add(duplicatePhone));
+    }
+
+    @Test
+    public void add_personWithDuplicateEmail_throwsDuplicatePersonException() {
+        uniquePersonList.add(ALICE);
+        Person duplicateEmail = new PersonBuilder().withEmail(ALICE.getEmail().value).build();
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.add(duplicateEmail));
+    }
+
+    @Test
+    public void add_personWithDuplicateEmailDifferentCase_throwsDuplicatePersonException() {
+        uniquePersonList.add(ALICE);
+        Person duplicateEmail = new PersonBuilder().withEmail(ALICE.getEmail().value.toUpperCase()).build();
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.add(duplicateEmail));
+    }
+
+    @Test
+    public void add_personWithSameNameDifferentPhoneAndEmail_success() {
+        uniquePersonList.add(ALICE);
+        Person sameNameDifferentContact = new PersonBuilder().withName(ALICE.getName().fullName)
+                .withPhone(BOB.getPhone().value).withEmail(BOB.getEmail().value).build();
+        uniquePersonList.add(sameNameDifferentContact);
+        assertTrue(uniquePersonList.contains(sameNameDifferentContact));
     }
 
     @Test
@@ -105,6 +241,30 @@ public class UniquePersonListTest {
         uniquePersonList.add(ALICE);
         uniquePersonList.add(BOB);
         assertThrows(DuplicatePersonException.class, () -> uniquePersonList.setPerson(ALICE, BOB));
+    }
+
+    @Test
+    public void setPerson_editedPersonCollidesWithOtherPersonPhone_throwsDuplicatePersonException() {
+        uniquePersonList.add(ALICE);
+        uniquePersonList.add(BOB);
+        Person editedBob = new PersonBuilder(BOB).withPhone(ALICE.getPhone().value).build();
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.setPerson(BOB, editedBob));
+    }
+
+    @Test
+    public void setPerson_editedPersonCollidesWithOtherPersonEmail_throwsDuplicatePersonException() {
+        uniquePersonList.add(ALICE);
+        uniquePersonList.add(BOB);
+        Person editedBob = new PersonBuilder(BOB).withEmail(ALICE.getEmail().value).build();
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.setPerson(BOB, editedBob));
+    }
+
+    @Test
+    public void setPerson_editedPersonCollidesWithOtherPersonEmailDifferentCase_throwsDuplicatePersonException() {
+        uniquePersonList.add(ALICE);
+        uniquePersonList.add(BOB);
+        Person editedBob = new PersonBuilder(BOB).withEmail(ALICE.getEmail().value.toUpperCase()).build();
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.setPerson(BOB, editedBob));
     }
 
     @Test

@@ -69,6 +69,52 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void hasPhone_nullPhone_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> modelManager.hasPhone(null));
+        assertThrows(NullPointerException.class, () -> modelManager.hasPhone(null, ALICE));
+    }
+
+    @Test
+    public void hasPhone_phoneInAddressBook_returnsTrue() {
+        modelManager.addPerson(ALICE);
+        assertTrue(modelManager.hasPhone(ALICE.getPhone()));
+    }
+
+    @Test
+    public void hasPhone_phoneNotInAddressBook_returnsFalse() {
+        assertFalse(modelManager.hasPhone(ALICE.getPhone()));
+    }
+
+    @Test
+    public void hasPhone_phoneWithExcludedPerson_returnsFalse() {
+        modelManager.addPerson(ALICE);
+        assertFalse(modelManager.hasPhone(ALICE.getPhone(), ALICE));
+    }
+
+    @Test
+    public void hasEmail_nullEmail_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> modelManager.hasEmail(null));
+        assertThrows(NullPointerException.class, () -> modelManager.hasEmail(null, ALICE));
+    }
+
+    @Test
+    public void hasEmail_emailInAddressBook_returnsTrue() {
+        modelManager.addPerson(ALICE);
+        assertTrue(modelManager.hasEmail(ALICE.getEmail()));
+    }
+
+    @Test
+    public void hasEmail_emailNotInAddressBook_returnsFalse() {
+        assertFalse(modelManager.hasEmail(ALICE.getEmail()));
+    }
+
+    @Test
+    public void hasEmail_emailWithExcludedPerson_returnsFalse() {
+        modelManager.addPerson(ALICE);
+        assertFalse(modelManager.hasEmail(ALICE.getEmail(), ALICE));
+    }
+
+    @Test
     public void getFilteredPersonList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, () -> modelManager.getFilteredPersonList().remove(0));
     }
