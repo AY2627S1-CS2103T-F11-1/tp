@@ -3,7 +3,13 @@ package seedu.address.logic.parser;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import seedu.address.logic.Messages;
+import seedu.address.logic.parser.exceptions.ParseException;
 
 /**
  * Tokenizes arguments string of the form: {@code preamble <prefix>value <prefix>value ...}<br>
@@ -14,6 +20,8 @@ import java.util.stream.Collectors;
  *    in the above example.<br>
  */
 public class ArgumentTokenizer {
+
+    private static final Pattern PREFIX_PATTERN = Pattern.compile("(?:^|\\s+)([a-zA-Z][a-zA-Z0-9_-]*/)(?!/)");
 
     /**
      * Tokenizes an arguments string and returns an {@code ArgumentMultimap} object that maps prefixes to their
@@ -26,6 +34,44 @@ public class ArgumentTokenizer {
     public static ArgumentMultimap tokenize(String argsString, Prefix... prefixes) {
         List<PrefixPosition> positions = findAllPrefixPositions(argsString, prefixes);
         return extractArguments(argsString, positions);
+    }
+
+    /**
+     * Finds all prefixes in {@code argsString} that are not in {@code allowedPrefixes}.
+     *
+     * @param argsString      Arguments string to search
+     * @param allowedPrefixes Permitted prefixes
+     * @return List of distinct unrecognized prefixes in the order they appear
+     */
+    public static List<Prefix> findUnrecognizedPrefixes(String argsString, Prefix... allowedPrefixes) {
+        Set<Prefix> allowedSet = Set.of(allowedPrefixes);
+        Matcher matcher = PREFIX_PATTERN.matcher(argsString);
+        List<Prefix> unrecognized = new ArrayList<>();
+
+        while (matcher.find()) {
+            Prefix prefix = new Prefix(matcher.group(1));
+            if (!allowedSet.contains(prefix) && !unrecognized.contains(prefix)) {
+                unrecognized.add(prefix);
+            }
+        }
+
+        return unrecognized;
+    }
+
+    /**
+     * Throws a {@code ParseException} if any prefixes in {@code argsString} are not in {@code allowedPrefixes}.
+     *
+     * @param argsString      Arguments string to verify
+     * @param allowedPrefixes Permitted prefixes
+     * @throws ParseException if unrecognized prefixes are found
+     */
+    public static void verifyNoUnrecognizedPrefixes(String argsString, Prefix... allowedPrefixes)
+            throws ParseException {
+        List<Prefix> unrecognized = findUnrecognizedPrefixes(argsString, allowedPrefixes);
+        if (!unrecognized.isEmpty()) {
+            throw new ParseException(Messages.getErrorMessageForUnrecognizedPrefixes(
+                    unrecognized.toArray(Prefix[]::new)));
+        }
     }
 
     /**

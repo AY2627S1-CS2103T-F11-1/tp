@@ -10,6 +10,8 @@ import static seedu.address.testutil.Assert.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
+import seedu.address.logic.parser.Prefix;
+
 public class MessagesTest {
 
     @Test
@@ -39,5 +41,27 @@ public class MessagesTest {
     @Test
     public void getErrorMessageForMissingPrefixes_emptyPrefixes_throwsAssertionError() {
         assertThrows(AssertionError.class, () -> Messages.getErrorMessageForMissingPrefixes());
+    }
+
+    @Test
+    public void getErrorMessageForUnrecognizedPrefixes() {
+        // single unrecognized prefix
+        String expectedSingle = Messages.MESSAGE_UNRECOGNIZED_PREFIXES + "x/";
+        assertEquals(expectedSingle, Messages.getErrorMessageForUnrecognizedPrefixes(new Prefix("x/")));
+
+        // multiple unrecognized prefixes
+        String expectedMultiple = Messages.MESSAGE_UNRECOGNIZED_PREFIXES + "x/ y/";
+        assertEquals(expectedMultiple, Messages.getErrorMessageForUnrecognizedPrefixes(
+                new Prefix("x/"), new Prefix("y/")));
+
+        // duplicate unrecognized prefixes de-duplicated
+        String expectedDeduplicated = Messages.MESSAGE_UNRECOGNIZED_PREFIXES + "x/";
+        assertEquals(expectedDeduplicated, Messages.getErrorMessageForUnrecognizedPrefixes(
+                new Prefix("x/"), new Prefix("x/")));
+    }
+
+    @Test
+    public void getErrorMessageForUnrecognizedPrefixes_emptyPrefixes_throwsAssertionError() {
+        assertThrows(AssertionError.class, () -> Messages.getErrorMessageForUnrecognizedPrefixes());
     }
 }
