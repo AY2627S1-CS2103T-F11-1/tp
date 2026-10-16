@@ -12,9 +12,9 @@ public class ExitCommand extends Command {
 
     public static final String MESSAGE_USAGE = COMMAND_WORD + ": Exits the program.";
 
-    public static final String MESSAGE_EXIT_ACKNOWLEDGEMENT = "Exiting Address Book as requested ...";
+    public static final String MESSAGE_EXIT_ACKNOWLEDGEMENT = "Exiting KeyBossWarriorsPro as requested ...";
     public static final String MESSAGE_EXIT_DISCLAIMER =
-            "exit takes no parameters. Extra text is ignored. Exiting Address Book ...";
+            "exit takes no parameters. Extra text is ignored. Exiting KeyBossWarriorsPro ...";
 
     private final boolean hasExtraArgs;
 
