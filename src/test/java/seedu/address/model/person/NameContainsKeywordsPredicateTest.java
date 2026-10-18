@@ -40,8 +40,7 @@ public class NameContainsKeywordsPredicateTest {
 
     @Test
     public void constructor_nullKeywords_throwsNullPointerException() {
-        assertThrows(NullPointerException.class,
-                () -> new NameContainsKeywordsPredicate(null));
+        assertThrows(NullPointerException.class, () -> new NameContainsKeywordsPredicate(null));
     }
 
     @Test

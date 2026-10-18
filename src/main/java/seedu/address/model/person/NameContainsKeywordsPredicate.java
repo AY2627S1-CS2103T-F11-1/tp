@@ -15,6 +15,13 @@ import seedu.address.commons.util.ToStringBuilder;
 public class NameContainsKeywordsPredicate implements Predicate<Person> {
     private final List<String> keywords;
 
+    /**
+     * Creates a predicate using a copy of the given keywords, excluding blank entries.
+     * If no keywords remain, the predicate matches no persons.
+     *
+     * @param keywords the search keywords
+     * @throws NullPointerException if {@code keywords} or any keyword is null
+     */
     public NameContainsKeywordsPredicate(List<String> keywords) {
         requireNonNull(keywords);
 
