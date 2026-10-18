@@ -24,7 +24,12 @@ checkstyle {
     toolVersion = '14.1.0'
 }
 
+run {
+    enableAssertions = true
+}
+
 test {
+    enableAssertions = true
     useJUnitPlatform()
     finalizedBy jacocoTestReport
 }
