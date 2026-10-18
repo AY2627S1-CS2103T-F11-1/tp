@@ -1,5 +1,7 @@
 package seedu.address.model.person;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
@@ -14,7 +16,11 @@ public class NameContainsKeywordsPredicate implements Predicate<Person> {
     private final List<String> keywords;
 
     public NameContainsKeywordsPredicate(List<String> keywords) {
-        this.keywords = keywords;
+        requireNonNull(keywords);
+
+        this.keywords = keywords.stream()
+                .filter(keyword -> !keyword.isBlank())
+                .toList();
     }
 
     @Override
