@@ -3,6 +3,7 @@ package seedu.address.model.person;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.testutil.Assert.assertThrows;
 
 import java.util.List;
 
@@ -38,6 +39,21 @@ public class NameContainsKeywordsPredicateTest {
     }
 
     @Test
+    public void constructor_nullKeywords_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> new NameContainsKeywordsPredicate(null));
+    }
+
+    @Test
+    public void constructor_blankKeywords_storesOnlyNonblankKeywords() {
+        NameContainsKeywordsPredicate predicate = new NameContainsKeywordsPredicate(List.of("", "Alice", "", "Bob"));
+        NameContainsKeywordsPredicate expectedPredicate = new NameContainsKeywordsPredicate(List.of("Alice", "Bob"));
+        assertEquals(expectedPredicate, predicate);
+
+        String expectedString = NameContainsKeywordsPredicate.class.getCanonicalName() + "{keywords=[Alice, Bob]}";
+        assertEquals(expectedString, predicate.toString());
+    }
+
+    @Test
     public void test_nameContainsKeywords_returnsTrue() {
         // One keyword
         NameContainsKeywordsPredicate predicate = new NameContainsKeywordsPredicate(List.of("Alice"));
@@ -70,6 +86,22 @@ public class NameContainsKeywordsPredicateTest {
         predicate = new NameContainsKeywordsPredicate(List.of("12345", "alice@email.com", "Main", "Street"));
         assertFalse(predicate.test(new PersonBuilder().withName("Alice").withPhone("12345")
                 .withEmail("alice@email.com").withAddress("Main Street").build()));
+    }
+
+    @Test
+    public void test_blankKeywords_returnsFalse() {
+        Person person = new PersonBuilder().withName("Alice").build();
+
+        assertFalse(new NameContainsKeywordsPredicate(List.of("")).test(person));
+        assertFalse(new NameContainsKeywordsPredicate(List.of(" ", "\t", "\n")).test(person));
+    }
+
+    @Test
+    public void test_mixedBlankAndNonblankKeywords_ignoresBlanks() {
+        Person person = new PersonBuilder().withName("Alice").build();
+
+        assertTrue(new NameContainsKeywordsPredicate(List.of("", " ", "Alice")).test(person));
+        assertFalse(new NameContainsKeywordsPredicate(List.of("", "\t", "xyz")).test(person));
     }
 
     @Test

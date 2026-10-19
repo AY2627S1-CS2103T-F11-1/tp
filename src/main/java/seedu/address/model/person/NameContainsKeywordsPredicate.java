@@ -1,5 +1,7 @@
 package seedu.address.model.person;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
@@ -13,8 +15,19 @@ import seedu.address.commons.util.ToStringBuilder;
 public class NameContainsKeywordsPredicate implements Predicate<Person> {
     private final List<String> keywords;
 
+    /**
+     * Creates a predicate using a copy of the given keywords, excluding blank entries.
+     * If no keywords remain, the predicate matches no persons.
+     *
+     * @param keywords the search keywords
+     * @throws NullPointerException if {@code keywords} or any keyword is null
+     */
     public NameContainsKeywordsPredicate(List<String> keywords) {
-        this.keywords = keywords;
+        requireNonNull(keywords);
+
+        this.keywords = keywords.stream()
+                .filter(keyword -> !keyword.isBlank())
+                .toList();
     }
 
     @Override
