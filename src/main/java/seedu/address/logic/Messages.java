@@ -21,6 +21,8 @@ public class Messages {
                 "Multiple values specified for the following single-valued field(s): ";
     public static final String MESSAGE_MISSING_PARAMETERS =
             "Missing mandatory parameter(s): ";
+    public static final String MESSAGE_UNRECOGNIZED_PREFIXES =
+            "Unrecognized prefix(es) provided: ";
     public static final String MESSAGE_DUPLICATE_PHONE =
             "This phone number already belongs to an existing contact.";
     public static final String MESSAGE_DUPLICATE_EMAIL =
@@ -51,6 +53,20 @@ public class Messages {
                 .collect(Collectors.toList());
 
         return MESSAGE_MISSING_PARAMETERS + String.join(" ", missingFields);
+    }
+
+    /**
+     * Returns an error message indicating the unrecognized prefixes.
+     */
+    public static String getErrorMessageForUnrecognizedPrefixes(Prefix... unrecognizedPrefixes) {
+        assert unrecognizedPrefixes.length > 0;
+
+        List<String> unrecognizedFields = Stream.of(unrecognizedPrefixes)
+                .map(Prefix::toString)
+                .distinct()
+                .collect(Collectors.toList());
+
+        return MESSAGE_UNRECOGNIZED_PREFIXES + String.join(" ", unrecognizedFields);
     }
 
     /**

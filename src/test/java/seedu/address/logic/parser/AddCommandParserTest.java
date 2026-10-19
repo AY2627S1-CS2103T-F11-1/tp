@@ -228,4 +228,27 @@ public class AddCommandParserTest {
                 + ADDRESS_DESC_BOB + ROLE_DESC_BOB + TAG_DESC_HUSBAND + TAG_DESC_FRIEND,
                 String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddCommand.MESSAGE_USAGE));
     }
+
+    @Test
+    public void parse_unrecognizedPrefix_failure() {
+        String validPersonString = NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB
+                + ADDRESS_DESC_BOB + ROLE_DESC_BOB + TAG_DESC_FRIEND;
+
+        // unrecognized prefix at end
+        assertParseFailure(parser, validPersonString + " x/unknown",
+                Messages.getErrorMessageForUnrecognizedPrefixes(new Prefix("x/")));
+
+        // unrecognized prefix in middle
+        assertParseFailure(parser, NAME_DESC_BOB + " x/unknown " + PHONE_DESC_BOB + EMAIL_DESC_BOB
+                + ADDRESS_DESC_BOB + ROLE_DESC_BOB,
+                Messages.getErrorMessageForUnrecognizedPrefixes(new Prefix("x/")));
+
+        // multiple unrecognized prefixes
+        assertParseFailure(parser, validPersonString + " x/unknown y/other",
+                Messages.getErrorMessageForUnrecognizedPrefixes(new Prefix("x/"), new Prefix("y/")));
+
+        // duplicate unrecognized prefix reported once
+        assertParseFailure(parser, validPersonString + " x/unknown x/other",
+                Messages.getErrorMessageForUnrecognizedPrefixes(new Prefix("x/")));
+    }
 }

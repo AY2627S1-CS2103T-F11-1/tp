@@ -74,12 +74,13 @@ Adds a contact to KeyBossWarriorsPro.
 **Format:** `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…​`
 * `ROLE` represents the contact's role or affiliation in your keyboard shop (e.g., `Supplier`, `Employee`, `Partner`, `Customer`). It cannot be empty.
 * Contacts are identified as duplicates by phone number or email address (email comparisons are case-insensitive). You cannot add a contact who shares a phone number or email address with an existing contact, but contacts may share the same name.
+* Unrecognized prefixes and extraneous arguments are not permitted and will be rejected with an error message indicating the unrecognized prefix(es).
 
 **Field Constraints**
 
 Field | Constraint
 --------|------------------
-`NAME` | May contain alphanumeric characters and spaces. 
+`NAME` | May contain alphanumeric characters and spaces.
 `PHONE_NUMBER` | Must contain at least 3 digits. Only digits are accepted.
 `EMAIL` | Must follow a valid email format, such as `john@example.com`.
 `ADDRESS` | May contain spaces and special characters.
