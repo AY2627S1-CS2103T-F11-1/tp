@@ -84,7 +84,7 @@ Field | Constraint
 `PHONE_NUMBER` | Must contain at least 3 digits. Only digits are accepted.
 `EMAIL` | Must follow a valid email format, such as `john@example.com`.
 `ADDRESS` | May contain spaces and special characters.
-`ROLE` | May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Cannot be blank and must not start or end with spaces. Automatically formatted to Title Case.
+`ROLE` | May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character. Automatically formatted to Title Case.
 `TAG` | Optional. Contains one or more alphanumeric characters.
 
 

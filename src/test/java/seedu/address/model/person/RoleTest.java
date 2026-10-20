@@ -34,6 +34,8 @@ public class RoleTest {
         assertFalse(Role.isValidRole(" Supplier ")); // leading and trailing whitespace
         assertFalse(Role.isValidRole("-Supplier")); // starts with hyphen
         assertFalse(Role.isValidRole("Supplier-")); // ends with hyphen
+        assertFalse(Role.isValidRole("-Partner")); // starts with punctuation
+        assertFalse(Role.isValidRole("Supplier/")); // ends with punctuation
         assertFalse(Role.isValidRole("Supplier!")); // disallowed punctuation
         assertFalse(Role.isValidRole("@Supplier")); // disallowed symbol
         assertFalse(Role.isValidRole("Sales*Manager")); // disallowed symbol
