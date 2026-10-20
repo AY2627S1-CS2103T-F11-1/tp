@@ -68,6 +68,14 @@ public class FindCommandParserTest {
     }
 
     @Test
+    public void parse_prefixedNameWithTrimmedWhitespace_returnsFindCommand() {
+        FindCommand expectedFindCommand =
+                new FindCommand(new NameContainsKeywordsPredicate(List.of("John Doe")));
+
+        assertParseSuccess(parser, " n/  John Doe  ", expectedFindCommand);
+    }
+
+    @Test
     public void parse_blankArgs_throwsParseException() {
         assertParseFailure(parser, "", FindCommand.MESSAGE_MISSING_CRITERIA);
     }

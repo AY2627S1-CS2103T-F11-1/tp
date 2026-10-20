@@ -191,7 +191,7 @@ Examples:
 - `find n/John Doe` matches `John Doe` and `john doeder`, as it searches for the phrase `John Doe`.
 - `find n/John n/Alice` matches contacts whose names contain `John` or `Alice`.
 - `find Alice n/Bob` is invalid because legacy and prefixed search values are mixed.
-- `find n/` is invalid because the name search value is blank..
+- `find n/` is invalid because the name search value is blank.
 
 
 ### Viewing help: `help`
