@@ -74,7 +74,7 @@ public class VersionedAddressBookTest {
     }
 
     @Test
-    public void canUndo_multipleAddressBookPointerAtStartOfStateList_returnsTrue() {
+    public void canUndo_multipleAddressBookPointerNotAtStartOfStateList_returnsTrue() {
         VersionedAddressBook versionedAddressBook = prepareAddressBookList(
                 emptyAddressBook, addressBookWithAmy, addressBookWithBob);
         shiftCurrentStatePointerLeftwards(versionedAddressBook, 1);
@@ -240,9 +240,11 @@ public class VersionedAddressBookTest {
 
         // different current pointer index -> returns false
         VersionedAddressBook differentCurrentStatePointer = prepareAddressBookList(
-                addressBookWithAmy, addressBookWithBob);
-        shiftCurrentStatePointerLeftwards(versionedAddressBook, 1);
-        assertFalse(versionedAddressBook.equals(differentCurrentStatePointer));
+                addressBookWithAmy, addressBookWithAmy);
+        VersionedAddressBook shiftedCurrentStatePointer = prepareAddressBookList(
+                addressBookWithAmy, addressBookWithAmy);
+        shiftCurrentStatePointerLeftwards(shiftedCurrentStatePointer, 1);
+        assertFalse(differentCurrentStatePointer.equals(shiftedCurrentStatePointer));
 
         // different current address book contents -> returns false
         VersionedAddressBook differentCurrentAddressBook =
