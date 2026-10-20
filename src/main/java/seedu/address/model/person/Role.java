@@ -40,29 +40,10 @@ public class Role {
     }
 
     /**
-     * Formats a role by collapsing consecutive whitespace and converting words to title case.
+     * Formats a role by collapsing consecutive whitespace.
      */
     private static String formatRole(String role) {
-        String collapsed = role.trim().replaceAll("\\s+", " ");
-        StringBuilder result = new StringBuilder();
-        boolean capitalizeNext = true;
-
-        for (char c : collapsed.toCharArray()) {
-            if (Character.isWhitespace(c) || c == '-' || c == '/' || c == '&') {
-                result.append(c);
-                capitalizeNext = true;
-            } else if (c == '\'') {
-                result.append(c);
-                capitalizeNext = false;
-            } else if (capitalizeNext) {
-                result.append(Character.toUpperCase(c));
-                capitalizeNext = false;
-            } else {
-                result.append(Character.toLowerCase(c));
-            }
-        }
-
-        return result.toString();
+        return role.trim().replaceAll("\\s+", " ");
     }
 
     @Override

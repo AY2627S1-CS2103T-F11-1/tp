@@ -52,16 +52,18 @@ public class RoleTest {
     }
 
     @Test
-    public void constructor_normalizesRoleFormatting() {
-        assertEquals("Supplier", new Role("supplier").value);
-        assertEquals("Supplier", new Role("SUPPLIER").value);
-        assertEquals("Sales Manager", new Role("sales manager").value);
+    public void constructor_collapsesWhitespaceAndPreservesCasing() {
+        assertEquals("supplier", new Role("supplier").value);
+        assertEquals("SUPPLIER", new Role("SUPPLIER").value);
+        assertEquals("PCB Supplier", new Role("PCB Supplier").value);
+        assertEquals("RGB Designer", new Role("RGB Designer").value);
+        assertEquals("sales manager", new Role("sales manager").value);
         assertEquals("Sales Manager", new Role("Sales   Manager").value);
-        assertEquals("Logistics-Partner", new Role("logistics-partner").value);
-        assertEquals("Part-Time Staff", new Role("part-time staff").value);
-        assertEquals("R&D Specialist", new Role("r&d specialist").value);
-        assertEquals("Maker's Assistant", new Role("maker's assistant").value);
-        assertEquals("Logistics/Shipping", new Role("logistics/shipping").value);
+        assertEquals("logistics-partner", new Role("logistics-partner").value);
+        assertEquals("Part-Time Staff", new Role("Part-Time Staff").value);
+        assertEquals("R&D Specialist", new Role("R&D Specialist").value);
+        assertEquals("Maker's Assistant", new Role("Maker's Assistant").value);
+        assertEquals("logistics/shipping", new Role("logistics/shipping").value);
     }
 
     @Test
@@ -74,6 +76,10 @@ public class RoleTest {
         // same values different case -> returns true
         assertTrue(role.equals(new Role("supplier")));
         assertTrue(role.equals(new Role("SUPPLIER")));
+
+        // acronyms with different case and whitespace -> returns true
+        assertTrue(new Role("PCB Supplier").equals(new Role("pcb supplier")));
+        assertTrue(new Role("PCB   Supplier").equals(new Role("pcb supplier")));
 
         // same object -> returns true
         assertTrue(role.equals(role));
@@ -98,6 +104,9 @@ public class RoleTest {
         // same values different case -> returns same hashcode
         assertEquals(role.hashCode(), new Role("supplier").hashCode());
         assertEquals(role.hashCode(), new Role("SUPPLIER").hashCode());
+
+        // acronyms with different case -> returns same hashcode
+        assertEquals(new Role("PCB Supplier").hashCode(), new Role("pcb supplier").hashCode());
 
         // different values -> returns different hashcode
         assertNotEquals(role.hashCode(), new Role("Employee").hashCode());
