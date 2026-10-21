@@ -73,7 +73,7 @@ public class AddressBookParser {
         if (commandName.isEmpty()) {
             return new HelpCommand();
         }
-        if (commandName.equals(AddCommand.COMMAND_WORD)) {
+        if (commandName.matches("\\S+")) {
             return new HelpCommand(commandName);
         }
         throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE));

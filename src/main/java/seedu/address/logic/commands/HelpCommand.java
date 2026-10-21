@@ -1,5 +1,7 @@
 package seedu.address.logic.commands;
 
+import java.util.Map;
+
 import seedu.address.model.Model;
 
 /**
@@ -9,10 +11,21 @@ public class HelpCommand extends Command {
 
     public static final String COMMAND_WORD = "help";
 
-    public static final String MESSAGE_USAGE = COMMAND_WORD + " [COMMAND]: Opens the full help window or shows "
-            + "usage for a specific command.\nExample: " + COMMAND_WORD + " add";
+    public static final String COMMAND_DESCRIPTION = "Opens the full help window or shows usage for a specific "
+            + "command.";
+    public static final String COMMAND_PARAMETERS = "[COMMAND]";
+    public static final String COMMAND_EXAMPLE = COMMAND_WORD + " add";
+    public static final String MESSAGE_USAGE = COMMAND_WORD + " " + COMMAND_PARAMETERS + ": "
+            + COMMAND_DESCRIPTION + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String SHOWING_HELP_MESSAGE = "Opened help window.";
+    private static final String MESSAGE_NO_COMMAND_HELP = "No command-specific help is available for '%s'.";
+
+    private static final Map<String, String> COMMAND_USAGE = Map.of(
+            AddCommand.COMMAND_WORD, AddCommand.MESSAGE_USAGE,
+            EditCommand.COMMAND_WORD, EditCommand.MESSAGE_USAGE,
+            DeleteCommand.COMMAND_WORD, DeleteCommand.MESSAGE_USAGE,
+            FindCommand.COMMAND_WORD, FindCommand.MESSAGE_USAGE);
 
     private final String commandName;
 
@@ -28,9 +41,15 @@ public class HelpCommand extends Command {
 
     @Override
     public CommandResult execute(Model model) {
-        if (AddCommand.COMMAND_WORD.equals(commandName)) {
-            return new CommandResult(AddCommand.MESSAGE_USAGE);
+        if (commandName == null) {
+            return new CommandResult(SHOWING_HELP_MESSAGE, true, false);
         }
-        return new CommandResult(SHOWING_HELP_MESSAGE, true, false);
+
+        String commandUsage = COMMAND_USAGE.get(commandName);
+        if (commandUsage != null) {
+            return new CommandResult(commandUsage);
+        }
+
+        return new CommandResult(String.format(MESSAGE_NO_COMMAND_HELP, commandName));
     }
 }

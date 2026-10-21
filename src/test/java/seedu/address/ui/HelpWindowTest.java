@@ -21,13 +21,10 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.stage.Stage;
 import seedu.address.logic.commands.AddCommand;
-import seedu.address.logic.commands.ClearCommand;
 import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.EditCommand;
-import seedu.address.logic.commands.ExitCommand;
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.commands.HelpCommand;
-import seedu.address.logic.commands.ListCommand;
 
 public class HelpWindowTest {
 
@@ -61,7 +58,9 @@ public class HelpWindowTest {
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nFIND\n"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nLIST\nShows all persons"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nCLEAR\nClears all entries"));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nHELP\nOpens the help window"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nHELP\n" + HelpCommand.COMMAND_DESCRIPTION));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("Parameters: " + HelpCommand.COMMAND_PARAMETERS));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("Example: " + HelpCommand.COMMAND_EXAMPLE));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nEXIT\nExits the program."));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("----------------------------------------"));
     }
@@ -72,10 +71,10 @@ public class HelpWindowTest {
         assertUsageIsDisplayed(EditCommand.MESSAGE_USAGE);
         assertUsageIsDisplayed(DeleteCommand.MESSAGE_USAGE);
         assertUsageIsDisplayed(FindCommand.MESSAGE_USAGE);
-        assertUsageIsDisplayed(ListCommand.MESSAGE_USAGE);
-        assertUsageIsDisplayed(ClearCommand.MESSAGE_USAGE);
-        assertUsageIsDisplayed(HelpCommand.MESSAGE_USAGE);
-        assertUsageIsDisplayed(ExitCommand.MESSAGE_USAGE);
+        assertUsageIsDisplayed("list: Shows all persons in the address book.");
+        assertUsageIsDisplayed("clear: Clears all entries from KeyBossWarriorsPro.");
+        assertTrue(HelpWindow.HELP_MESSAGE.contains(HelpCommand.COMMAND_DESCRIPTION));
+        assertUsageIsDisplayed("exit: Exits the program.");
     }
 
     private static void assertUsageIsDisplayed(String messageUsage) {
