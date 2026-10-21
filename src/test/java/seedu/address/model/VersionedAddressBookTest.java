@@ -239,10 +239,10 @@ public class VersionedAddressBookTest {
         assertFalse(versionedAddressBook.equals(differentStateListHistory));
 
         // different current pointer index -> returns false
-        VersionedAddressBook differentCurrentStatePointer = prepareAddressBookList(
-                addressBookWithAmy, addressBookWithBob);
-        shiftCurrentStatePointerLeftwards(versionedAddressBook, 1);
-        assertFalse(versionedAddressBook.equals(differentCurrentStatePointer));
+        VersionedAddressBook first = prepareAddressBookList(addressBookWithAmy, addressBookWithAmy);
+        VersionedAddressBook second = prepareAddressBookList(addressBookWithAmy, addressBookWithAmy);
+        first.undo();
+        assertFalse(first.equals(second));
 
         // different current address book contents -> returns false
         VersionedAddressBook differentCurrentAddressBook =
