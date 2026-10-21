@@ -9,13 +9,15 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
  */
 public class Role {
 
-    public static final String MESSAGE_CONSTRAINTS = "Error: ROLE cannot be empty";
+    public static final String MESSAGE_CONSTRAINTS =
+            "Roles should only contain alphanumeric characters, spaces, and punctuation (- / & '), "
+            + "and must start and end with an alphanumeric character";
 
     /*
-     * The first character of the role must not be a whitespace,
-     * otherwise " " (a blank string) becomes a valid input.
+     * The role must start and end with an alphanumeric character.
+     * Internal spaces and allowed punctuation (- / & ') are accepted.
      */
-    public static final String VALIDATION_REGEX = "[^\\s].*";
+    public static final String VALIDATION_REGEX = "^[\\p{Alnum}]([\\p{Alnum} /&'-]*[\\p{Alnum}])?$";
 
     public final String value;
 
@@ -27,7 +29,7 @@ public class Role {
     public Role(String role) {
         requireNonNull(role);
         checkArgument(isValidRole(role), MESSAGE_CONSTRAINTS);
-        value = role;
+        value = formatRole(role);
     }
 
     /**
@@ -35,6 +37,13 @@ public class Role {
      */
     public static boolean isValidRole(String test) {
         return test.matches(VALIDATION_REGEX);
+    }
+
+    /**
+     * Formats a role by collapsing consecutive whitespace.
+     */
+    private static String formatRole(String role) {
+        return role.trim().replaceAll("\\s+", " ");
     }
 
     @Override
@@ -53,12 +62,11 @@ public class Role {
             return false;
         }
 
-        return value.equals(otherRole.value);
+        return value.equalsIgnoreCase(otherRole.value);
     }
 
     @Override
     public int hashCode() {
-        return value.hashCode();
+        return value.toLowerCase().hashCode();
     }
-
 }
