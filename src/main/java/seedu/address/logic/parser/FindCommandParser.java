@@ -2,12 +2,14 @@ package seedu.address.logic.parser;
 
 import static java.util.Objects.requireNonNull;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_NAME;
+import static seedu.address.logic.parser.CliSyntax.PREFIX_ROLE;
 
 import java.util.List;
 
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
+import seedu.address.model.person.RoleContainsKeywordsPredicate;
 
 /**
  * Parses input arguments and creates a new FindCommand object
@@ -28,16 +30,21 @@ public class FindCommandParser implements Parser<FindCommand> {
             throw new ParseException(FindCommand.MESSAGE_MISSING_CRITERIA);
         }
 
-        ArgumentTokenizer.verifyNoUnrecognizedPrefixes(args, PREFIX_NAME);
+        ArgumentTokenizer.verifyNoUnrecognizedPrefixes(args, PREFIX_NAME, PREFIX_ROLE);
 
-        ArgumentMultimap argMultimap = ArgumentTokenizer.tokenize(args, PREFIX_NAME);
+        ArgumentMultimap argMultimap = ArgumentTokenizer.tokenize(args, PREFIX_NAME, PREFIX_ROLE);
 
         List<String> prefixedNames = argMultimap.getAllValues(PREFIX_NAME);
+        List<String> prefixedRoles = argMultimap.getAllValues(PREFIX_ROLE);
 
-        if (!prefixedNames.isEmpty()) {
-            // Blank n/
-            if (prefixedNames.stream().anyMatch(String::isBlank)) {
-                throw new ParseException(FindCommand.MESSAGE_EMPTY_NAME_VALUE);
+        boolean hasPrefixedNames = !prefixedNames.isEmpty();
+        boolean hasPrefixedRoles = !prefixedRoles.isEmpty();
+
+        if (hasPrefixedNames || hasPrefixedRoles) {
+            // Blank n/ or blank r/
+            if (prefixedNames.stream().anyMatch(String::isBlank)
+                    || prefixedRoles.stream().anyMatch(String::isBlank)) {
+                throw new ParseException(FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
             }
 
             // Error: using both legacy and prefixed versions e.g. find Alice n/Tan
@@ -45,7 +52,18 @@ public class FindCommandParser implements Parser<FindCommand> {
                 throw new ParseException(FindCommand.MESSAGE_MIXED_SEARCH_MODE);
             }
 
-            return new FindCommand(new NameContainsKeywordsPredicate(prefixedNames));
+            NameContainsKeywordsPredicate namePredicate = new NameContainsKeywordsPredicate(prefixedNames);
+            RoleContainsKeywordsPredicate rolePredicate = new RoleContainsKeywordsPredicate(prefixedRoles);
+
+            if (hasPrefixedNames && hasPrefixedRoles) {
+                return new FindCommand(namePredicate, rolePredicate);
+            }
+
+            if (hasPrefixedNames) {
+                return new FindCommand(namePredicate);
+            }
+
+            return new FindCommand(rolePredicate);
         }
 
         // Preserve legacy behaviour

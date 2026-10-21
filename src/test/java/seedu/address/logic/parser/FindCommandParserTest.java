@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import seedu.address.logic.Messages;
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
+import seedu.address.model.person.RoleContainsKeywordsPredicate;
 
 public class FindCommandParserTest {
 
@@ -28,51 +29,86 @@ public class FindCommandParserTest {
     }
 
     @Test
-    public void parse_singlePrefixedName_returnsFindCommand() {
+    public void parse_singlePrefixedValue_returnsFindCommand() {
         FindCommand expectedFindCommand =
                 new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice")));
 
         assertParseSuccess(parser, " n/Alice", expectedFindCommand);
+
+        expectedFindCommand =
+                new FindCommand(new RoleContainsKeywordsPredicate(List.of("Supplier")));
+
+        assertParseSuccess(parser, " r/Supplier", expectedFindCommand);
     }
 
     @Test
-    public void parse_multiWordPrefixedName_returnsFindCommand() {
+    public void parse_multiWordPrefixedValue_returnsFindCommand() {
         FindCommand expectedFindCommand =
                 new FindCommand(new NameContainsKeywordsPredicate(List.of("John Doe")));
 
         assertParseSuccess(parser, " n/John Doe", expectedFindCommand);
+
+        expectedFindCommand =
+                new FindCommand(new RoleContainsKeywordsPredicate(List.of("Supplier ABC")));
+
+        assertParseSuccess(parser, " r/Supplier ABC", expectedFindCommand);
     }
 
     @Test
-    public void parse_multiplePrefixedName_returnsFindCommand() {
+    public void parse_multiplePrefixedValues_returnsFindCommand() {
         FindCommand expectedFindCommand =
                 new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice", "Bob")));
 
         assertParseSuccess(parser, " n/Alice n/Bob", expectedFindCommand);
+
+        expectedFindCommand =
+                new FindCommand(new RoleContainsKeywordsPredicate(List.of("Supplier", "Distributor")));
+
+        assertParseSuccess(parser, " r/Supplier r/Distributor", expectedFindCommand);
     }
 
     @Test
-    public void parse_repeatedMultiWordPrefixedName_returnsFindCommand() {
+    public void parse_multipleMultiWordPrefixedValues_returnsFindCommand() {
         FindCommand expectedFindCommand =
                 new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice Tan", "Bob Lee")));
 
         assertParseSuccess(parser, " n/Alice Tan n/Bob Lee", expectedFindCommand);
+
+        expectedFindCommand =
+                new FindCommand(new RoleContainsKeywordsPredicate(List.of("Supplier ABC", "Distributor XYZ")));
+
+        assertParseSuccess(parser, " r/Supplier ABC r/Distributor XYZ", expectedFindCommand);
     }
 
     @Test
-    public void parse_prefixedNameWithWhitespace_returnsFindCommand() {
+    public void parse_prefixedValuesWithWhitespace_returnsFindCommand() {
         FindCommand expectedFindCommand =
                 new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice", "Bob")));
 
-        assertParseSuccess(parser, " \n n/Alice \n \t n/Bob  \t", expectedFindCommand);
+        assertParseSuccess(parser, " \n n/   Alice \n \t n/Bob  \t", expectedFindCommand);
+
+        expectedFindCommand =
+                new FindCommand(new RoleContainsKeywordsPredicate(List.of("Supplier", "Distributor")));
+
+        assertParseSuccess(parser, " \n r/   Supplier \n \t r/Distributor  \t", expectedFindCommand);
     }
 
     @Test
-    public void parse_prefixedNameWithTrimmedWhitespace_returnsFindCommand() {
-        FindCommand expectedFindCommand =
-                new FindCommand(new NameContainsKeywordsPredicate(List.of("John Doe")));
+    public void parse_differentPrefixes_returnsFindCommand() {
+        FindCommand expectedFindCommand = new FindCommand(
+                new NameContainsKeywordsPredicate(List.of("John")),
+                new RoleContainsKeywordsPredicate(List.of("Distributor")));
 
-        assertParseSuccess(parser, " n/  John Doe  ", expectedFindCommand);
+        assertParseSuccess(parser, " n/John r/Distributor  ", expectedFindCommand);
+    }
+
+    @Test
+    public void parse_multipleDifferentPrefixes_returnsFindCommand() {
+        FindCommand expectedFindCommand = new FindCommand(
+                new NameContainsKeywordsPredicate(List.of("Alice", "John")),
+                new RoleContainsKeywordsPredicate(List.of("Distributor", "Employee")));
+
+        assertParseSuccess(parser, " n/Alice n/John r/Distributor r/Employee", expectedFindCommand);
     }
 
     @Test
@@ -86,18 +122,27 @@ public class FindCommandParserTest {
     }
 
     @Test
-    public void parse_emptyNameValue_throwsParseException() {
-        assertParseFailure(parser, " n/", FindCommand.MESSAGE_EMPTY_NAME_VALUE);
+    public void parse_emptyPrefixedValue_throwsParseException() {
+        assertParseFailure(parser, " n/", FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
 
-        assertParseFailure(parser, " n/   n/", FindCommand.MESSAGE_EMPTY_NAME_VALUE);
+        assertParseFailure(parser, " r/", FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
 
-        assertParseFailure(parser, " n/Alice   n/", FindCommand.MESSAGE_EMPTY_NAME_VALUE);
+        assertParseFailure(parser, " n/   n/", FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
 
+        assertParseFailure(parser, " r/   r/", FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
+
+        assertParseFailure(parser, " n/   r/", FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
+
+        assertParseFailure(parser, " r/Employee   r/", FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
+
+        assertParseFailure(parser, " n/Alice   n/", FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
     }
 
     @Test
-    public void parse_mixedSearchMode_throwsParseException() {
+    public void parse_legacyAndPrefixedValues_throwsParseException() {
         assertParseFailure(parser, "Alice n/Tan", FindCommand.MESSAGE_MIXED_SEARCH_MODE);
+
+        assertParseFailure(parser, "Alice r/Employee", FindCommand.MESSAGE_MIXED_SEARCH_MODE);
 
         assertParseFailure(parser, "Alice  Bob n/Tan", FindCommand.MESSAGE_MIXED_SEARCH_MODE);
     }
