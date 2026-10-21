@@ -32,6 +32,7 @@ public class AddCommandIntegrationTest {
 
         Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
         expectedModel.addPerson(validPerson);
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(new AddCommand(validPerson), model,
                 String.format(AddCommand.MESSAGE_SUCCESS, Messages.format(validPerson)),
@@ -80,6 +81,7 @@ public class AddCommandIntegrationTest {
 
         Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
         expectedModel.addPerson(sameNamePerson);
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(new AddCommand(sameNamePerson), model,
                 String.format(AddCommand.MESSAGE_SUCCESS, Messages.format(sameNamePerson)),

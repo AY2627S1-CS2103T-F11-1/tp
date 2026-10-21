@@ -153,6 +153,7 @@ public class LogicManagerTest {
         Person expectedPerson = new PersonBuilder(AMY).withTags().build();
         ModelManager expectedModel = new ModelManager();
         expectedModel.addPerson(expectedPerson);
+        expectedModel.commitAddressBook();
 
         CommandException exception = Assertions.assertThrows(CommandException.class, () -> logic.execute(addCommand));
         String fileOpsErrorPrefix = String.format(LogicManager.FILE_OPS_ERROR_FORMAT, "").trim();
@@ -253,6 +254,7 @@ public class LogicManagerTest {
         Person expectedPerson = new PersonBuilder(AMY).withTags().build();
         ModelManager expectedModel = new ModelManager();
         expectedModel.addPerson(expectedPerson);
+        expectedModel.commitAddressBook();
         assertCommandFailure(addCommand, CommandException.class, expectedMessage, expectedModel);
     }
 
