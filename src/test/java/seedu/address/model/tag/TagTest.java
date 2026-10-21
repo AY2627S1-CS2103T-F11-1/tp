@@ -22,7 +22,7 @@ public class TagTest {
     @Test
     public void isValidTagName() {
         // null tag name
-        assertFalse(Tag.isValidTagName(null));
+        assertThrows(NullPointerException.class, () -> Tag.isValidTagName(null));
 
         // invalid tag names
         assertFalse(Tag.isValidTagName("")); // empty string
