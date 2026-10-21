@@ -22,10 +22,15 @@ public class HelpCommand extends Command {
     private static final String MESSAGE_NO_COMMAND_HELP = "No command-specific help is available for '%s'.";
 
     private static final Map<String, String> COMMAND_USAGE = Map.of(
-            AddCommand.COMMAND_WORD, AddCommand.MESSAGE_USAGE,
-            EditCommand.COMMAND_WORD, EditCommand.MESSAGE_USAGE,
-            DeleteCommand.COMMAND_WORD, DeleteCommand.MESSAGE_USAGE,
-            FindCommand.COMMAND_WORD, FindCommand.MESSAGE_USAGE);
+            AddCommand.COMMAND_WORD, formatCommandUsage(AddCommand.COMMAND_WORD, AddCommand.COMMAND_DESCRIPTION,
+                    AddCommand.COMMAND_PARAMETERS, AddCommand.COMMAND_EXAMPLE),
+            EditCommand.COMMAND_WORD, formatCommandUsage(EditCommand.COMMAND_WORD, EditCommand.COMMAND_DESCRIPTION,
+                    EditCommand.COMMAND_PARAMETERS, EditCommand.COMMAND_EXAMPLE),
+            DeleteCommand.COMMAND_WORD, formatCommandUsage(DeleteCommand.COMMAND_WORD,
+                    DeleteCommand.COMMAND_DESCRIPTION, DeleteCommand.COMMAND_PARAMETERS,
+                    DeleteCommand.COMMAND_EXAMPLE),
+            FindCommand.COMMAND_WORD, formatCommandUsage(FindCommand.COMMAND_WORD, FindCommand.COMMAND_DESCRIPTION,
+                    FindCommand.COMMAND_PARAMETERS, FindCommand.COMMAND_EXAMPLE));
 
     private final String commandName;
 
@@ -37,6 +42,11 @@ public class HelpCommand extends Command {
     /** Creates a command that shows help for the given command in the result display. */
     public HelpCommand(String commandName) {
         this.commandName = commandName;
+    }
+
+    private static String formatCommandUsage(String commandWord, String description, String parameters,
+            String example) {
+        return commandWord + ": " + description + "\nParameters: " + parameters + "\nExample: " + example;
     }
 
     @Override
