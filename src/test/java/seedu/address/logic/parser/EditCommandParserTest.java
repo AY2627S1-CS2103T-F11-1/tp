@@ -28,6 +28,7 @@ import static seedu.address.logic.commands.CommandTestUtil.VALID_ROLE_BOB;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_TAG_FRIEND;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_TAG_HUSBAND;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_ADDRESS;
+import static seedu.address.logic.parser.CliSyntax.PREFIX_DELETE_TAG;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_EMAIL;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_PHONE;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_ROLE;
@@ -55,6 +56,7 @@ import seedu.address.testutil.EditPersonDescriptorBuilder;
 public class EditCommandParserTest {
 
     private static final String TAG_EMPTY = " " + PREFIX_TAG;
+    private static final String DELETE_TAG_EMPTY = " " + PREFIX_DELETE_TAG;
 
     private static final String MESSAGE_INVALID_FORMAT =
             String.format(MESSAGE_INVALID_COMMAND_FORMAT, EditCommand.MESSAGE_USAGE);
@@ -100,11 +102,10 @@ public class EditCommandParserTest {
         // invalid phone followed by valid email
         assertParseFailure(parser, "1" + INVALID_PHONE_DESC + EMAIL_DESC_AMY, Phone.MESSAGE_CONSTRAINTS);
 
-        // while parsing {@code PREFIX_TAG} alone will reset the tags of the {@code Person} being edited,
-        // parsing it together with a valid tag results in error
-        assertParseFailure(parser, "1" + TAG_DESC_FRIEND + TAG_DESC_HUSBAND + TAG_EMPTY, Tag.MESSAGE_CONSTRAINTS);
-        assertParseFailure(parser, "1" + TAG_DESC_FRIEND + TAG_EMPTY + TAG_DESC_HUSBAND, Tag.MESSAGE_CONSTRAINTS);
-        assertParseFailure(parser, "1" + TAG_EMPTY + TAG_DESC_FRIEND + TAG_DESC_HUSBAND, Tag.MESSAGE_CONSTRAINTS);
+        // An empty tag is invalid regardless of where it appears among valid tags.
+        assertParseFailure(parser, "1" + TAG_DESC_FRIEND + TAG_DESC_HUSBAND + TAG_EMPTY, EditCommand.MESSAGE_EMPTY_TAG);
+        assertParseFailure(parser, "1" + TAG_DESC_FRIEND + TAG_EMPTY + TAG_DESC_HUSBAND, EditCommand.MESSAGE_EMPTY_TAG);
+        assertParseFailure(parser, "1" + TAG_EMPTY + TAG_DESC_FRIEND + TAG_DESC_HUSBAND, EditCommand.MESSAGE_EMPTY_TAG);
 
         // multiple invalid values, but only the first invalid value is captured
         assertParseFailure(parser, "1" + INVALID_NAME_DESC + INVALID_EMAIL_DESC + VALID_ADDRESS_AMY + VALID_PHONE_AMY,
@@ -214,13 +215,79 @@ public class EditCommandParserTest {
     }
 
     @Test
-    public void parse_resetTags_success() {
-        Index targetIndex = INDEX_THIRD_PERSON;
-        String userInput = targetIndex.getOneBased() + TAG_EMPTY;
+    public void parse_emptyTags_failure() {
+        String[] inputs = {
+            "1 t/", "1 dt/", "1 t/   ", "1 dt/   ", "1 t/ dt/",
+            "1 t/solderer dt/", "1 dt/trainee t/", "1 t/ t/solderer",
+            "1 dt/ dt/trainee", "1 dt/trainee dt/", "1 dt/trainee dt/ dt/supplier"
+        };
+        for (String input : inputs) {
+            assertParseFailure(parser, input, EditCommand.MESSAGE_EMPTY_TAG);
+        }
+        assertParseFailure(parser, "1" + NAME_DESC_AMY + DELETE_TAG_EMPTY, EditCommand.MESSAGE_EMPTY_TAG);
+    }
 
-        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withTagsToAdd().build();
-        EditCommand expectedCommand = new EditCommand(targetIndex, descriptor);
+    @Test
+    public void parse_deleteTags_success() {
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
+                .withTagsToDelete("trainee", "supplier").build();
+        assertParseSuccess(parser, "1 dt/trainee dt/supplier", new EditCommand(INDEX_FIRST_PERSON, descriptor));
+    }
 
-        assertParseSuccess(parser, userInput, expectedCommand);
+    @Test
+    public void parse_addAndDeleteTags_success() {
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
+                .withTagsToAdd("solderer", "supplier").withTagsToDelete("trainee", "customer").build();
+        EditCommand expectedCommand = new EditCommand(INDEX_FIRST_PERSON, descriptor);
+        assertParseSuccess(parser, "1 t/solderer dt/trainee t/supplier dt/customer", expectedCommand);
+        assertParseSuccess(parser, "1 dt/customer dt/trainee t/supplier t/solderer", expectedCommand);
+    }
+
+    @Test
+    public void parse_deleteTagsWithOtherFields_success() {
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withName(VALID_NAME_AMY)
+                .withTagsToAdd("solderer").withTagsToDelete("trainee").build();
+        assertParseSuccess(parser, "1 dt/trainee" + NAME_DESC_AMY + " t/solderer",
+                new EditCommand(INDEX_FIRST_PERSON, descriptor));
+    }
+
+    @Test
+    public void parse_repeatedTags_deduplicated() {
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
+                .withTagsToAdd("solderer").withTagsToDelete("trainee").build();
+        assertParseSuccess(parser, "1 t/solderer t/SOLDERER dt/trainee dt/TRAINEE",
+                new EditCommand(INDEX_FIRST_PERSON, descriptor));
+    }
+
+    @Test
+    public void parse_conflictingTags_failure() {
+        String expectedMessage = String.format(EditCommand.MESSAGE_TAG_CONFLICT, "trainee");
+        assertParseFailure(parser, "1 t/trainee dt/trainee", expectedMessage);
+        assertParseFailure(parser, "1 dt/TRAINEE t/trainee", expectedMessage);
+        assertParseFailure(parser, "1 t/solderer t/trainee dt/supplier dt/TRAINEE", expectedMessage);
+
+        // Tag equality also collapses internal whitespace.
+        assertParseFailure(parser, "1 t/keyboard builder dt/Keyboard  Builder",
+                String.format(EditCommand.MESSAGE_TAG_CONFLICT, "keyboard builder"));
+    }
+
+    @Test
+    public void parse_multipleConflictingTags_reportsFirstAlphabetically() {
+        String expectedMessage = String.format(EditCommand.MESSAGE_TAG_CONFLICT, "solderer");
+        assertParseFailure(parser, "1 t/trainee t/solderer dt/trainee dt/solderer", expectedMessage);
+        assertParseFailure(parser, "1 dt/solderer t/solderer dt/trainee t/trainee", expectedMessage);
+    }
+
+    @Test
+    public void parse_invalidDeleteTag_failure() {
+        assertParseFailure(parser, "1 dt/trainee*", Tag.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 dt/" + "a".repeat(Tag.MAX_LENGTH + 1), Tag.MESSAGE_CONSTRAINTS);
+    }
+
+    @Test
+    public void parse_invalidTagBeforeConflict_failure() {
+        assertParseFailure(parser, "1 t/trainee dt/trainee dt/invalid*", Tag.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 t/trainee dt/trainee t/invalid*", Tag.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 t/trainee dt/trainee dt/", EditCommand.MESSAGE_EMPTY_TAG);
     }
 }
