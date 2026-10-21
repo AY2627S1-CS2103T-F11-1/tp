@@ -70,6 +70,14 @@ public class AddCommandParserTest {
                 NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB + ROLE_DESC_BOB
                         + TAG_DESC_HUSBAND + TAG_DESC_FRIEND,
                 new AddCommand(expectedPersonMultipleTags));
+
+        // duplicate tags with different casing - deduplicated
+        Person expectedPersonDeduplicatedTags = new PersonBuilder(BOB).withTags("switches")
+                .build();
+        assertParseSuccess(parser,
+                NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB + ADDRESS_DESC_BOB + ROLE_DESC_BOB
+                        + " t/switches t/Switches t/SWITCHES",
+                new AddCommand(expectedPersonDeduplicatedTags));
     }
 
     @Test
