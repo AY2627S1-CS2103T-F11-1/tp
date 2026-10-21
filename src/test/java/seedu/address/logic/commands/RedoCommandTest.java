@@ -26,7 +26,6 @@ public class RedoCommandTest {
 
     @BeforeEach
     public void setUp() {
-        // set up of both models' undo/redo history
         deleteFirstPerson(model);
         deleteFirstPerson(model);
         model.undoAddressBook();
@@ -45,21 +44,17 @@ public class RedoCommandTest {
 
     @Test
     public void execute() {
-        // multiple redoable states in model
         expectedModel.redoAddressBook();
         assertCommandSuccess(new RedoCommand(), model, RedoCommand.MESSAGE_SUCCESS, expectedModel);
 
-        // single redoable state in model
         expectedModel.redoAddressBook();
         assertCommandSuccess(new RedoCommand(), model, RedoCommand.MESSAGE_SUCCESS, expectedModel);
 
-        // no redoable state in model
         assertCommandFailure(new RedoCommand(), model, RedoCommand.MESSAGE_FAILURE);
     }
 
     @Test
     public void execute_filteredList_success() {
-        // Set up model with an active filter prior to redo
         showPersonAtIndex(model, INDEX_FIRST_PERSON);
         assertTrue(model.getFilteredPersonList().size() < model.getAddressBook().getPersonList().size());
 
@@ -72,16 +67,12 @@ public class RedoCommandTest {
     public void equals() {
         RedoCommand redoCommand = new RedoCommand();
 
-        // same object -> returns true
         assertTrue(redoCommand.equals(redoCommand));
 
-        // same type -> returns true
         assertTrue(redoCommand.equals(new RedoCommand()));
 
-        // null -> returns false
         assertFalse(redoCommand.equals(null));
 
-        // different type -> returns false
         assertFalse(redoCommand.equals(new ClearCommand()));
     }
 

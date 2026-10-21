@@ -38,7 +38,6 @@ public class RedoCommand extends Command {
             return true;
         }
 
-        // instanceof handles nulls
         return other instanceof RedoCommand;
     }
 
