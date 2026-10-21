@@ -39,6 +39,36 @@ public interface Model {
     ReadOnlyAddressBook getAddressBook();
 
     /**
+     * Saves the current address book state for undo/redo.
+     * Discards any remaining redo history.
+     */
+    void commitAddressBook();
+
+    /**
+     * Restores the previous address book state and resets the filter to show all persons.
+     *
+     * @throws VersionedAddressBook.NoUndoableStateException if there is no previous state.
+     */
+    void undoAddressBook();
+
+    /**
+     * Restores the next address book state and resets the filter to show all persons.
+     *
+     * @throws VersionedAddressBook.NoRedoableStateException if there is no next state.
+     */
+    void redoAddressBook();
+
+    /**
+     * Returns true if there is a previous address book state to restore.
+     */
+    boolean canUndoAddressBook();
+
+    /**
+     * Returns true if there is a next address book state to restore.
+     */
+    boolean canRedoAddressBook();
+
+    /**
      * Returns true if a person with the same identity as {@code person} exists in the address book.
      */
     boolean hasPerson(Person person);
