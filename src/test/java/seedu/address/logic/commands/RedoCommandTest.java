@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandFailure;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandSuccess;
 import static seedu.address.logic.commands.CommandTestUtil.deleteFirstPerson;
+import static seedu.address.logic.commands.CommandTestUtil.showPersonAtIndex;
+import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -53,6 +55,17 @@ public class RedoCommandTest {
 
         // no redoable state in model
         assertCommandFailure(new RedoCommand(), model, RedoCommand.MESSAGE_FAILURE);
+    }
+
+    @Test
+    public void execute_filteredList_success() {
+        // Set up model with an active filter prior to redo
+        showPersonAtIndex(model, INDEX_FIRST_PERSON);
+        assertTrue(model.getFilteredPersonList().size() < model.getAddressBook().getPersonList().size());
+
+        expectedModel.redoAddressBook();
+        assertCommandSuccess(new RedoCommand(), model, RedoCommand.MESSAGE_SUCCESS, expectedModel);
+        assertEquals(expectedModel.getFilteredPersonList(), model.getFilteredPersonList());
     }
 
     @Test
