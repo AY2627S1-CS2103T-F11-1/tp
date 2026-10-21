@@ -2,7 +2,6 @@ package seedu.address.logic.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
@@ -99,8 +98,13 @@ public class AddressBookParserTest {
 
     @Test
     public void parseCommand_unrecognisedInput_throwsParseException() {
-        assertThrows(ParseException.class, String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE), ()
-            -> parser.parseCommand(""));
+        assertThrows(ParseException.class, AddressBookParser.MESSAGE_COMMAND_REQUIRED, () -> parser.parseCommand(""));
+    }
+
+    @Test
+    public void parseCommand_helpWithMultipleTargets_throwsParseException() {
+        String expectedMessage = AddressBookParser.MESSAGE_MULTIPLE_HELP_COMMANDS;
+        assertThrows(ParseException.class, expectedMessage, () -> parser.parseCommand("help add edit"));
     }
 
     @Test

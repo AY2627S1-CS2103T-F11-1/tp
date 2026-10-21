@@ -1,6 +1,5 @@
 package seedu.address.logic.parser;
 
-import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 
 import java.util.logging.Logger;
@@ -24,6 +23,9 @@ import seedu.address.logic.parser.exceptions.ParseException;
  */
 public class AddressBookParser {
 
+    static final String MESSAGE_COMMAND_REQUIRED = "Enter a command.";
+    static final String MESSAGE_MULTIPLE_HELP_COMMANDS = "Specify only one command after help.";
+
     /**
      * Used for initial separation of command word and args.
      */
@@ -40,7 +42,7 @@ public class AddressBookParser {
     public Command parseCommand(String userInput) throws ParseException {
         final Matcher matcher = BASIC_COMMAND_FORMAT.matcher(userInput.trim());
         if (!matcher.matches()) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE));
+            throw new ParseException(MESSAGE_COMMAND_REQUIRED);
         }
 
         final String commandWord = matcher.group("commandWord");
@@ -76,7 +78,7 @@ public class AddressBookParser {
         if (commandName.matches("\\S+")) {
             return new HelpCommand(commandName);
         }
-        throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE));
+        throw new ParseException(MESSAGE_MULTIPLE_HELP_COMMANDS);
     }
 
 }
