@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
+import java.util.Locale;
+
 import org.junit.jupiter.api.Test;
 
 public class TagTest {
@@ -123,6 +125,17 @@ public class TagTest {
 
         // different values -> returns different hashcode
         assertNotEquals(tag.hashCode(), new Tag("keycaps").hashCode());
+    }
+
+    @Test
+    public void hashCode_caseInsensitiveUnderTurkishLocale() {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals(new Tag("trainee").hashCode(), new Tag("TRAINEE").hashCode());
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
     }
 
     @Test

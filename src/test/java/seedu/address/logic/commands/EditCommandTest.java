@@ -17,6 +17,8 @@ import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 import static seedu.address.testutil.TypicalIndexes.INDEX_SECOND_PERSON;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
+import java.util.Locale;
+
 import org.junit.jupiter.api.Test;
 
 import seedu.address.commons.core.index.Index;
@@ -189,6 +191,20 @@ public class EditCommandTest {
         Person original = model.getFilteredPersonList().get(0);
         Person expectedPerson = new PersonBuilder(original).withTags("solderer").build();
         assertParsedEditSuccess("edit 1 t/solderer t/SOLDERER dt/friends dt/FRIENDS", expectedPerson);
+    }
+
+    @Test
+    public void parseAndExecute_caseInsensitiveTagOperationsUnderTurkishLocale_success() throws Exception {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            Person original = model.getFilteredPersonList().get(0);
+            assertParsedEditSuccess("edit 1 t/FRIENDS", original);
+            Person expectedPerson = new PersonBuilder(original).withTags().build();
+            assertParsedEditSuccess("edit 1 dt/FRIENDS", expectedPerson);
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
     }
 
     @Test

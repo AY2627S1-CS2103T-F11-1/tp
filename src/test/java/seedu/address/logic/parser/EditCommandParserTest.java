@@ -39,6 +39,8 @@ import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 import static seedu.address.testutil.TypicalIndexes.INDEX_SECOND_PERSON;
 import static seedu.address.testutil.TypicalIndexes.INDEX_THIRD_PERSON;
 
+import java.util.Locale;
+
 import org.junit.jupiter.api.Test;
 
 import seedu.address.commons.core.index.Index;
@@ -276,6 +278,18 @@ public class EditCommandParserTest {
         String expectedMessage = String.format(EditCommand.MESSAGE_TAG_CONFLICT, "solderer");
         assertParseFailure(parser, "1 t/trainee t/solderer dt/trainee dt/solderer", expectedMessage);
         assertParseFailure(parser, "1 dt/solderer t/solderer dt/trainee t/trainee", expectedMessage);
+    }
+
+    @Test
+    public void parse_conflictingTagsUnderTurkishLocale_failure() {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertParseFailure(parser, "1 t/trainee dt/TRAINEE",
+                    String.format(EditCommand.MESSAGE_TAG_CONFLICT, "trainee"));
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
     }
 
     @Test
