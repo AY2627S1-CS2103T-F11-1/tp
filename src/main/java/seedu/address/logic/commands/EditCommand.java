@@ -108,16 +108,29 @@ public class EditCommand extends Command {
     /**
      * Creates and returns a {@code Person} with the details of {@code personToEdit}
      * edited with {@code editPersonDescriptor}.
+     * @throws CommandException if any tag to delete is not present on the original person
      */
-    private static Person createEditedPerson(Person personToEdit, EditPersonDescriptor editPersonDescriptor) {
+    private static Person createEditedPerson(Person personToEdit, EditPersonDescriptor editPersonDescriptor)
+            throws CommandException {
         assert personToEdit != null;
+
+        Set<Tag> tagsToDelete = editPersonDescriptor.getTagsToDelete().orElse(Collections.emptySet());
+        Optional<Tag> missingTag = tagsToDelete.stream()
+                .filter(tag -> !personToEdit.getTags().contains(tag))
+                .sorted((first, second) -> first.tagName.compareToIgnoreCase(second.tagName))
+                .findFirst();
+        if (missingTag.isPresent()) {
+            throw new CommandException(String.format(MESSAGE_TAG_NOT_FOUND, missingTag.get().tagName));
+        }
 
         Name updatedName = editPersonDescriptor.getName().orElse(personToEdit.getName());
         Phone updatedPhone = editPersonDescriptor.getPhone().orElse(personToEdit.getPhone());
         Email updatedEmail = editPersonDescriptor.getEmail().orElse(personToEdit.getEmail());
         Address updatedAddress = editPersonDescriptor.getAddress().orElse(personToEdit.getAddress());
         Role updatedRole = editPersonDescriptor.getRole().orElse(personToEdit.getRole());
-        Set<Tag> updatedTags = editPersonDescriptor.getTagsToAdd().orElse(personToEdit.getTags());
+        Set<Tag> updatedTags = new HashSet<>(personToEdit.getTags());
+        updatedTags.removeAll(tagsToDelete);
+        updatedTags.addAll(editPersonDescriptor.getTagsToAdd().orElse(Collections.emptySet()));
 
         return new Person(updatedName, updatedPhone, updatedEmail, updatedAddress, updatedRole, updatedTags);
     }
