@@ -100,6 +100,11 @@ public class PersonTest {
                 ALICE.getAddress(), new Role("OtherRole"), ALICE.getTags());
         assertFalse(ALICE.equals(editedAlice));
 
+        // same role different case -> returns true
+        editedAlice = new Person(ALICE.getName(), ALICE.getPhone(), ALICE.getEmail(),
+                ALICE.getAddress(), new Role(ALICE.getRole().value.toLowerCase()), ALICE.getTags());
+        assertTrue(ALICE.equals(editedAlice));
+
         // different tags -> returns false
         editedAlice = new PersonBuilder(ALICE).withTags(VALID_TAG_HUSBAND).build();
         assertFalse(ALICE.equals(editedAlice));

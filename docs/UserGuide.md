@@ -72,7 +72,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 Adds a contact to KeyBossWarriorsPro.
 
 **Format:** `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…​`
-* `ROLE` represents the contact's role or affiliation in your keyboard shop (e.g., `Supplier`, `Employee`, `Partner`, `Customer`). It cannot be empty.
+* `ROLE` represents the contact's role or affiliation in your keyboard shop (e.g., `Supplier`, `Employee`, `Partner`, `Customer`). It cannot be empty. Multiple consecutive spaces are collapsed into a single space, and role comparisons are case-insensitive.
 * Contacts are identified as duplicates by phone number or email address (email comparisons are case-insensitive). You cannot add a contact who shares a phone number or email address with an existing contact, but contacts may share the same name.
 * Unrecognized prefixes and extraneous arguments are not permitted and will be rejected with an error message indicating the unrecognized prefix(es).
 
@@ -84,7 +84,7 @@ Field | Constraint
 `PHONE_NUMBER` | Must contain at least 3 digits. Only digits are accepted.
 `EMAIL` | Must follow a valid email format, such as `john@example.com`.
 `ADDRESS` | May contain spaces and special characters.
-`ROLE` | May contain spaces and special characters.
+`ROLE` | May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character. Multiple consecutive spaces are collapsed into a single space.
 `TAG` | Optional. May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character, and cannot exceed 50 characters. Multiple consecutive spaces are collapsed into a single space. Tag comparisons and deduplication are case-insensitive.
 
 
