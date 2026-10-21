@@ -37,25 +37,35 @@ public class HelpWindow extends UiPart<Stage> {
     public static final String HELP_MESSAGE = String.join("\n",
             "PEOPLE",
             SECTION_DIVIDER,
-            formatCommandUsage(AddCommand.MESSAGE_USAGE),
+            formatCommand(AddCommand.COMMAND_WORD, AddCommand.COMMAND_DESCRIPTION,
+                    "Parameters: " + AddCommand.COMMAND_PARAMETERS,
+                    "Example: " + AddCommand.COMMAND_EXAMPLE),
             COMMAND_DIVIDER,
-            formatCommandUsage(EditCommand.MESSAGE_USAGE),
+            formatCommand(EditCommand.COMMAND_WORD, EditCommand.COMMAND_DESCRIPTION,
+                    "Parameters: " + EditCommand.COMMAND_PARAMETERS,
+                    "Example: " + EditCommand.COMMAND_EXAMPLE),
             COMMAND_DIVIDER,
-            formatCommandUsage(DeleteCommand.MESSAGE_USAGE),
+            formatCommand(DeleteCommand.COMMAND_WORD, DeleteCommand.COMMAND_DESCRIPTION,
+                    "Parameters: " + DeleteCommand.COMMAND_PARAMETERS,
+                    "Example: " + DeleteCommand.COMMAND_EXAMPLE),
             COMMAND_DIVIDER,
-            formatCommandUsage(FindCommand.MESSAGE_USAGE),
+            formatCommand(FindCommand.COMMAND_WORD, FindCommand.COMMAND_DESCRIPTION,
+                    "Parameters: " + FindCommand.COMMAND_PARAMETERS,
+                    "Example: " + FindCommand.COMMAND_EXAMPLE),
             "",
             "ADDRESS BOOK",
             SECTION_DIVIDER,
-            formatCommandUsage(ListCommand.MESSAGE_USAGE),
+            formatCommand(ListCommand.COMMAND_WORD, ListCommand.COMMAND_DESCRIPTION),
             COMMAND_DIVIDER,
-            formatCommandUsage(ClearCommand.MESSAGE_USAGE),
+            formatCommand(ClearCommand.COMMAND_WORD, ClearCommand.COMMAND_DESCRIPTION),
             "",
             "APPLICATION",
             SECTION_DIVIDER,
-            formatCommandUsage(HelpCommand.MESSAGE_USAGE),
+            formatCommand(HelpCommand.COMMAND_WORD, HelpCommand.COMMAND_DESCRIPTION,
+                    "Parameters: " + HelpCommand.COMMAND_PARAMETERS,
+                    "Example: " + HelpCommand.COMMAND_EXAMPLE),
             COMMAND_DIVIDER,
-            formatCommandUsage(ExitCommand.MESSAGE_USAGE));
+            formatCommand(ExitCommand.COMMAND_WORD, ExitCommand.COMMAND_DESCRIPTION));
 
     private static final Logger logger = LogsCenter.getLogger(HelpWindow.class);
     private static final String FXML = "HelpWindow.fxml";
@@ -99,20 +109,14 @@ public class HelpWindow extends UiPart<Stage> {
         this(new Stage());
     }
 
-    /**
-     * Formats a command's usage message with its command name on a separate uppercase line.
-     *
-     * @param messageUsage the usage message to format
-     * @return the formatted usage message, or the uppercase message if it has no description separator
-     */
-    private static String formatCommandUsage(String messageUsage) {
-        int descriptionStart = messageUsage.indexOf(": ");
-        if (descriptionStart < 0) {
-            return messageUsage.toUpperCase(Locale.ROOT);
+    /** Formats a command description and its optional parameter and example details for the help window. */
+    private static String formatCommand(String commandWord, String description, String... details) {
+        StringBuilder formattedCommand = new StringBuilder(commandWord.toUpperCase(Locale.ROOT))
+                .append("\n").append(description);
+        for (String detail : details) {
+            formattedCommand.append("\n").append(detail);
         }
-        String commandName = messageUsage.substring(0, descriptionStart).toUpperCase(Locale.ROOT);
-        String descriptionAndDetails = messageUsage.substring(descriptionStart + 2);
-        return commandName + "\n" + descriptionAndDetails;
+        return formattedCommand.toString();
     }
 
     /**

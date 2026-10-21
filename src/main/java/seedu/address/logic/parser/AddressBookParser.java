@@ -1,6 +1,5 @@
 package seedu.address.logic.parser;
 
-import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 
 import java.util.logging.Logger;
@@ -24,6 +23,9 @@ import seedu.address.logic.parser.exceptions.ParseException;
  */
 public class AddressBookParser {
 
+    static final String MESSAGE_COMMAND_REQUIRED = "Enter a command.";
+    static final String MESSAGE_MULTIPLE_HELP_COMMANDS = "Specify only one command after help.";
+
     /**
      * Used for initial separation of command word and args.
      */
@@ -40,7 +42,7 @@ public class AddressBookParser {
     public Command parseCommand(String userInput) throws ParseException {
         final Matcher matcher = BASIC_COMMAND_FORMAT.matcher(userInput.trim());
         if (!matcher.matches()) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE));
+            throw new ParseException(MESSAGE_COMMAND_REQUIRED);
         }
 
         final String commandWord = matcher.group("commandWord");
@@ -59,12 +61,24 @@ public class AddressBookParser {
             case FindCommand.COMMAND_WORD -> new FindCommandParser().parse(arguments);
             case ListCommand.COMMAND_WORD -> new ListCommandParser().parse(arguments);
             case ExitCommand.COMMAND_WORD -> new ExitCommandParser().parse(arguments);
-            case HelpCommand.COMMAND_WORD -> new HelpCommand();
+            case HelpCommand.COMMAND_WORD -> parseHelpCommand(arguments);
             default -> {
                 logger.finer("This user input caused a ParseException: " + userInput);
                 throw new ParseException(MESSAGE_UNKNOWN_COMMAND);
             }
         };
+    }
+
+    /** Parses the optional command name for the help command. */
+    private Command parseHelpCommand(String arguments) throws ParseException {
+        String commandName = arguments.trim();
+        if (commandName.isEmpty()) {
+            return new HelpCommand();
+        }
+        if (commandName.matches("\\S+")) {
+            return new HelpCommand(commandName);
+        }
+        throw new ParseException(MESSAGE_MULTIPLE_HELP_COMMANDS);
     }
 
 }
