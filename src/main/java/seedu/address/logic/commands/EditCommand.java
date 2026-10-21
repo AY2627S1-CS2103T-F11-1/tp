@@ -117,7 +117,7 @@ public class EditCommand extends Command {
         Email updatedEmail = editPersonDescriptor.getEmail().orElse(personToEdit.getEmail());
         Address updatedAddress = editPersonDescriptor.getAddress().orElse(personToEdit.getAddress());
         Role updatedRole = editPersonDescriptor.getRole().orElse(personToEdit.getRole());
-        Set<Tag> updatedTags = editPersonDescriptor.getTags().orElse(personToEdit.getTags());
+        Set<Tag> updatedTags = editPersonDescriptor.getTagsToAdd().orElse(personToEdit.getTags());
 
         return new Person(updatedName, updatedPhone, updatedEmail, updatedAddress, updatedRole, updatedTags);
     }
@@ -146,8 +146,7 @@ public class EditCommand extends Command {
     }
 
     /**
-     * Stores the details to edit the person with. Each non-empty field value will replace the
-     * corresponding field value of the person.
+     * Stores replacement values for contact details and separate sets of tags to add and delete.
      */
     public static class EditPersonDescriptor {
         private Name name;
@@ -155,13 +154,14 @@ public class EditCommand extends Command {
         private Email email;
         private Address address;
         private Role role;
-        private Set<Tag> tags;
+        private Set<Tag> tagsToAdd;
+        private Set<Tag> tagsToDelete;
 
         public EditPersonDescriptor() {}
 
         /**
          * Copy constructor.
-         * A defensive copy of {@code tags} is used internally.
+         * Defensive copies of both tag sets are used internally.
          */
         public EditPersonDescriptor(EditPersonDescriptor toCopy) {
             setName(toCopy.name);
@@ -169,14 +169,15 @@ public class EditCommand extends Command {
             setEmail(toCopy.email);
             setAddress(toCopy.address);
             setRole(toCopy.role);
-            setTags(toCopy.tags);
+            setTagsToAdd(toCopy.tagsToAdd);
+            setTagsToDelete(toCopy.tagsToDelete);
         }
 
         /**
          * Returns true if at least one field is edited.
          */
         public boolean isAnyFieldEdited() {
-            return CollectionUtil.isAnyNonNull(name, phone, email, address, role, tags);
+            return CollectionUtil.isAnyNonNull(name, phone, email, address, role, tagsToAdd, tagsToDelete);
         }
 
         public void setName(Name name) {
@@ -220,20 +221,31 @@ public class EditCommand extends Command {
         }
 
         /**
-         * Sets {@code tags} to this object's {@code tags}.
-         * A defensive copy of {@code tags} is used internally.
+         * Sets the tags to add, using a defensive copy. Null means no additions were supplied.
          */
-        public void setTags(Set<Tag> tags) {
-            this.tags = (tags != null) ? new HashSet<>(tags) : null;
+        public void setTagsToAdd(Set<Tag> tagsToAdd) {
+            this.tagsToAdd = (tagsToAdd != null) ? new HashSet<>(tagsToAdd) : null;
         }
 
         /**
-         * Returns an unmodifiable tag set, which throws {@code UnsupportedOperationException}
-         * if modification is attempted.
-         * Returns {@code Optional#empty()} if {@code tags} is null.
+         * Returns an unmodifiable set of tags to add, or an empty Optional if none were supplied.
          */
-        public Optional<Set<Tag>> getTags() {
-            return (tags != null) ? Optional.of(Collections.unmodifiableSet(tags)) : Optional.empty();
+        public Optional<Set<Tag>> getTagsToAdd() {
+            return (tagsToAdd != null) ? Optional.of(Collections.unmodifiableSet(tagsToAdd)) : Optional.empty();
+        }
+
+        /**
+         * Sets the tags to delete, using a defensive copy. Null means no deletions were supplied.
+         */
+        public void setTagsToDelete(Set<Tag> tagsToDelete) {
+            this.tagsToDelete = (tagsToDelete != null) ? new HashSet<>(tagsToDelete) : null;
+        }
+
+        /**
+         * Returns an unmodifiable set of tags to delete, or an empty Optional if none were supplied.
+         */
+        public Optional<Set<Tag>> getTagsToDelete() {
+            return (tagsToDelete != null) ? Optional.of(Collections.unmodifiableSet(tagsToDelete)) : Optional.empty();
         }
 
         @Override
@@ -252,7 +264,8 @@ public class EditCommand extends Command {
                     && Objects.equals(email, otherEditPersonDescriptor.email)
                     && Objects.equals(address, otherEditPersonDescriptor.address)
                     && Objects.equals(role, otherEditPersonDescriptor.role)
-                    && Objects.equals(tags, otherEditPersonDescriptor.tags);
+                    && Objects.equals(tagsToAdd, otherEditPersonDescriptor.tagsToAdd)
+                    && Objects.equals(tagsToDelete, otherEditPersonDescriptor.tagsToDelete);
         }
 
         @Override
@@ -263,7 +276,8 @@ public class EditCommand extends Command {
                     .add("email", email)
                     .add("address", address)
                     .add("role", role)
-                    .add("tags", tags)
+                    .add("tagsToAdd", tagsToAdd)
+                    .add("tagsToDelete", tagsToDelete)
                     .toString();
         }
     }
