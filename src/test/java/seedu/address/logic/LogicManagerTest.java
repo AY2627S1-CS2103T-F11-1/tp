@@ -79,7 +79,8 @@ public class LogicManagerTest {
     public void execute_listWithAdditionalArgument_showsWarning() throws Exception {
         model.addPerson(AMY);
 
-        Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
+        Model expectedModel = new ModelManager();
+        expectedModel.addPerson(AMY);
 
         String expectedMessage = ListCommand.MESSAGE_SUCCESS + "\n" + ListCommand.MESSAGE_IGNORED_ARGUMENTS;
 
@@ -90,7 +91,8 @@ public class LogicManagerTest {
     public void execute_listWithMultipleAdditionalArguments_showsWarning() throws Exception {
         model.addPerson(AMY);
 
-        Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
+        Model expectedModel = new ModelManager();
+        expectedModel.addPerson(AMY);
 
         String expectedMessage = ListCommand.MESSAGE_SUCCESS + "\n" + ListCommand.MESSAGE_IGNORED_ARGUMENTS;
 
@@ -101,7 +103,8 @@ public class LogicManagerTest {
     public void execute_listWithWhitespaceOnlyArguments_showsNoWarning() throws Exception {
         model.addPerson(AMY);
 
-        Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
+        Model expectedModel = new ModelManager();
+        expectedModel.addPerson(AMY);
 
         assertCommandSuccess("list \t  ", ListCommand.MESSAGE_SUCCESS, expectedModel);
     }
@@ -115,7 +118,9 @@ public class LogicManagerTest {
 
         assertEquals(1, logic.getFilteredPersonList().size());
 
-        Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
+        Model expectedModel = new ModelManager();
+        expectedModel.addPerson(AMY);
+        expectedModel.addPerson(BENSON);
 
         assertCommandSuccess("list", ListCommand.MESSAGE_SUCCESS, expectedModel);
     }
