@@ -157,6 +157,47 @@ Classes used by multiple components are in the `seedu.address.commons` package.
 
 This section describes some noteworthy details on how certain features are implemented.
 
+### Adding and deleting contact tags
+
+The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_ADD]... [dt/TAG_TO_DELETE]...`, alongside the existing contact fields. Additions preserve existing tags, and deletions remove only explicitly named tags. The complete edit succeeds or leaves all contact details and the displayed list unchanged.
+
+#### Parsing and descriptor
+
+`CliSyntax` defines `PREFIX_TAG` (`t/`) and `PREFIX_DELETE_TAG` (`dt/`). `EditCommandParser` recognizes both prefixes and permits repeated occurrences of each.
+
+`EditCommand.EditPersonDescriptor` stores `tagsToAdd` and `tagsToDelete` separately. Each setter makes a defensive copy, and each getter returns an `Optional<Set<Tag>>` containing an unmodifiable set. An absent optional means that operation was not supplied. Both sets participate in the copy constructor, `isAnyFieldEdited()`, `equals()`, and `toString()`.
+
+After parsing the index and other contact fields, `EditCommandParser`:
+
+1. Parses additions, then deletions, using `parseTagsForEdit()`. An absent prefix produces an empty optional. A supplied blank tag is rejected, including bare `t/` and `dt/`; neither clears all tags.
+2. Uses `ParserUtil.parseTags()` to validate tag names and construct sets. `Tag` collapses consecutive internal spaces, and its equality and hash code support case-insensitive comparison and deduplication.
+3. Rejects any tag present in both sets. If several tags conflict, the first tag alphabetically, ignoring case, is reported using the spelling from the additions set.
+4. Rejects a command with no fields or tag operations, or returns an `EditCommand` containing a copy of the descriptor.
+
+Invalid tag values are rejected before add/delete conflicts. Missing deletions require the selected contact's current data and are checked during execution.
+
+#### Execution and validation
+
+`EditCommand#execute()` resolves the index against the currently displayed list. `createEditedPerson()` checks every requested deletion against the original contact's tags before constructing the edited contact. If any requested tag is absent, it throws a `CommandException`; if several are absent, the first alphabetically, ignoring case, is reported.
+
+For valid deletions, `createEditedPerson()` copies the original tag set into a new `HashSet`, removes `tagsToDelete`, adds `tagsToAdd`, and constructs a new `Person` using the supplied or existing contact details. Adding an existing tag succeeds without creating a duplicate. Removing every tag requires explicitly listing every tag for deletion.
+
+`execute()` then performs the existing duplicate phone and email checks. Only after all validation succeeds does it call `Model#setPerson()` and reset the displayed list with `PREDICATE_SHOW_ALL_PERSONS`. A validation failure therefore changes neither the original contact nor the displayed list, including when a command combines valid deletions, a missing deletion, additions, and other field edits.
+
+Condition | Error constant | Exception
+--------|------------------|----------
+Blank value after `t/` or `dt/` | `EditCommand.MESSAGE_EMPTY_TAG` | `ParseException`
+Invalid tag name | `Tag.MESSAGE_CONSTRAINTS` | `ParseException`
+Same tag in both operations | `EditCommand.MESSAGE_TAG_CONFLICT` | `ParseException`
+Requested deletion absent from the selected contact | `EditCommand.MESSAGE_TAG_NOT_FOUND` | `CommandException`
+
+#### Test coverage
+
+* `EditPersonDescriptorTest` covers independent tag operations, defensive copying, unmodifiable getters, equality, and string output.
+* `EditCommandParserTest` covers both prefixes, repeated and empty values, invalid names, case-insensitive conflicts, and validation order.
+* `EditCommandTest` covers additions, selective deletions, combined operations, filtered lists, existing tags, missing deletions, and preservation of the full model on failure. It also parses command text through `AddressBookParser` before execution to cover the acceptance examples and failure cases.
+* `AddressBookParserTest` checks that an edit containing both operations is routed to the edit parser.
+
 ### \[Proposed\] Undo/redo feature
 
 #### Proposed Implementation
@@ -419,14 +460,14 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
     Use case ends.
 
 
-**Use Case: UC4 - Tag a Contact**
+**Use Case: UC4 - Add or Delete Contact Tags**
 
 **MSS**
 
 1.  User requests to find contacts using a name keyword.
 2.  `KeyBossWarriorsPro` displays matching contacts and their details.
-3.  User requests to add one or more tags to a contact.
-4.  `KeyBossWarriorsPro` adds the tags and displays the update contact information.
+3.  User requests to add or delete named tags on a contact using its displayed index. Both operations may be supplied in one edit.
+4.  `KeyBossWarriorsPro` applies the tag changes, preserves the remaining tags, and displays the updated contact information.
 
     Use case ends.
 
@@ -438,17 +479,29 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
      Use case ends.
  
-*  3a. No tag is provided.
- 
-  * 3a1. `KeyBossWarriorsPro` shows an error message.
+*  3a. A tag prefix has an empty or invalid value.
+
+  * 3a1. `KeyBossWarriorsPro` shows an error message and leaves all contact details unchanged.
 
        Use case resumes at step 3.
 
-*  3b. Duplicate tags are provided.
+*  3b. Tags are repeated within the same operation, or an addition names a tag already on the contact.
 
-  *  3b1. `KeyBossWarriorsPro` retains one instance of each tag.
+  *  3b1. `KeyBossWarriorsPro` retains one instance of each tag, comparing names case-insensitively.
   
      Use case resumes at step 4.
+
+*  3c. The same tag is supplied for addition and deletion, including with different letter casing.
+
+  *  3c1. `KeyBossWarriorsPro` shows a conflict error and leaves all contact details unchanged.
+
+     Use case resumes at step 3.
+
+*  3d. At least one requested deletion names a tag the contact does not have.
+
+  *  3d1. `KeyBossWarriorsPro` identifies a missing tag and rejects the entire edit. Valid deletions, additions, and other field edits in the same command are not applied.
+
+     Use case resumes at step 3.
 
 
 **Use Case: UC5 - List Contacts**
@@ -559,6 +612,20 @@ testers are expected to do more *exploratory* testing.
       Expected: Similar to previous.
 
 1. _{ more test cases …​ }_
+
+### Editing contact tags
+
+Create a test contact with a unique phone number and email, for example `add n/TagEditExample p/12345678 e/tagedit@example.com a/Test Address r/Employee t/trainee t/supplier`. Run `find TagEditExample` and confirm this is the only result. Before each command below, run `find TagEditExample` again because a successful edit displays all contacts. Perform the cases in the order shown.
+
+Command | Expected result
+--------|------------------
+`edit 1 t/solderer` | Tags become `trainee`, `supplier`, and `solderer`; other fields are preserved.
+`edit 1 dt/TRAINEE` | Tags become `supplier` and `solderer`.
+`edit 1 t/builder dt/solderer` | Tags become `supplier` and `builder`.
+`edit 1 n/Alex dt/supplier dt/trainee` | Missing-tag error for `trainee`. The name remains `TagEditExample`, both tags remain, and the filtered list is unchanged.
+`edit 1 t/builder dt/BUILDER` | Conflict error for `builder`; the contact and filtered list are unchanged.
+`edit 1 t/` and `edit 1 dt/` (separately) | Empty-tag error; the contact and filtered list are unchanged.
+`edit 1 dt/supplier dt/builder` | Both named tags are removed, leaving no tags.
 
 ### Saving data
 
