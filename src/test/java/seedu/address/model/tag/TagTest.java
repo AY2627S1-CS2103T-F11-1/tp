@@ -22,11 +22,15 @@ public class TagTest {
     }
 
     @Test
-    public void constructor_normalizesToLowercase() {
-        assertEquals("switches", new Tag("Switches").tagName);
-        assertEquals("cherry_mx", new Tag("CHERRY_MX").tagName);
-        assertEquals("fr4-plate", new Tag("FR4-Plate").tagName);
-        assertEquals("60%", new Tag("60%").tagName);
+    public void constructor_collapsesWhitespaceAndPreservesCasing() {
+        assertEquals("switches", new Tag("switches").tagName);
+        assertEquals("Switches", new Tag("Switches").tagName);
+        assertEquals("CHERRY-MX", new Tag("CHERRY-MX").tagName);
+        assertEquals("FR4-Plate", new Tag("FR4-Plate").tagName);
+        assertEquals("R&D Specialist", new Tag("R&D Specialist").tagName);
+        assertEquals("Maker's Keycap", new Tag("Maker's Keycap").tagName);
+        assertEquals("Tactile Switch", new Tag("Tactile   Switch").tagName);
+        assertEquals("lubed/filmed", new Tag("lubed/filmed").tagName);
     }
 
     @Test
@@ -37,16 +41,20 @@ public class TagTest {
         // invalid tag names
         assertFalse(Tag.isValidTagName("")); // empty string
         assertFalse(Tag.isValidTagName(" ")); // spaces only
-        assertFalse(Tag.isValidTagName("cherry mx")); // internal spaces
         assertFalse(Tag.isValidTagName(" switches")); // leading spaces
         assertFalse(Tag.isValidTagName("switches ")); // trailing spaces
         assertFalse(Tag.isValidTagName("-tag")); // starts with hyphen
-        assertFalse(Tag.isValidTagName("_tag")); // starts with underscore
         assertFalse(Tag.isValidTagName("/tag")); // starts with slash
-        assertFalse(Tag.isValidTagName("%60")); // starts with percent
+        assertFalse(Tag.isValidTagName("&tag")); // starts with ampersand
+        assertFalse(Tag.isValidTagName("'tag")); // starts with apostrophe
         assertFalse(Tag.isValidTagName("tag-")); // ends with hyphen
-        assertFalse(Tag.isValidTagName("tag_")); // ends with underscore
         assertFalse(Tag.isValidTagName("tag/")); // ends with slash
+        assertFalse(Tag.isValidTagName("tag&")); // ends with ampersand
+        assertFalse(Tag.isValidTagName("tag'")); // ends with apostrophe
+        assertFalse(Tag.isValidTagName("_tag")); // underscore disallowed
+        assertFalse(Tag.isValidTagName("cherry_mx")); // underscore disallowed
+        assertFalse(Tag.isValidTagName("%60")); // percent disallowed
+        assertFalse(Tag.isValidTagName("60%")); // percent disallowed
         assertFalse(Tag.isValidTagName("#friend")); // disallowed symbol '#'
         assertFalse(Tag.isValidTagName("hubby*")); // disallowed symbol '*'
         assertFalse(Tag.isValidTagName("tag@domain")); // disallowed symbol '@'
@@ -57,12 +65,13 @@ public class TagTest {
         assertTrue(Tag.isValidTagName("switches")); // alphabets only
         assertTrue(Tag.isValidTagName("s")); // single character
         assertTrue(Tag.isValidTagName("123")); // numbers only
-        assertTrue(Tag.isValidTagName("cherry_mx")); // underscore allowed
+        assertTrue(Tag.isValidTagName("cherry mx")); // internal space allowed
+        assertTrue(Tag.isValidTagName("Tactile   Switch")); // multiple internal spaces allowed
         assertTrue(Tag.isValidTagName("FR4-plate")); // hyphen allowed
         assertTrue(Tag.isValidTagName("lubed/filmed")); // slash allowed
-        assertTrue(Tag.isValidTagName("60%")); // percent sign allowed
-        assertTrue(Tag.isValidTagName("75%")); // percent sign allowed
-        assertTrue(Tag.isValidTagName("mil-max_7305")); // combined symbols
+        assertTrue(Tag.isValidTagName("R&D")); // ampersand allowed
+        assertTrue(Tag.isValidTagName("Maker's Keycap")); // apostrophe allowed
+        assertTrue(Tag.isValidTagName("lubed/filmed-switch")); // combined symbols
         assertTrue(Tag.isValidTagName("a".repeat(50))); // exactly 50 characters
     }
 
@@ -76,6 +85,12 @@ public class TagTest {
         // same values different case -> returns true
         assertTrue(tag.equals(new Tag("Switches")));
         assertTrue(tag.equals(new Tag("SWITCHES")));
+
+        // same values with different internal whitespace -> returns true
+        assertTrue(new Tag("cherry   mx").equals(new Tag("cherry mx")));
+
+        // same acronym different case -> returns true
+        assertTrue(new Tag("FR4-Plate").equals(new Tag("fr4-plate")));
 
         // same object -> returns true
         assertTrue(tag.equals(tag));
@@ -101,6 +116,9 @@ public class TagTest {
         assertEquals(tag.hashCode(), new Tag("Switches").hashCode());
         assertEquals(tag.hashCode(), new Tag("SWITCHES").hashCode());
 
+        // same acronym different case -> returns same hashcode
+        assertEquals(new Tag("FR4-Plate").hashCode(), new Tag("fr4-plate").hashCode());
+
         // different values -> returns different hashcode
         assertNotEquals(tag.hashCode(), new Tag("keycaps").hashCode());
     }
@@ -108,7 +126,7 @@ public class TagTest {
     @Test
     public void toStringMethod() {
         Tag tag = new Tag("Switches");
-        assertEquals("[switches]", tag.toString());
+        assertEquals("[Switches]", tag.toString());
     }
 
 }

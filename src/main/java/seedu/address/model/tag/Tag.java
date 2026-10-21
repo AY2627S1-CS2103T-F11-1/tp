@@ -10,10 +10,14 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
 public class Tag {
 
     public static final String MESSAGE_CONSTRAINTS =
-            "Tag names should only contain alphanumeric characters, hyphens (-), underscores (_), "
-            + "slashes (/), and percentage signs (%), start with an alphanumeric character, "
-            + "and must not exceed 50 characters or contain spaces";
-    public static final String VALIDATION_REGEX = "^[\\p{Alnum}]([\\p{Alnum}\\-_/%]*[\\p{Alnum}%])?$";
+            "Tag names should only contain alphanumeric characters, spaces, and punctuation (- / & '), "
+            + "must start and end with an alphanumeric character, and cannot exceed 50 characters";
+
+    /*
+     * The tag name must start and end with an alphanumeric character.
+     * Internal spaces and allowed punctuation (- / & ') are accepted.
+     */
+    public static final String VALIDATION_REGEX = "^[\\p{Alnum}]([\\p{Alnum} /&'-]*[\\p{Alnum}])?$";
     public static final int MAX_LENGTH = 50;
 
     public final String tagName;
@@ -26,7 +30,7 @@ public class Tag {
     public Tag(String tagName) {
         requireNonNull(tagName);
         checkArgument(isValidTagName(tagName), MESSAGE_CONSTRAINTS);
-        this.tagName = tagName.toLowerCase();
+        this.tagName = formatTagName(tagName);
     }
 
     /**
@@ -34,6 +38,13 @@ public class Tag {
      */
     public static boolean isValidTagName(String test) {
         return test.length() <= MAX_LENGTH && test.matches(VALIDATION_REGEX);
+    }
+
+    /**
+     * Formats a tag name by collapsing consecutive whitespace.
+     */
+    private static String formatTagName(String tagName) {
+        return tagName.trim().replaceAll("\\s+", " ");
     }
 
     @Override
@@ -58,6 +69,7 @@ public class Tag {
     /**
      * Formats state as text for viewing.
      */
+    @Override
     public String toString() {
         return '[' + tagName + ']';
     }

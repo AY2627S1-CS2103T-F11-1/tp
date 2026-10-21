@@ -85,7 +85,7 @@ Field | Constraint
 `EMAIL` | Must follow a valid email format, such as `john@example.com`.
 `ADDRESS` | May contain spaces and special characters.
 `ROLE` | May contain spaces and special characters.
-`TAG` | Optional. May contain alphanumeric characters, hyphens (`-`), underscores (`_`), slashes (`/`), and percentage signs (`%`). Must start with an alphanumeric character, must not contain spaces, and must not exceed 50 characters. Automatically formatted to lowercase.
+`TAG` | Optional. May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character, and cannot exceed 50 characters. Multiple consecutive spaces are collapsed into a single space. Tag comparisons and deduplication are case-insensitive.
 
 
 <div markdown="span" class="alert alert-primary">:bulb: **Tip:**
