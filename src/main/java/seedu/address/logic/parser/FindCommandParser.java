@@ -3,13 +3,18 @@ package seedu.address.logic.parser;
 import static java.util.Objects.requireNonNull;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_NAME;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_ROLE;
+import static seedu.address.logic.parser.CliSyntax.PREFIX_TAG;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
+import seedu.address.model.person.Person;
 import seedu.address.model.person.RoleContainsKeywordsPredicate;
+import seedu.address.model.person.TagContainsKeywordsPredicate;
 
 /**
  * Parses input arguments and creates a new FindCommand object
@@ -30,20 +35,23 @@ public class FindCommandParser implements Parser<FindCommand> {
             throw new ParseException(FindCommand.MESSAGE_MISSING_CRITERIA);
         }
 
-        ArgumentTokenizer.verifyNoUnrecognizedPrefixes(args, PREFIX_NAME, PREFIX_ROLE);
+        ArgumentTokenizer.verifyNoUnrecognizedPrefixes(args, PREFIX_NAME, PREFIX_ROLE, PREFIX_TAG);
 
-        ArgumentMultimap argMultimap = ArgumentTokenizer.tokenize(args, PREFIX_NAME, PREFIX_ROLE);
+        ArgumentMultimap argMultimap = ArgumentTokenizer.tokenize(args, PREFIX_NAME, PREFIX_ROLE, PREFIX_TAG);
 
         List<String> prefixedNames = argMultimap.getAllValues(PREFIX_NAME);
         List<String> prefixedRoles = argMultimap.getAllValues(PREFIX_ROLE);
+        List<String> prefixedTags = argMultimap.getAllValues(PREFIX_TAG);
 
         boolean hasPrefixedNames = !prefixedNames.isEmpty();
         boolean hasPrefixedRoles = !prefixedRoles.isEmpty();
+        boolean hasPrefixedTags = !prefixedTags.isEmpty();
 
-        if (hasPrefixedNames || hasPrefixedRoles) {
-            // Blank n/ or blank r/
+        if (hasPrefixedNames || hasPrefixedRoles || hasPrefixedTags) {
+            // Blank n/ or blank r/ or blank t/
             if (prefixedNames.stream().anyMatch(String::isBlank)
-                    || prefixedRoles.stream().anyMatch(String::isBlank)) {
+                    || prefixedRoles.stream().anyMatch(String::isBlank)
+                    || prefixedTags.stream().anyMatch(String::isBlank)) {
                 throw new ParseException(FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
             }
 
@@ -52,18 +60,21 @@ public class FindCommandParser implements Parser<FindCommand> {
                 throw new ParseException(FindCommand.MESSAGE_MIXED_SEARCH_MODE);
             }
 
-            NameContainsKeywordsPredicate namePredicate = new NameContainsKeywordsPredicate(prefixedNames);
-            RoleContainsKeywordsPredicate rolePredicate = new RoleContainsKeywordsPredicate(prefixedRoles);
-
-            if (hasPrefixedNames && hasPrefixedRoles) {
-                return new FindCommand(namePredicate, rolePredicate);
-            }
+            List<Predicate<Person>> predicates = new ArrayList<>();
 
             if (hasPrefixedNames) {
-                return new FindCommand(namePredicate);
+                predicates.add(new NameContainsKeywordsPredicate(prefixedNames));
             }
 
-            return new FindCommand(rolePredicate);
+            if (hasPrefixedRoles) {
+                predicates.add(new RoleContainsKeywordsPredicate(prefixedRoles));
+            }
+
+            if (hasPrefixedTags) {
+                predicates.add(new TagContainsKeywordsPredicate(prefixedTags));
+            }
+
+            return new FindCommand(predicates.toArray(Predicate[]::new));
         }
 
         // Preserve legacy behaviour
