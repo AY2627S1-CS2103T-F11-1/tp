@@ -1,5 +1,6 @@
 package seedu.address.logic.commands;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandFailure;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandSuccess;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
@@ -86,6 +87,22 @@ public class AddCommandIntegrationTest {
         assertCommandSuccess(new AddCommand(sameNamePerson), model,
                 String.format(AddCommand.MESSAGE_SUCCESS, Messages.format(sameNamePerson)),
                 expectedModel);
+    }
+
+    @Test
+    public void execute_duplicatePersonAfterUndo_preservesRedoHistory() {
+        Person newPerson = new PersonBuilder().build();
+        model.addPerson(newPerson);
+        model.commitAddressBook();
+        model.undoAddressBook();
+
+        Person existingPerson = model.getAddressBook().getPersonList().get(0);
+
+        assertCommandFailure(new AddCommand(existingPerson), model, Messages.MESSAGE_DUPLICATE_PHONE_AND_EMAIL);
+
+        assertTrue(model.canRedoAddressBook());
+        model.redoAddressBook();
+        assertTrue(model.hasPerson(newPerson));
     }
 
 }

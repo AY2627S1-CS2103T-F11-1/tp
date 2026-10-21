@@ -236,6 +236,45 @@ public class EditCommandTest {
     }
 
     @Test
+    public void execute_invalidIndexAfterUndo_preservesRedoHistory() {
+        Person newPerson = new PersonBuilder().build();
+        model.addPerson(newPerson);
+        model.commitAddressBook();
+        model.undoAddressBook();
+
+        Index invalidIndex = Index.fromOneBased(model.getFilteredPersonList().size() + 1);
+        EditPersonDescriptor descriptor =
+                new EditPersonDescriptorBuilder().withName("Updated Name").build();
+
+        assertCommandFailure(new EditCommand(invalidIndex, descriptor), model,
+                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+
+        assertTrue(model.canRedoAddressBook());
+        model.redoAddressBook();
+        assertTrue(model.hasPerson(newPerson));
+    }
+
+    @Test
+    public void execute_duplicatePersonAfterUndo_preservesRedoHistory() {
+        Person newPerson = new PersonBuilder().build();
+        model.addPerson(newPerson);
+        model.commitAddressBook();
+        model.undoAddressBook();
+
+        Person firstPerson = model.getFilteredPersonList()
+                .get(INDEX_FIRST_PERSON.getZeroBased());
+        EditPersonDescriptor descriptor =
+                new EditPersonDescriptorBuilder(firstPerson).build();
+
+        assertCommandFailure(new EditCommand(INDEX_SECOND_PERSON, descriptor), model,
+                Messages.MESSAGE_DUPLICATE_PHONE_AND_EMAIL);
+
+        assertTrue(model.canRedoAddressBook());
+        model.redoAddressBook();
+        assertTrue(model.hasPerson(newPerson));
+    }
+
+    @Test
     public void equals() {
         final EditCommand standardCommand = new EditCommand(INDEX_FIRST_PERSON, DESC_AMY);
 
