@@ -23,7 +23,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
    A GUI similar to the one below should appear in a few seconds. Note how the app contains some sample data.<br>
    ![Ui](images/Ui.png)
 
-1. Type a command in the command box and press Enter to execute it. For example, type **`help`** and press Enter to open the help window.<br>
+1. Type a command in the command box and press Enter to execute it. For example, type **`help`** and press Enter to open the full help window, or type **`help add`** to see the `add` command's usage in the result display.<br>
    Some example commands you can try:
 
    * `list` : Lists all contacts.
@@ -58,8 +58,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 * Parameters can be in any order.<br>
   For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
 
-* Extraneous parameters for commands that take no parameters are ignored.<br>
-  For example, `help 123` is interpreted as `help`.
+* The optional argument to `help` is treated as a command name. For example, `help add` displays the `add` command's usage; an unsupported target such as `help 123` displays guidance instead of opening the full help window.
 * For `list`, additional arguments are ignored and a warning is displayed.
   For example, `list 3` lists all contacts and does not navigate to contact 3.
 * For `exit`, a message explains that any extra text is ignored before the application closes.
@@ -172,13 +171,19 @@ Examples:
  ![result for 'find alex david'](images/findAlexDavidResult.png)
 
 
-### Viewing help: `help`
+### Viewing help: `help [COMMAND]`
 
-Opens the help window, which lists the available commands and their usage instructions. For detailed explanations and examples, refer to this user guide.
+Use `help` on its own to open the full help window, which lists all commands and their descriptions, parameters, and examples. Use `help COMMAND` to display a supported command's usage directly in the result display without opening the window. Targeted help is available for `add`, `edit`, `delete`, and `find`. For detailed explanations and examples, refer to this user guide.
 
 ![help message](images/help.png)
 
-**Format:** `help`
+**Format:** `help [COMMAND]`
+
+Examples:
+
+* `help` opens the full help window.
+* `help add` displays the usage, parameters, and an example for `add` in the result display.
+* `help unknown` displays guidance and lists the commands with targeted help.
 
 
 ### Listing all contacts: `list`
@@ -264,5 +269,5 @@ Action | Format, Examples
 **Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG]…​`<br> e.g., `edit 2 n/James Lee e/jameslee@example.com r/Employee`
 **Exit** | `exit` 
 **Find** | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
-**Help** | `help`
+**Help** | `help [COMMAND]`<br> e.g., `help add` displays the `add` command's usage in the result display; `help` opens the full help window.
 **List** | `list`
