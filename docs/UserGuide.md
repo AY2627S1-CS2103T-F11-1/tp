@@ -152,25 +152,22 @@ For example, `exit -f` exits in the same way as `exit`.
 
 ### Locating contacts: `find`
 
-Finds contacts whose names and/or roles contain the search terms. All searches are case-insensitive and support partial matching (substring matching).
+Finds contacts matching one or more name, role, or tag criteria. All searches are case-insensitive and support partial matching (substring matching).
 
 #### Prefixed Search
-Finds contacts matching one or more name, role, or tag criteria.
 
 **Format:** `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...`
 
 * At least one `n/`, `r/`, or `t/` prefix must be provided.
-* `n/` specifies a name search phrase
-* `r/` specifies a role search phrase
-* `t/` specifies a tag search phrase.
+* `n/` specifies a name search phrase.
+* `r/` specifies a role search phrase.
+* `t/` specifies a tag search phrase. Note that since tags cannot contain spaces, multi-word tag phrases (e.g. `t/good friend`) will return no results.
 * Each value after a prefix is treated as a continuous search phrase until the next prefix or the end of the command.
-* Leading and trailing whitespace around each value is trimmed. Spaces within a phrase are preserved.
 * **Partial & Case-Insensitive Matching**: Matches if the term appears anywhere within the field, regardless of upper or lower case (e.g., `n/alex` matches `Alexander`, `r/distrib` matches `Distributor`).
 * **Search Logic:**
-    * **Repeated prefixes use `OR` logic**: Matches contacts satisfying *at least one* of the specified values for that field.
-    * **Different prefixes use `AND` logic**: Matches contacts satisfying *both* the name and role criteria.
-* Blank prefix values (e.g., `n/`, `r/`, `t/`) and unrecognised prefixes (e.g., `p/`) are rejected.
-* Each matching contact appears only once.
+    * **Same prefix → `OR` logic**: A contact matches if it satisfies *at least one* of the values given for that prefix type (e.g. `n/alice n/bob` returns contacts whose name contains "alice" *or* "bob", case-insensitively).
+    * **Different prefixes → `AND` logic**: Results are then narrowed so that a contact must satisfy *all* prefix types specified (e.g. `n/alice r/manager` returns contacts whose name contains "alice" *and* whose role contains "manager", case-insensitively).
+    * In short: **OR within a prefix, AND across prefixes.**
 
 Examples:
 * `find n/alex` matches contacts whose names contain `alex`, such as
@@ -186,11 +183,9 @@ Examples:
 * `find t/friend t/family` matches contacts with at least one tag containing
   either `friend` or `family`.
 * `find n/ali r/emp` matches contacts whose names contain `ali` and whose
-  roles contain `emp`, such as `Alice` and `Employee`.
+  roles contain `emp`, such as a contact named `Alice` with role `Employee`.
 * `find n/John n/ali r/supp` matches contacts whose names contain either
   `John` or `ali`, and whose roles contain `supp`.
-* `find n/` or `find r/` or `find t/` is invalid because search values cannot
-  be blank.
 
 #### Legacy Search
 Searches contacts by name using space-separated keywords without prefixes.
@@ -201,10 +196,9 @@ Searches contacts by name using space-separated keywords without prefixes.
 * Space-separated words are treated as individual name keywords.
 * **Search Logic**: Keywords use `OR` logic. A contact is returned if its name contains *at least one* of the specified keywords.
 * **Partial & Case-Insensitive Matching**: Matches if the keyword appears anywhere within a name, regardless of upper or lower case (e.g., `han` matches `Hans Bo` and `Johan Meyer`).
-* Keyword order does not matter (e.g., `Hans Bo` matches `Bo Hans`).
+* Keyword order does not matter (e.g., `find Bo Hans` can match a contact named `Hans Bo`).
 * Adding more keywords broadens the search results; it does not narrow them.
 * **Cannot Mix with Prefixes**: Legacy unprefixed keywords cannot be combined with prefixed search values (e.g., `find Alice n/Bob` or `find Alice r/Employee` is rejected).
-* Each matching contact appears only once, even if multiple keywords match its name.
 
 Examples:
 * `find John` matches `john` and `John Doe` *(case-insensitive)*.
