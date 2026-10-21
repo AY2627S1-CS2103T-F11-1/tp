@@ -1,6 +1,7 @@
 package seedu.address.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
@@ -27,6 +28,7 @@ import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.CommandResult;
 import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.ListCommand;
+import seedu.address.logic.commands.UndoCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.Model;
@@ -125,6 +127,19 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_undoAfterMutation_success() throws Exception {
+        model.addPerson(AMY);
+        model.commitAddressBook();
+        String deleteCommand = DeleteCommand.COMMAND_WORD + " 1";
+
+        logic.execute(deleteCommand);
+        assertFalse(model.hasPerson(AMY));
+
+        logic.execute(UndoCommand.COMMAND_WORD);
+        assertTrue(model.hasPerson(AMY));
+    }
+
+    @Test
     public void execute_storageThrowsIoException_throwsCommandException() {
         assertCommandFailureForExceptionFromStorage(DUMMY_IO_EXCEPTION, String.format(
                 LogicManager.FILE_OPS_ERROR_FORMAT, DUMMY_IO_EXCEPTION.getMessage()));
@@ -202,7 +217,11 @@ public class LogicManagerTest {
     }
 
     /**
-     * Executes the command, confirms that the exception is thrown and that the result message is correct.
+     * Executes the command, confirms that the exception is thrown and that the result message is correct,
+     * assuming that the model's state remains the initial empty model.
+     * For tests that modify {@code model} before execution, use
+     * {@link #assertCommandFailure(String, Class, String, Model)} instead.
+     *
      * @see #assertCommandFailure(String, Class, String, Model)
      */
     private void assertCommandFailure(String inputCommand, Class<? extends Throwable> expectedException,
