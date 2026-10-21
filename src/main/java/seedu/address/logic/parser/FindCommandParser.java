@@ -67,7 +67,7 @@ public class FindCommandParser implements Parser<FindCommand> {
         }
 
         // Preserve legacy behaviour
-        String[] legacyKeywords = args.trim().split("\\s+");
+        String[] legacyKeywords = trimmedArgs.split("\\s+");
 
         return new FindCommand(new NameContainsKeywordsPredicate(List.of(legacyKeywords)));
     }
