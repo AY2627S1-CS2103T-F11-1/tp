@@ -21,7 +21,7 @@ public class FindCommand extends Command {
     public static final String MESSAGE_USAGE = COMMAND_WORD
             + ": Finds contacts whose names, roles, and/or tags contain at least one search value "
             + "as a case-insensitive substring.\n"
-            + "Usage: " + COMMAND_WORD + " [n/NAME_PHRASE]... [r/ROLE]... [t/TAG]...\n"
+            + "Usage: " + COMMAND_WORD + " [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...\n"
             + "Repeated occurrences of the same prefix use OR logic; different prefix criteria use AND logic.\n"
             + "Example: " + COMMAND_WORD + " n/John Doe n/Alice r/Employee t/friend\n"
             + "Legacy mode is also supported: " + COMMAND_WORD + " alice bob";
