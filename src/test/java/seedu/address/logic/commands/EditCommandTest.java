@@ -46,6 +46,7 @@ public class EditCommandTest {
 
         Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
         expectedModel.setPerson(model.getFilteredPersonList().get(0), editedPerson);
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
     }
@@ -68,6 +69,7 @@ public class EditCommandTest {
 
         Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
         expectedModel.setPerson(lastPerson, editedPerson);
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
     }
@@ -83,6 +85,7 @@ public class EditCommandTest {
 
         Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
         expectedModel.setPerson(personToEdit, editedPerson);
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
     }
@@ -100,6 +103,7 @@ public class EditCommandTest {
 
         Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
         expectedModel.setPerson(personToEdit, editedPerson);
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
     }
@@ -112,6 +116,7 @@ public class EditCommandTest {
         String expectedMessage = String.format(EditCommand.MESSAGE_EDIT_PERSON_SUCCESS, Messages.format(editedPerson));
 
         Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
     }
@@ -129,6 +134,7 @@ public class EditCommandTest {
 
         Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
         expectedModel.setPerson(model.getFilteredPersonList().get(0), editedPerson);
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
     }
@@ -186,6 +192,7 @@ public class EditCommandTest {
 
         Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
         expectedModel.setPerson(secondPerson, editedSecondPerson);
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(editCommand, model, expectedMessage, expectedModel);
     }
@@ -226,6 +233,45 @@ public class EditCommandTest {
                 new EditPersonDescriptorBuilder().withName(VALID_NAME_BOB).build());
 
         assertCommandFailure(editCommand, model, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+    }
+
+    @Test
+    public void execute_invalidIndexAfterUndo_preservesRedoHistory() {
+        Person newPerson = new PersonBuilder().build();
+        model.addPerson(newPerson);
+        model.commitAddressBook();
+        model.undoAddressBook();
+
+        Index invalidIndex = Index.fromOneBased(model.getFilteredPersonList().size() + 1);
+        EditPersonDescriptor descriptor =
+                new EditPersonDescriptorBuilder().withName("Updated Name").build();
+
+        assertCommandFailure(new EditCommand(invalidIndex, descriptor), model,
+                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+
+        assertTrue(model.canRedoAddressBook());
+        model.redoAddressBook();
+        assertTrue(model.hasPerson(newPerson));
+    }
+
+    @Test
+    public void execute_duplicatePersonAfterUndo_preservesRedoHistory() {
+        Person newPerson = new PersonBuilder().build();
+        model.addPerson(newPerson);
+        model.commitAddressBook();
+        model.undoAddressBook();
+
+        Person firstPerson = model.getFilteredPersonList()
+                .get(INDEX_FIRST_PERSON.getZeroBased());
+        EditPersonDescriptor descriptor =
+                new EditPersonDescriptorBuilder(firstPerson).build();
+
+        assertCommandFailure(new EditCommand(INDEX_SECOND_PERSON, descriptor), model,
+                Messages.MESSAGE_DUPLICATE_PHONE_AND_EMAIL);
+
+        assertTrue(model.canRedoAddressBook());
+        model.redoAddressBook();
+        assertTrue(model.hasPerson(newPerson));
     }
 
     @Test
