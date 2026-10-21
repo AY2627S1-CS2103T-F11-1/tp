@@ -26,7 +26,6 @@ public class UndoCommandTest {
 
     @BeforeEach
     public void setUp() {
-        // set up of models' undo/redo history
         deleteFirstPerson(model);
         deleteFirstPerson(model);
 
@@ -41,21 +40,17 @@ public class UndoCommandTest {
 
     @Test
     public void execute() {
-        // multiple undoable states in model
         expectedModel.undoAddressBook();
         assertCommandSuccess(new UndoCommand(), model, UndoCommand.MESSAGE_SUCCESS, expectedModel);
 
-        // single undoable state in model
         expectedModel.undoAddressBook();
         assertCommandSuccess(new UndoCommand(), model, UndoCommand.MESSAGE_SUCCESS, expectedModel);
 
-        // no undoable states in model
         assertCommandFailure(new UndoCommand(), model, UndoCommand.MESSAGE_FAILURE);
     }
 
     @Test
     public void execute_filteredList_success() {
-        // Set up model with an active filter prior to undo
         showPersonAtIndex(model, INDEX_FIRST_PERSON);
         assertTrue(model.getFilteredPersonList().size() < model.getAddressBook().getPersonList().size());
 
@@ -68,16 +63,12 @@ public class UndoCommandTest {
     public void equals() {
         UndoCommand undoCommand = new UndoCommand();
 
-        // same object -> returns true
         assertTrue(undoCommand.equals(undoCommand));
 
-        // same type -> returns true
         assertTrue(undoCommand.equals(new UndoCommand()));
 
-        // null -> returns false
         assertFalse(undoCommand.equals(null));
 
-        // different type -> returns false
         assertFalse(undoCommand.equals(new ClearCommand()));
     }
 

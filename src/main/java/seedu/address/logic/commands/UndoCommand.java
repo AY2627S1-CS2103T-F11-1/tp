@@ -38,7 +38,6 @@ public class UndoCommand extends Command {
             return true;
         }
 
-        // instanceof handles nulls
         return other instanceof UndoCommand;
     }
 
