@@ -63,6 +63,8 @@ public class TagTest {
 
         // valid tag names
         assertTrue(Tag.isValidTagName("switches")); // alphabets only
+        assertTrue(Tag.isValidTagName("friend"));
+        assertTrue(Tag.isValidTagName("colleague"));
         assertTrue(Tag.isValidTagName("s")); // single character
         assertTrue(Tag.isValidTagName("123")); // numbers only
         assertTrue(Tag.isValidTagName("cherry mx")); // internal space allowed
