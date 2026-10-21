@@ -19,7 +19,9 @@ public class HelpCommand extends Command {
             + COMMAND_DESCRIPTION + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String SHOWING_HELP_MESSAGE = "Opened help window.";
-    private static final String MESSAGE_NO_COMMAND_HELP = "No command-specific help is available for '%s'.";
+    private static final String MESSAGE_NO_COMMAND_HELP = "No command-specific help is available for '%s'.\n"
+            + "Enter `help` to open the full help window, or use `help COMMAND` for command-specific help.\n"
+            + "Supported commands: add, edit, delete, find.";
 
     private static final Map<String, String> COMMAND_USAGE = Map.of(
             AddCommand.COMMAND_WORD, formatCommandUsage(AddCommand.COMMAND_WORD, AddCommand.COMMAND_DESCRIPTION,
