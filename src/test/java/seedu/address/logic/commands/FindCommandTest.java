@@ -24,6 +24,7 @@ import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.model.person.RoleContainsKeywordsPredicate;
+import seedu.address.model.person.TagContainsKeywordsPredicate;
 
 /**
  * Contains integration tests (interaction with the Model) for {@code FindCommand}.
@@ -63,11 +64,13 @@ public class FindCommandTest {
     public void equals_multiplePredicatesSameValues_returnsTrue() {
         FindCommand firstCommand = new FindCommand(
                 new NameContainsKeywordsPredicate(List.of("Alice")),
-                new RoleContainsKeywordsPredicate(List.of("Employee")));
+                new RoleContainsKeywordsPredicate(List.of("Employee")),
+                new TagContainsKeywordsPredicate(List.of("friend")));
 
         FindCommand secondCommand = new FindCommand(
                 new NameContainsKeywordsPredicate(List.of("Alice")),
-                new RoleContainsKeywordsPredicate(List.of("Employee")));
+                new RoleContainsKeywordsPredicate(List.of("Employee")),
+                new TagContainsKeywordsPredicate(List.of("friend")));
 
         assertTrue(firstCommand.equals(secondCommand));
     }
@@ -76,11 +79,13 @@ public class FindCommandTest {
     public void equals_multiplePredicatesDifferentValues_returnsFalse() {
         FindCommand firstCommand = new FindCommand(
                 new NameContainsKeywordsPredicate(List.of("Alice")),
-                new RoleContainsKeywordsPredicate(List.of("Employee")));
+                new RoleContainsKeywordsPredicate(List.of("Employee")),
+                new TagContainsKeywordsPredicate(List.of("friend")));
 
         FindCommand secondCommand = new FindCommand(
                 new NameContainsKeywordsPredicate(List.of("Bob")),
-                new RoleContainsKeywordsPredicate(List.of("Supplier")));
+                new RoleContainsKeywordsPredicate(List.of("Distributor")),
+                new TagContainsKeywordsPredicate(List.of("RGB")));
 
         assertFalse(firstCommand.equals(secondCommand));
     }
@@ -150,19 +155,31 @@ public class FindCommandTest {
         assertEquals(List.of(AMY, BOB), model.getFilteredPersonList());
     }
 
+    @Test
+    public void execute_tagKeyword_multiplePersonsFound() {
+        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 3);
+        TagContainsKeywordsPredicate predicate = prepareTagPredicate("friend");
+
+        FindCommand command = new FindCommand(predicate);
+        expectedModel.updateFilteredPersonList(predicate);
+
+        assertCommandSuccess(command, model, expectedMessage, expectedModel);
+        assertEquals(List.of(ALICE, BENSON, DANIEL), model.getFilteredPersonList());
+    }
 
     @Test
     public void execute_multiplePredicates_onlyMatchingPersonFound() {
         String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 1);
         NameContainsKeywordsPredicate namePredicate = prepareNamePredicate("Bee");
         RoleContainsKeywordsPredicate rolePredicate = prepareRolePredicate("Distributor");
+        TagContainsKeywordsPredicate tagPredicate = prepareTagPredicate("friend");
 
         model.addPerson(AMY);
         expectedModel.addPerson(AMY);
 
-        FindCommand command = new FindCommand(namePredicate, rolePredicate);
+        FindCommand command = new FindCommand(namePredicate, rolePredicate, tagPredicate);
         expectedModel.updateFilteredPersonList(person ->
-                namePredicate.test(person) && rolePredicate.test(person));
+                namePredicate.test(person) && rolePredicate.test(person) && tagPredicate.test(person));
 
         assertCommandSuccess(command, model, expectedMessage, expectedModel);
         assertEquals(List.of(AMY), model.getFilteredPersonList());
@@ -188,5 +205,12 @@ public class FindCommandTest {
      */
     private RoleContainsKeywordsPredicate prepareRolePredicate(String userInput) {
         return new RoleContainsKeywordsPredicate(List.of(userInput.split("\\s+")));
+    }
+
+    /**
+     * Parses {@code userInput} into a {@code TagContainsKeywordsPredicate}.
+     */
+    private TagContainsKeywordsPredicate prepareTagPredicate(String userInput) {
+        return new TagContainsKeywordsPredicate(List.of(userInput.split("\\s+")));
     }
 }
