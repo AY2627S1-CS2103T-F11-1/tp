@@ -2,6 +2,7 @@ package seedu.address.logic.commands;
 
 import static java.util.Objects.requireNonNull;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_ADDRESS;
+import static seedu.address.logic.parser.CliSyntax.PREFIX_DELETE_TAG;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_EMAIL;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_NAME;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_PHONE;
@@ -39,19 +40,27 @@ public class EditCommand extends Command {
 
     public static final String MESSAGE_USAGE = COMMAND_WORD + ": Edits the details of the person identified "
             + "by the index number used in the displayed person list. "
-            + "Existing values will be overwritten by the input values.\n"
+            + "Supplied name, phone, email, address, and role values replace existing values. "
+            + "Use t/ to add tags and dt/ to delete tags; tag names must be explicitly provided.\n"
             + "Parameters: INDEX (must be a positive integer) "
             + "[" + PREFIX_NAME + "NAME] "
             + "[" + PREFIX_PHONE + "PHONE] "
             + "[" + PREFIX_EMAIL + "EMAIL] "
             + "[" + PREFIX_ADDRESS + "ADDRESS] "
             + "[" + PREFIX_ROLE + "ROLE] "
-            + "[" + PREFIX_TAG + "TAG]...\n"
+            + "[" + PREFIX_TAG + "TAG_TO_ADD]... "
+            + "[" + PREFIX_DELETE_TAG + "TAG_TO_DELETE]...\n"
             + "Example: " + COMMAND_WORD + " 1 "
             + PREFIX_ROLE + "Supplier";
 
     public static final String MESSAGE_EDIT_PERSON_SUCCESS = "Edited person: %1$s";
     public static final String MESSAGE_NOT_EDITED = "At least one field to edit must be provided.";
+    public static final String MESSAGE_EMPTY_TAG =
+            "Tag names cannot be empty. Specify a tag after t/ or dt/.";
+    public static final String MESSAGE_TAG_CONFLICT =
+            "Cannot add and delete the same tag: %1$s. Remove it from either t/ or dt/.";
+    public static final String MESSAGE_TAG_NOT_FOUND =
+            "Cannot delete tag: %1$s. The selected contact does not have this tag.";
 
     private final Index index;
     private final EditPersonDescriptor editPersonDescriptor;
