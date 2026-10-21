@@ -15,7 +15,7 @@ public class HelpCommand extends Command {
             + "command.";
     public static final String COMMAND_PARAMETERS = "[COMMAND]";
     public static final String COMMAND_EXAMPLE = COMMAND_WORD + " add";
-    public static final String MESSAGE_USAGE = COMMAND_WORD + " " + COMMAND_PARAMETERS + ": "
+    public static final String COMMAND_USAGE = COMMAND_WORD + " " + COMMAND_PARAMETERS + ": "
             + COMMAND_DESCRIPTION + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String SHOWING_HELP_MESSAGE = "Opened help window.";
@@ -23,7 +23,7 @@ public class HelpCommand extends Command {
             + "Enter `help` to open the full help window, or use `help COMMAND` for command-specific help.\n"
             + "Supported commands: add, edit, delete, find.";
 
-    private static final Map<String, String> COMMAND_USAGE = Map.of(
+    private static final Map<String, String> COMMAND_USAGE_BY_NAME = Map.of(
             AddCommand.COMMAND_WORD, formatCommandUsage(AddCommand.COMMAND_WORD, AddCommand.COMMAND_DESCRIPTION,
                     AddCommand.COMMAND_PARAMETERS, AddCommand.COMMAND_EXAMPLE),
             EditCommand.COMMAND_WORD, formatCommandUsage(EditCommand.COMMAND_WORD, EditCommand.COMMAND_DESCRIPTION,
@@ -57,7 +57,7 @@ public class HelpCommand extends Command {
             return new CommandResult(SHOWING_HELP_MESSAGE, true, false);
         }
 
-        String commandUsage = COMMAND_USAGE.get(commandName);
+        String commandUsage = COMMAND_USAGE_BY_NAME.get(commandName);
         if (commandUsage != null) {
             return new CommandResult(commandUsage);
         }

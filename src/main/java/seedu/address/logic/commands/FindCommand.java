@@ -19,7 +19,7 @@ public class FindCommand extends Command {
             + "specified keywords as a substring (case-insensitive) and displays them as a list with index numbers.";
     public static final String COMMAND_PARAMETERS = "KEYWORD [MORE_KEYWORDS]...";
     public static final String COMMAND_EXAMPLE = COMMAND_WORD + " alice bob charlie";
-    public static final String MESSAGE_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
+    public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     private final NameContainsKeywordsPredicate predicate;

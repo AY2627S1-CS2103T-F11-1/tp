@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +28,7 @@ public class HelpCommandTest {
     public void execute_helpAdd_returnsAddUsageInResultFeedback() throws Exception {
         CommandResult result = executeHelpInput("help add");
 
-        assertEquals(AddCommand.MESSAGE_USAGE, result.getFeedbackToUser());
+        assertEquals(AddCommand.COMMAND_USAGE, result.getFeedbackToUser());
         assertFalse(result.isShowHelp());
         assertFalse(result.isExit());
     }
@@ -38,7 +37,7 @@ public class HelpCommandTest {
     public void execute_helpFind_returnsFindUsageInResultFeedback() throws Exception {
         CommandResult result = executeHelpInput("help find");
 
-        assertEquals(FindCommand.MESSAGE_USAGE, result.getFeedbackToUser());
+        assertEquals(FindCommand.COMMAND_USAGE, result.getFeedbackToUser());
         assertFalse(result.isShowHelp());
         assertFalse(result.isExit());
     }
@@ -59,7 +58,7 @@ public class HelpCommandTest {
         AddressBookParser parser = new AddressBookParser();
         ParseException exception = assertThrows(ParseException.class, () -> parser.parseCommand("help invalid input"));
 
-        assertEquals(String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE), exception.getMessage());
+        assertEquals("Specify only one command after help.", exception.getMessage());
     }
 
     private CommandResult executeHelpInput(String input) throws Exception {

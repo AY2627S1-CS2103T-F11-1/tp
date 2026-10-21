@@ -48,7 +48,7 @@ public class EditCommand extends Command {
             + "[" + PREFIX_ROLE + "ROLE] "
             + "[" + PREFIX_TAG + "TAG]...";
     public static final String COMMAND_EXAMPLE = COMMAND_WORD + " 1 " + PREFIX_ROLE + "Supplier";
-    public static final String MESSAGE_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
+    public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String MESSAGE_EDIT_PERSON_SUCCESS = "Edited person: %1$s";

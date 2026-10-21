@@ -39,7 +39,7 @@ public class AddCommand extends Command {
             + PREFIX_ROLE + "Supplier "
             + PREFIX_TAG + "friends "
             + PREFIX_TAG + "owesMoney";
-    public static final String MESSAGE_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
+    public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String MESSAGE_SUCCESS = "New person added: %1$s";

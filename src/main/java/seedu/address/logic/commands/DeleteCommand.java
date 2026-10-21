@@ -22,7 +22,7 @@ public class DeleteCommand extends Command {
             + "the currently displayed contact list.";
     public static final String COMMAND_PARAMETERS = "INDEX (must be a positive integer)";
     public static final String COMMAND_EXAMPLE = COMMAND_WORD + " 1";
-    public static final String MESSAGE_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
+    public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String MESSAGE_DELETE_CONTACT_SUCCESS = "Deleted contact: %1$s";

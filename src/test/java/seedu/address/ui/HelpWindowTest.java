@@ -67,10 +67,10 @@ public class HelpWindowTest {
 
     @Test
     public void helpMessage_containsUsageForEveryCommand() {
-        assertUsageIsDisplayed(AddCommand.MESSAGE_USAGE);
-        assertUsageIsDisplayed(EditCommand.MESSAGE_USAGE);
-        assertUsageIsDisplayed(DeleteCommand.MESSAGE_USAGE);
-        assertUsageIsDisplayed(FindCommand.MESSAGE_USAGE);
+        assertUsageIsDisplayed(AddCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(EditCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(DeleteCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(FindCommand.COMMAND_USAGE);
         assertUsageIsDisplayed("list: Shows all persons in the address book.");
         assertUsageIsDisplayed("clear: Clears all entries from KeyBossWarriorsPro.");
         assertTrue(HelpWindow.HELP_MESSAGE.contains(HelpCommand.COMMAND_DESCRIPTION));
