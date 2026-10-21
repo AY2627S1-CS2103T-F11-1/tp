@@ -56,8 +56,8 @@ public class HelpCommandTest {
 
     @Test
     public void parse_helpInvalidInput_throwsParseException() {
-        ParseException exception = assertThrows(ParseException.class,
-                () -> new AddressBookParser().parseCommand("help invalid input"));
+        AddressBookParser parser = new AddressBookParser();
+        ParseException exception = assertThrows(ParseException.class, () -> parser.parseCommand("help invalid input"));
 
         assertEquals(String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE), exception.getMessage());
     }
