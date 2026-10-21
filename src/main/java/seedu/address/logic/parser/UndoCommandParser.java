@@ -1,5 +1,6 @@
 package seedu.address.logic.parser;
 
+import static java.util.Objects.requireNonNull;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 
 import seedu.address.logic.commands.UndoCommand;
@@ -20,6 +21,7 @@ public class UndoCommandParser implements Parser<UndoCommand> {
      */
     @Override
     public UndoCommand parse(String args) throws ParseException {
+        requireNonNull(args);
         String trimmedArgs = args.trim();
         if (!trimmedArgs.isEmpty()) {
             throw new ParseException(
