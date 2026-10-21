@@ -12,6 +12,7 @@ import static seedu.address.logic.commands.CommandTestUtil.VALID_TAG_HUSBAND;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandFailure;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandSuccess;
 import static seedu.address.logic.commands.CommandTestUtil.showPersonAtIndex;
+import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 import static seedu.address.testutil.TypicalIndexes.INDEX_SECOND_PERSON;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
@@ -21,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import seedu.address.commons.core.index.Index;
 import seedu.address.logic.Messages;
 import seedu.address.logic.commands.EditCommand.EditPersonDescriptor;
+import seedu.address.logic.parser.AddressBookParser;
+import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
@@ -137,6 +140,83 @@ public class EditCommandTest {
                 .withTagsToDelete("trainee", "solderer").build();
         assertCommandFailure(new EditCommand(INDEX_FIRST_PERSON, descriptor), model,
                 String.format(EditCommand.MESSAGE_TAG_NOT_FOUND, "solderer"));
+    }
+
+    @Test
+    public void parseAndExecute_addTag_preservesExistingTags() throws Exception {
+        Person original = model.getFilteredPersonList().get(0);
+        Person expectedPerson = new PersonBuilder(original).withTags("friends", "solderer").build();
+        assertParsedEditSuccess("edit 1 t/solderer", expectedPerson);
+    }
+
+    @Test
+    public void parseAndExecute_deleteTag_preservesOtherTags() throws Exception {
+        Person original = model.getFilteredPersonList().get(0);
+        Person taggedPerson = new PersonBuilder(original).withTags("trainee", "supplier").build();
+        model.setPerson(original, taggedPerson);
+        Person expectedPerson = new PersonBuilder(taggedPerson).withTags("supplier").build();
+        assertParsedEditSuccess("edit 1 dt/trainee", expectedPerson);
+    }
+
+    @Test
+    public void parseAndExecute_addAndDeleteTags_preservesOtherTags() throws Exception {
+        Person original = model.getFilteredPersonList().get(0);
+        Person taggedPerson = new PersonBuilder(original).withTags("trainee", "supplier").build();
+        model.setPerson(original, taggedPerson);
+        Person expectedPerson = new PersonBuilder(taggedPerson).withTags("supplier", "solderer").build();
+        assertParsedEditSuccess("edit 1 t/solderer dt/trainee", expectedPerson);
+    }
+
+    @Test
+    public void parseAndExecute_missingDeletion_rejectsEntireEdit() throws Exception {
+        showPersonAtIndex(model, INDEX_SECOND_PERSON);
+        Command command = new AddressBookParser().parseCommand(
+                "edit 1 n/Alex p/12345678 e/alex@example.com a/New Address r/Employee"
+                + " t/solderer dt/owesMoney dt/trainee");
+        assertCommandFailure(command, model, String.format(EditCommand.MESSAGE_TAG_NOT_FOUND, "trainee"));
+    }
+
+    @Test
+    public void parseAndExecute_duplicatePhone_rejectsTagChanges() throws Exception {
+        String duplicatePhone = model.getFilteredPersonList().get(INDEX_SECOND_PERSON.getZeroBased()).getPhone().value;
+        Command command = new AddressBookParser().parseCommand(
+                "edit 1 p/" + duplicatePhone + " t/solderer dt/friends");
+        assertCommandFailure(command, model, Messages.MESSAGE_DUPLICATE_PHONE);
+    }
+
+    @Test
+    public void parseAndExecute_repeatedTagsAndCaseDifferences_success() throws Exception {
+        Person original = model.getFilteredPersonList().get(0);
+        Person expectedPerson = new PersonBuilder(original).withTags("solderer").build();
+        assertParsedEditSuccess("edit 1 t/solderer t/SOLDERER dt/friends dt/FRIENDS", expectedPerson);
+    }
+
+    @Test
+    public void parseCommand_emptyOrConflictingTags_rejectsWithoutChangingModel() {
+        Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
+        AddressBookParser parser = new AddressBookParser();
+        assertThrows(ParseException.class, EditCommand.MESSAGE_EMPTY_TAG, () -> parser.parseCommand(
+                "edit 1 n/Alex t/"));
+        assertEquals(expectedModel, model);
+        assertThrows(ParseException.class, EditCommand.MESSAGE_EMPTY_TAG, () -> parser.parseCommand(
+                "edit 1 n/Alex dt/"));
+        assertEquals(expectedModel, model);
+        String conflictMessage = String.format(EditCommand.MESSAGE_TAG_CONFLICT, "trainee");
+        assertThrows(ParseException.class, conflictMessage, () -> parser.parseCommand(
+                "edit 1 n/Alex t/trainee dt/TRAINEE"));
+        assertEquals(expectedModel, model);
+    }
+
+    /**
+     * Parses and executes an edit of the first displayed contact, checking the feedback and full model.
+     */
+    private void assertParsedEditSuccess(String input, Person expectedPerson) throws ParseException {
+        Command command = new AddressBookParser().parseCommand(input);
+        Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
+        expectedModel.setPerson(model.getFilteredPersonList().get(0), expectedPerson);
+        String expectedMessage = String.format(EditCommand.MESSAGE_EDIT_PERSON_SUCCESS,
+                Messages.format(expectedPerson));
+        assertCommandSuccess(command, model, expectedMessage, expectedModel);
     }
 
     /**
