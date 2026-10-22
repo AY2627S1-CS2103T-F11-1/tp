@@ -139,6 +139,48 @@ Examples:
 * `edit 2 n/Betsy Crower r/Customer t/` Changes the 2nd contact's name and role, and clears all existing tags.
 
 
+### Undoing a change: `undo`
+
+Reverses the most recent successful modifying command (`add`, `delete`, `edit`, or `clear`).
+
+**Format:** `undo`
+
+* Each `undo` reverses one modifying command. You can undo repeatedly until you reach the start of the current session.
+* Successful undo displays `Undo success!` and resets the view to show all contacts.
+* If no changes can be undone, the application displays `No more commands to undo!`.
+* Commands such as `find`, `list`, and `help` are not undone.
+* Undo history is cleared when you close the application. Changes from previous sessions cannot be undone.
+* Additional arguments, such as `undo 2`, are rejected.
+
+Example:
+
+1. `delete 1` deletes the first displayed contact.
+2. `undo` restores the deleted contact and displays all contacts.
+
+### Redoing a change: `redo`
+
+Reapplies the most recently undone modifying command.
+
+**Format:** `redo`
+
+* Each `redo` reapplies one undone change. You can redo repeatedly while undone changes remain.
+* Successful redo displays `Redo success!` and resets the view to show all contacts.
+* If no changes can be redone, the application displays `No more commands to redo!`.
+* A new successful modifying command after undo discards the remaining redo history.
+* Failed validation and commands such as `find`, `list`, and `help` preserve redo history.
+* Redo history is cleared when you close the application.
+* Additional arguments, such as `redo 2`, are rejected.
+
+Example:
+
+1. `delete 1` deletes the first displayed contact.
+2. `undo` restores the contact.
+3. `redo` deletes that contact again.
+
+Undo and redo automatically save the resulting contact data. If saving fails,
+the application reports an error, but the change remains in the running application.
+
+
 ### Exiting the program: `exit`
 
 Exits the program after displaying a closing message for a short time.
@@ -266,3 +308,5 @@ Action | Format, Examples
 **Find** | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
 **Help** | `help`
 **List** | `list`
+**Redo** | `redo`
+**Undo** | `undo`
