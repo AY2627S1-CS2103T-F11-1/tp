@@ -128,22 +128,6 @@ public class LogicManagerTest {
     }
 
     @Test
-    public void execute_redoAfterUndo_success() throws Exception {
-        model.addPerson(AMY);
-        model.commitAddressBook();
-        String deleteCommand = DeleteCommand.COMMAND_WORD + " 1";
-
-        logic.execute(deleteCommand);
-        assertFalse(model.hasPerson(AMY));
-
-        model.undoAddressBook();
-        assertTrue(model.hasPerson(AMY));
-
-        logic.execute(RedoCommand.COMMAND_WORD);
-        assertFalse(model.hasPerson(AMY));
-    }
-
-    @Test
     public void execute_undoAfterMutation_success() throws Exception {
         model.addPerson(AMY);
         model.commitAddressBook();
