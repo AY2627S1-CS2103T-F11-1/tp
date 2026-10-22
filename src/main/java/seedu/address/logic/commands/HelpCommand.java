@@ -1,6 +1,7 @@
 package seedu.address.logic.commands;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import seedu.address.model.Model;
 
@@ -21,7 +22,7 @@ public class HelpCommand extends Command {
     public static final String SHOWING_HELP_MESSAGE = "Opened help window.";
     private static final String MESSAGE_NO_COMMAND_HELP = "No command-specific help is available for '%s'.\n"
             + "Enter `help` to open the full help window, or use `help COMMAND` for command-specific help.\n"
-            + "Supported commands: add, edit, delete, find.";
+            + "Supported commands: %s.";
 
     private static final Map<String, String> COMMAND_USAGE_BY_NAME = Map.of(
             AddCommand.COMMAND_WORD, AddCommand.COMMAND_USAGE,
@@ -52,6 +53,9 @@ public class HelpCommand extends Command {
             return new CommandResult(commandUsage);
         }
 
-        return new CommandResult(String.format(MESSAGE_NO_COMMAND_HELP, commandName));
+        String supportedCommands = COMMAND_USAGE_BY_NAME.keySet().stream()
+                .sorted()
+                .collect(Collectors.joining(", "));
+        return new CommandResult(String.format(MESSAGE_NO_COMMAND_HELP, commandName, supportedCommands));
     }
 }

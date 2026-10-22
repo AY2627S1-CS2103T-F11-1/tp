@@ -66,7 +66,7 @@ public class HelpCommandTest {
 
         assertEquals("No command-specific help is available for 'invalid'.\n"
                 + "Enter `help` to open the full help window, or use `help COMMAND` for command-specific help.\n"
-                + "Supported commands: add, edit, delete, find.", result.getFeedbackToUser());
+                + "Supported commands: add, delete, edit, find.", result.getFeedbackToUser());
         assertFalse(result.isShowHelp());
         assertFalse(result.isExit());
     }
