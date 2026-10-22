@@ -40,6 +40,8 @@ import seedu.address.testutil.PersonBuilder;
 public class EditCommandTest {
 
     private Model model = new ModelManager(getTypicalAddressBook(), new UserPrefs());
+    // Keep expected history across successive edits, including edits that leave the contact unchanged.
+    private Model expectedTagEditModel = new ModelManager(getTypicalAddressBook(), new UserPrefs());
 
     @Test
     public void execute_allFieldsSpecifiedUnfilteredList_success() {
@@ -229,11 +231,12 @@ public class EditCommandTest {
      */
     private void assertParsedEditSuccess(String input, Person expectedPerson) throws ParseException {
         Command command = new AddressBookParser().parseCommand(input);
-        Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
-        expectedModel.setPerson(model.getFilteredPersonList().get(0), expectedPerson);
+        expectedTagEditModel.setAddressBook(model.getAddressBook());
+        expectedTagEditModel.setPerson(model.getFilteredPersonList().get(0), expectedPerson);
+        expectedTagEditModel.commitAddressBook();
         String expectedMessage = String.format(EditCommand.MESSAGE_EDIT_PERSON_SUCCESS,
                 Messages.format(expectedPerson));
-        assertCommandSuccess(command, model, expectedMessage, expectedModel);
+        assertCommandSuccess(command, model, expectedMessage, expectedTagEditModel);
     }
 
     /**
@@ -242,11 +245,12 @@ public class EditCommandTest {
     private void assertTagEditSuccess(Index index, EditPersonDescriptor descriptor, String... expectedTags) {
         Person original = model.getFilteredPersonList().get(index.getZeroBased());
         Person editedPerson = new PersonBuilder(original).withTags(expectedTags).build();
-        Model expectedModel = new ModelManager(new AddressBook(model.getAddressBook()), new UserPrefs());
-        expectedModel.setPerson(original, editedPerson);
+        expectedTagEditModel.setAddressBook(model.getAddressBook());
+        expectedTagEditModel.setPerson(original, editedPerson);
+        expectedTagEditModel.commitAddressBook();
         String expectedMessage = String.format(EditCommand.MESSAGE_EDIT_PERSON_SUCCESS, Messages.format(editedPerson));
 
-        assertCommandSuccess(new EditCommand(index, descriptor), model, expectedMessage, expectedModel);
+        assertCommandSuccess(new EditCommand(index, descriptor), model, expectedMessage, expectedTagEditModel);
     }
 
     @Test
