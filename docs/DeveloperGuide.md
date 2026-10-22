@@ -198,17 +198,25 @@ Requested deletion absent from the selected contact | `EditCommand.MESSAGE_TAG_N
 * `EditCommandTest` covers additions, selective deletions, combined operations, filtered lists, existing tags, missing deletions, and preservation of the full model on failure. It also parses command text through `AddressBookParser` before execution to cover the acceptance examples and failure cases.
 * `AddressBookParserTest` checks that an edit containing both operations is routed to the edit parser.
 
-### \[Proposed\] Undo/redo feature
+### Undo/redo feature
 
-#### Proposed Implementation
+#### Implementation
 
 The proposed undo/redo mechanism is facilitated by `VersionedAddressBook`. It extends `AddressBook` with an undo/redo history, stored internally as an `addressBookStateList` and `currentStatePointer`. Additionally, it implements the following operations:
 
 * `VersionedAddressBook#commit()` — Saves the current address book state in its history.
 * `VersionedAddressBook#undo()` — Restores the previous address book state from its history.
 * `VersionedAddressBook#redo()` — Restores a previously undone address book state from its history.
+* `canUndoAddressBook()` — Indicates whether a previous snapshot exists.
+* `canRedoAddressBook()` — Indicates whether a next snapshot exists.
 
 These operations are exposed in the `Model` interface as `Model#commitAddressBook()`, `Model#undoAddressBook()` and `Model#redoAddressBook()` respectively.
+
+`AddCommand`, `DeleteCommand`, `EditCommand`, and `ClearCommand` commit once after successful execution, immediately before returning their result. Validation failures do not commit. Successful modifying commands commit even when the resulting contact data is unchanged.
+
+`UndoCommandParser` and `RedoCommandParser` accept empty or whitespace-only arguments and reject additional arguments. Their commands check availability before requesting the corresponding model operation. Undo and redo do not create new snapshots.
+
+The underlying `VersionedAddressBook` also checks its boundaries and throws `NoUndoableStateException` or `NoRedoableStateException` when navigation is unavailable.
 
 Given below is an example usage scenario and how the undo/redo mechanism behaves at each step.
 
@@ -266,6 +274,16 @@ Step 6. The user executes `clear`, which calls `Model#commitAddressBook()`. Sinc
 The following activity diagram summarizes what happens when a user executes a new command:
 
 <img src="images/CommitActivityDiagram.png" width="250" />
+
+#### Persistence and failures
+
+After successful command execution, `LogicManager` saves the current contact
+data through `Storage`. Only contact data is serialized; snapshots and the
+history pointer remain in memory.
+
+If saving after undo or redo throws `IOException`, `LogicManager` reports a
+`CommandException`. The restored contact data and moved history pointer remain
+in memory; no rollback is performed.
 
 #### Design considerations:
 
@@ -419,18 +437,29 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 
-1.  User requests to find contacts using one or more full or partial name keywords.
-2.  `KeyBossWarriorsPro` displays matching contacts and their details.
+1.  User requests to find contacts by specifying one or more search criteria
+    (by name, role, or tag).
+
+2.  `KeyBossWarriorsPro` displays all contacts matching the given criteria.
 
     Use case ends.
 
 **Extensions**
 
-*  2a. No contacts match the keyword.
+*  1a. No search criteria are provided, or all provided values are blank.
+  *  1a1. `KeyBossWarriorsPro` shows an error message.
+       
+       Use case ends.
 
-  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
-
+*  1b. A provided search criterion is invalid (e.g. unrecognised prefix).
+  *  1b1. `KeyBossWarriorsPro` shows an error message.
+       
      Use case ends.
+
+*  2a. No contacts match the given criteria.
+  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
+       
+       Use case ends.
 
 
 **Use Case: UC3 - Delete a Contact**

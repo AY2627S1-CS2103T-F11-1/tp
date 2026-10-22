@@ -111,11 +111,14 @@ public class EditCommand extends Command {
 
         model.setPerson(personToEdit, editedPerson);
         model.updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
-        logger.finer(() -> "Person edited in model: displayed contact index=" + index.getOneBased()
-                + ", requested tag additions="
-                + editPersonDescriptor.getTagsToAdd().orElse(Collections.emptySet()).size()
-                + ", requested tag deletions="
-                + editPersonDescriptor.getTagsToDelete().orElse(Collections.emptySet()).size());
+        model.commitAddressBook();
+        
+      logger.finer(() -> "Person edited in model: displayed contact index=" + index.getOneBased()
+                   + ", requested tag additions="
+                   + editPersonDescriptor.getTagsToAdd().orElse(Collections.emptySet()).size()
+                   + ", requested tag deletions="
+                   + editPersonDescriptor.getTagsToDelete().orElse(Collections.emptySet()).size());
+      
         return new CommandResult(String.format(MESSAGE_EDIT_PERSON_SUCCESS, Messages.format(editedPerson)));
     }
 

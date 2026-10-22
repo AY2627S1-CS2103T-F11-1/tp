@@ -160,6 +160,48 @@ Command | Error message
 `edit 1 n/Alex dt/trainee dt/solderer` | `Cannot delete tag: solderer. The selected contact does not have this tag.` The name and both original tags remain unchanged.
 
 
+### Undoing a change: `undo`
+
+Reverses the most recent successful modifying command (`add`, `delete`, `edit`, or `clear`).
+
+**Format:** `undo`
+
+* Each `undo` reverses one modifying command. You can undo repeatedly until you reach the start of the current session.
+* Successful undo displays `Undo success!` and resets the view to show all contacts.
+* If no changes can be undone, the application displays `No more commands to undo!`.
+* Commands such as `find`, `list`, and `help` are not undone.
+* Undo history is cleared when you close the application. Changes from previous sessions cannot be undone.
+* Additional arguments, such as `undo 2`, are rejected.
+
+Example:
+
+1. `delete 1` deletes the first displayed contact.
+2. `undo` restores the deleted contact and displays all contacts.
+
+### Redoing a change: `redo`
+
+Reapplies the most recently undone modifying command.
+
+**Format:** `redo`
+
+* Each `redo` reapplies one undone change. You can redo repeatedly while undone changes remain.
+* Successful redo displays `Redo success!` and resets the view to show all contacts.
+* If no changes can be redone, the application displays `No more commands to redo!`.
+* A new successful modifying command after undo discards the remaining redo history.
+* Failed validation and commands such as `find`, `list`, and `help` preserve redo history.
+* Redo history is cleared when you close the application.
+* Additional arguments, such as `redo 2`, are rejected.
+
+Example:
+
+1. `delete 1` deletes the first displayed contact.
+2. `undo` restores the contact.
+3. `redo` deletes that contact again.
+
+Undo and redo automatically save the resulting contact data. If saving fails,
+the application reports an error, but the change remains in the running application.
+
+
 ### Exiting the program: `exit`
 
 Exits the program after displaying a closing message for a short time.
@@ -171,26 +213,64 @@ Any extra text after `exit` is ignored. The closing message explains this, and t
 For example, `exit -f` exits in the same way as `exit`.
 
 
-### Locating contacts by name: `find`
 
-Finds contacts whose names contain any of the given keywords, including partial names.
+### Locating contacts: `find`
 
-**Format:** `find KEYWORD [MORE_KEYWORDS]...`
+Finds contacts matching one or more name, role, or tag criteria. All searches are case-insensitive and support partial matching (substring matching).
 
-* The search is case-insensitive; for example, `hans` matches `Hans`.
-* Keywords can match any part of a name; for example `ha`, `an`, and `ns` all match `Hans Bo`.
-* Keyword order does not matter; for example, `Hans Bo` matches `Bo Hans`.
-* The search considers only names.
-* Contacts matching at least one keyword are returned (an `OR` search); for example, `Hans Bo` returns `Hans Gruber` and `Bo Yang`.
-* Adding keywords can return more results; it does not narrow the search. Short keywords can match many names. For example, `find hans b` also matches `Robert Tan`. Use longer keywords for more selective results.
-* Each matching contact appears only once, even if several keywords match their name.
+#### Prefixed Search
+
+**Format:** `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...`
+
+* At least one `n/`, `r/`, or `t/` prefix must be provided.
+* `n/` specifies a name search phrase.
+* `r/` specifies a role search phrase.
+* `t/` specifies a tag search phrase. Note that since tags cannot contain spaces, multi-word tag phrases (e.g. `t/good friend`) will return no results.
+* Each value after a prefix is treated as a continuous search phrase until the next prefix or the end of the command.
+* **Partial & Case-Insensitive Matching**: Matches if the term appears anywhere within the field, regardless of upper or lower case (e.g., `n/alex` matches `Alexander`, `r/distrib` matches `Distributor`).
+* **Search Logic:**
+    * **Same prefix → `OR` logic**: A contact matches if it satisfies *at least one* of the values given for that prefix type (e.g. `n/alice n/bob` returns contacts whose name contains "alice" *or* "bob", case-insensitively).
+    * **Different prefixes → `AND` logic**: Results are then narrowed so that a contact must satisfy *all* prefix types specified (e.g. `n/alice r/manager` returns contacts whose name contains "alice" *and* whose role contains "manager", case-insensitively).
+    * In short: **OR within a prefix, AND across prefixes.**
 
 Examples:
-* `find John` returns `john` and `John Doe`
-* `find han` matches `Hans Bo` and `Johan Meyer`
-* `find hans bo` matches `Hans Bo` once, as well as `Hans Gruber` and `Bo Yang`
-* `find alex david` returns `Alex Yeoh`, `David Li`<br>
- ![result for 'find alex david'](images/findAlexDavidResult.png)
+* `find n/alex` matches contacts whose names contain `alex`, such as
+  `Alex Yeoh`, `alexander`, and `Alexis Tan`.
+* `find n/John Doe` matches contacts whose names contain the phrase
+  `John Doe`, such as `John Doe` and `John Doeder`.
+* `find r/distrib` matches contacts whose roles contain `distrib`, such as
+  `Distributor` and `Regional Distributor`.
+* `find t/frie` matches contacts with at least one tag containing `frie`,
+  such as `friend` or `Friendly`.
+* `find r/supp r/distrib` matches contacts whose roles contain either
+  `supp` or `distrib`.
+* `find t/friend t/family` matches contacts with at least one tag containing
+  either `friend` or `family`.
+* `find n/ali r/emp` matches contacts whose names contain `ali` and whose
+  roles contain `emp`, such as a contact named `Alice` with role `Employee`.
+* `find n/John n/ali r/supp` matches contacts whose names contain either
+  `John` or `ali`, and whose roles contain `supp`.
+
+#### Legacy Search
+Searches contacts by name using space-separated keywords without prefixes.
+
+**Format:** `find NAME_KEYWORD [NAME_KEYWORD]...`
+
+* Searches contacts by **name only**.
+* Space-separated words are treated as individual name keywords.
+* **Search Logic**: Keywords use `OR` logic. A contact is returned if its name contains *at least one* of the specified keywords.
+* **Partial & Case-Insensitive Matching**: Matches if the keyword appears anywhere within a name, regardless of upper or lower case (e.g., `han` matches `Hans Bo` and `Johan Meyer`).
+* Keyword order does not matter (e.g., `find Bo Hans` can match a contact named `Hans Bo`).
+* Adding more keywords broadens the search results; it does not narrow them.
+* **Cannot Mix with Prefixes**: Legacy unprefixed keywords cannot be combined with prefixed search values (e.g., `find Alice n/Bob` or `find Alice r/Employee` is rejected).
+
+Examples:
+* `find John` matches `john` and `John Doe` *(case-insensitive)*.
+* `find han` matches `Hans Bo` and `Johan Meyer` *(partial substring match)*.
+* `find alex david` matches `Alex Yeoh` and `David Li` *(OR logic: matches either keyword)*.<br>
+  ![result for 'find alex david'](images/findAlexDavidResult.png)
+* `find Alice n/Bob` or `find Alice r/Employee` is invalid because legacy keywords and prefixed values cannot be mixed.
+
 
 
 ### Viewing help: `help`
@@ -284,6 +364,8 @@ Action | Format, Examples
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]…​ [dt/TAG_TO_DELETE]…​`<br> e.g., `edit 1 t/solderer dt/trainee` (requires contact 1 to have `trainee`)
 **Exit** | `exit` 
-**Find** | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
+**Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...` or `find KEYWORD [MORE_KEYWORDS]` (Legacy Search)<br> e.g., `find n/John r/Supplier`, `find James Jake`
 **Help** | `help`
 **List** | `list`
+**Redo** | `redo`
+**Undo** | `undo`

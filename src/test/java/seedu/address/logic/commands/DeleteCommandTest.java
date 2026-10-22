@@ -18,6 +18,7 @@ import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
 import seedu.address.model.person.Person;
+import seedu.address.testutil.PersonBuilder;
 
 /**
  * Contains integration tests (interaction with the Model) and unit tests for
@@ -45,6 +46,7 @@ public class DeleteCommandTest {
 
         ModelManager expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
         expectedModel.deletePerson(personToDelete);
+        expectedModel.commitAddressBook();
 
         assertCommandSuccess(deleteCommand, model, expectedMessage, expectedModel);
     }
@@ -76,6 +78,7 @@ public class DeleteCommandTest {
 
         Model expectedModel = new ModelManager(model.getAddressBook(), new UserPrefs());
         expectedModel.deletePerson(personToDelete);
+        expectedModel.commitAddressBook();
         showNoPerson(expectedModel);
 
         assertCommandSuccess(deleteCommand, model, expectedMessage, expectedModel);
@@ -107,6 +110,24 @@ public class DeleteCommandTest {
         DeleteCommand deleteCommand = new DeleteCommand(INDEX_FIRST_PERSON);
 
         assertCommandFailure(deleteCommand, model, DeleteCommand.MESSAGE_NO_CONTACTS_TO_DELETE);
+    }
+
+    @Test
+    public void execute_invalidIndexAfterUndo_preservesRedoHistory() {
+        Person newPerson = new PersonBuilder().build();
+        model.addPerson(newPerson);
+        model.commitAddressBook();
+        model.undoAddressBook();
+
+        Index invalidIndex = Index.fromOneBased(model.getFilteredPersonList().size() + 1);
+        String expectedMessage = String.format(DeleteCommand.MESSAGE_INDEX_OUT_OF_RANGE, invalidIndex.getOneBased(),
+                model.getFilteredPersonList().size());
+
+        assertCommandFailure(new DeleteCommand(invalidIndex), model, expectedMessage);
+
+        assertTrue(model.canRedoAddressBook());
+        model.redoAddressBook();
+        assertTrue(model.hasPerson(newPerson));
     }
 
     @Test
