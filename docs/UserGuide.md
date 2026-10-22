@@ -194,24 +194,46 @@ For example, `exit -f` exits in the same way as `exit`.
 
 ### Locating contacts by name: `find`
 
-Finds contacts whose names contain any of the given keywords, including partial names.
+Finds contacts whose names contain one or more search values. Searches are case-insensitive and support partial matching.
 
-**Format:** `find KEYWORD [MORE_KEYWORDS]...`
+#### Legacy Search
+**Format:** `find NAME_KEYWORD [NAME_KEYWORD]...`
 
+* Space-separated keywords are treated as separate name keywords.
+* Keywords use `OR` logic. A contact is returned if its name contains at least one of the specified keywords.
 * The search is case-insensitive; for example, `hans` matches `Hans`.
 * Keywords can match any part of a name; for example `ha`, `an`, and `ns` all match `Hans Bo`.
 * Keyword order does not matter; for example, `Hans Bo` matches `Bo Hans`.
-* The search considers only names.
-* Contacts matching at least one keyword are returned (an `OR` search); for example, `Hans Bo` returns `Hans Gruber` and `Bo Yang`.
 * Adding keywords can return more results; it does not narrow the search. Short keywords can match many names. For example, `find hans b` also matches `Robert Tan`. Use longer keywords for more selective results.
 * Each matching contact appears only once, even if several keywords match their name.
 
 Examples:
-* `find John` returns `john` and `John Doe`
-* `find han` matches `Hans Bo` and `Johan Meyer`
-* `find hans bo` matches `Hans Bo` once, as well as `Hans Gruber` and `Bo Yang`
-* `find alex david` returns `Alex Yeoh`, `David Li`<br>
+* `find John` matches `john` and `John Doe`.
+* `find han` matches `Hans Bo` and `Johan Meyer`.
+* `find hans bo` matches `Hans Bo` once, as well as `Hans Gruber` and `Bo Yang`.
+* `find alex david` matches `Alex Yeoh` and `David Li`.<br>
  ![result for 'find alex david'](images/findAlexDavidResult.png)
+
+
+#### Prefixed Name Search
+**Format:** `find n/NAME_PHRASE [n/NAME_PHRASE]...`
+
+
+- `n/` explicitly indicates a name search.
+- Each value after `n/` is treated as one continuous search phrase until the next `n/` prefix or the end of the command.
+- Leading and trailing whitespace around each value is trimmed. Spaces within a value are preserved.
+- Prefixed values use case-insensitive partial matching.
+- Repeated `n/` values use `OR` logic.
+- Prefixed and unprefixed search values cannot be mixed.
+- Blank `n/` values and unrecognized prefixes are rejected.
+- Each matching contact appears only once.
+
+Examples:
+
+- `find n/John Doe` matches `John Doe` and `john doeder`, as it searches for the phrase `John Doe`.
+- `find n/John n/Alice` matches contacts whose names contain `John` or `Alice`.
+- `find Alice n/Bob` is invalid because legacy and prefixed search values are mixed.
+- `find n/` is invalid because the name search value is blank.
 
 
 ### Viewing help: `help`
