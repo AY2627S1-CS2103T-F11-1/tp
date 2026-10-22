@@ -12,18 +12,18 @@ import seedu.address.model.Model;
 import seedu.address.model.person.Person;
 
 /**
- * Finds and lists contacts in KeyBossWarriorsPro using name and/or role criteria.
+ * Finds and lists contacts in KeyBossWarriorsPro using name, role, and/or tag criteria.
  */
 public class FindCommand extends Command {
 
     public static final String COMMAND_WORD = "find";
 
     public static final String MESSAGE_USAGE = COMMAND_WORD
-            + ": Finds contacts whose names and/or roles contain at least one search value "
+            + ": Finds contacts whose names, roles, and/or tags contain at least one search value "
             + "as a case-insensitive substring.\n"
-            + "Usage: " + COMMAND_WORD + " [n/NAME_PHRASE]... [r/ROLE]...\n"
-            + "Repeated n/ values and repeated r/ values use OR logic; name and role criteria use AND logic.\n"
-            + "Example: " + COMMAND_WORD + " n/John Doe n/Alice r/Employee\n"
+            + "Usage: " + COMMAND_WORD + " [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...\n"
+            + "Repeated occurrences of the same prefix use OR logic; different prefix criteria use AND logic.\n"
+            + "Example: " + COMMAND_WORD + " n/John Doe n/Alice r/Employee t/friend\n"
             + "Legacy mode is also supported: " + COMMAND_WORD + " alice bob";
 
     // User-facing error messages
@@ -34,7 +34,7 @@ public class FindCommand extends Command {
             "Error: FIND cannot mix unprefixed keywords with prefixed search values";
 
     public static final String MESSAGE_EMPTY_PREFIX_VALUE =
-            "Error: FIND requires a non-blank value after n/, r/";
+            "Error: FIND requires a non-blank value after n/, r/, t/";
 
     private final List<Predicate<Person>> predicates;
 

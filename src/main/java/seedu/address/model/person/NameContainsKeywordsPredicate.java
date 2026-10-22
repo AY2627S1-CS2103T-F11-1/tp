@@ -32,6 +32,8 @@ public class NameContainsKeywordsPredicate implements Predicate<Person> {
 
     @Override
     public boolean test(Person person) {
+        assert person != null : "Person to test must not be null";
+
         String name = person.getName().fullName.toLowerCase(Locale.ROOT);
 
         return keywords.stream()

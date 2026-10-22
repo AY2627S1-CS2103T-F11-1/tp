@@ -32,6 +32,8 @@ public class RoleContainsKeywordsPredicate implements Predicate<Person> {
 
     @Override
     public boolean test(Person person) {
+        assert person != null : "Person to test must not be null";
+
         String role = person.getRole().value.toLowerCase(Locale.ROOT);
 
         return keywords.stream()

@@ -43,6 +43,14 @@ public class RoleContainsKeywordsPredicateTest {
     }
 
     @Test
+    public void test_nullPerson_throwsAssertionError() {
+        RoleContainsKeywordsPredicate predicate =
+                new RoleContainsKeywordsPredicate(List.of("Supplier"));
+
+        assertThrows(AssertionError.class, () -> predicate.test(null));
+    }
+
+    @Test
     public void constructor_blankKeywords_storesOnlyNonblankKeywords() {
         RoleContainsKeywordsPredicate predicate =
                 new RoleContainsKeywordsPredicate(List.of("", "Supplier", "", "Employee"));

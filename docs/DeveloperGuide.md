@@ -396,19 +396,29 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 
-1.  User requests to find contacts by one or more name criteria.
+1.  User requests to find contacts by specifying one or more search criteria
+    (by name, role, or tag).
 
-2.  `KeyBossWarriorsPro` displays matching contacts and their details.
+2.  `KeyBossWarriorsPro` displays all contacts matching the given criteria.
 
     Use case ends.
 
 **Extensions**
 
-*  2a. No contacts match the requested criteria.
+*  1a. No search criteria are provided, or all provided values are blank.
+  *  1a1. `KeyBossWarriorsPro` shows an error message.
+       
+       Use case ends.
 
-  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
-
+*  1b. A provided search criterion is invalid (e.g. unrecognised prefix).
+  *  1b1. `KeyBossWarriorsPro` shows an error message.
+       
      Use case ends.
+
+*  2a. No contacts match the given criteria.
+  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
+       
+       Use case ends.
 
 
 **Use Case: UC3 - Delete a Contact**
