@@ -43,6 +43,14 @@ public class TagContainsKeywordsPredicateTest {
     }
 
     @Test
+    public void test_nullPerson_throwsAssertionError() {
+        TagContainsKeywordsPredicate predicate =
+                new TagContainsKeywordsPredicate(List.of("friend"));
+
+        assertThrows(AssertionError.class, () -> predicate.test(null));
+    }
+
+    @Test
     public void constructor_blankKeywords_storesOnlyNonblankKeywords() {
         TagContainsKeywordsPredicate predicate =
                 new TagContainsKeywordsPredicate(List.of("", "RGB", "", "PCB"));
