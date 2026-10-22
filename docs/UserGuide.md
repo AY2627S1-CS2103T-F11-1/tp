@@ -150,6 +150,7 @@ Any extra text after `exit` is ignored. The closing message explains this, and t
 For example, `exit -f` exits in the same way as `exit`.
 
 
+
 ### Locating contacts: `find`
 
 Finds contacts matching one or more name, role, or tag criteria. All searches are case-insensitive and support partial matching (substring matching).
