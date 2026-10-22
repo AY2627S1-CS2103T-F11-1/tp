@@ -192,48 +192,56 @@ Any extra text after `exit` is ignored. The closing message explains this, and t
 For example, `exit -f` exits in the same way as `exit`.
 
 
-### Locating contacts by name: `find`
+### Locating contacts: `find`
 
-Finds contacts whose names contain one or more search values. Searches are case-insensitive and support partial matching.
+Finds contacts whose names and/or roles contain the search terms. All searches are case-insensitive and support partial matching (substring matching).
+
+#### Prefixed Search
+Finds contacts matching specified name phrases, role phrases, or both.
+
+**Format:** `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]...`
+
+* At least one `n/` or `r/` prefix must be provided.
+* `n/` specifies a name search phrase; `r/` specifies a role search phrase.
+* Each value after a prefix is treated as a continuous search phrase until the next prefix or the end of the command.
+* Leading and trailing whitespace around each value is trimmed. Spaces within a phrase are preserved.
+* **Partial & Case-Insensitive Matching**: Matches if the term appears anywhere within the field, regardless of upper or lower case (e.g., `n/alex` matches `Alexander`, `r/distrib` matches `Distributor`).
+* **Search Logic:**
+    * **Repeated prefixes use `OR` logic**: Matches contacts satisfying *at least one* of the specified values for that field.
+    * **Different prefixes use `AND` logic**: Matches contacts satisfying *both* the name and role criteria.
+* Blank prefix values (e.g., `n/`, `r/`) and unrecognised prefixes (e.g., `p/`) are rejected.
+* Each matching contact appears only once.
+
+Examples:
+* `find n/alex` matches `Alex Yeoh`, `alexander`, and `Alexis Tan` *(partial match & case-insensitive)*.
+* `find n/John Doe` matches `John Doe` and `John Doeder` *(multi-word phrase match)*.
+* `find r/distrib` matches any contact whose role contains `distrib` (e.g., `Distributor`, `Regional Distributor`).
+* `find r/supp r/distrib` matches contacts whose role contains either `supp` (e.g., `Supplier`) **or** `distrib` (e.g., `Distributor`).
+* `find n/ali r/emp` matches contacts whose name contains `ali` (e.g., `Alice`) **and** whose role contains `emp` (e.g., `Employee`).
+* `find n/John n/ali r/supp` matches contacts whose name contains `John` **or** `ali`, **and** whose role contains `supp`.
+* `find n/` or `find r/` is invalid because search values cannot be blank.
 
 #### Legacy Search
+Searches contacts by name using space-separated keywords without prefixes.
+
 **Format:** `find NAME_KEYWORD [NAME_KEYWORD]...`
 
-* Space-separated keywords are treated as separate name keywords.
-* Keywords use `OR` logic. A contact is returned if its name contains at least one of the specified keywords.
-* The search is case-insensitive; for example, `hans` matches `Hans`.
-* Keywords can match any part of a name; for example `ha`, `an`, and `ns` all match `Hans Bo`.
-* Keyword order does not matter; for example, `Hans Bo` matches `Bo Hans`.
-* Adding keywords can return more results; it does not narrow the search. Short keywords can match many names. For example, `find hans b` also matches `Robert Tan`. Use longer keywords for more selective results.
-* Each matching contact appears only once, even if several keywords match their name.
+* Searches contacts by **name only**.
+* Space-separated words are treated as individual name keywords.
+* **Search Logic**: Keywords use `OR` logic. A contact is returned if its name contains *at least one* of the specified keywords.
+* **Partial & Case-Insensitive Matching**: Matches if the keyword appears anywhere within a name, regardless of upper or lower case (e.g., `han` matches `Hans Bo` and `Johan Meyer`).
+* Keyword order does not matter (e.g., `Hans Bo` matches `Bo Hans`).
+* Adding more keywords broadens the search results; it does not narrow them.
+* **Cannot Mix with Prefixes**: Legacy unprefixed keywords cannot be combined with prefixed search values (e.g., `find Alice n/Bob` or `find Alice r/Employee` is rejected).
+* Each matching contact appears only once, even if multiple keywords match its name.
 
 Examples:
-* `find John` matches `john` and `John Doe`.
-* `find han` matches `Hans Bo` and `Johan Meyer`.
-* `find hans bo` matches `Hans Bo` once, as well as `Hans Gruber` and `Bo Yang`.
-* `find alex david` matches `Alex Yeoh` and `David Li`.<br>
- ![result for 'find alex david'](images/findAlexDavidResult.png)
+* `find John` matches `john` and `John Doe` *(case-insensitive)*.
+* `find han` matches `Hans Bo` and `Johan Meyer` *(partial substring match)*.
+* `find alex david` matches `Alex Yeoh` and `David Li` *(OR logic: matches either keyword)*.<br>
+  ![result for 'find alex david'](images/findAlexDavidResult.png)
+* `find Alice n/Bob` or `find Alice r/Employee` is invalid because legacy keywords and prefixed values cannot be mixed.
 
-
-#### Prefixed Name Search
-**Format:** `find n/NAME_PHRASE [n/NAME_PHRASE]...`
-
-
-- `n/` explicitly indicates a name search.
-- Each value after `n/` is treated as one continuous search phrase until the next `n/` prefix or the end of the command.
-- Leading and trailing whitespace around each value is trimmed. Spaces within a value are preserved.
-- Prefixed values use case-insensitive partial matching.
-- Repeated `n/` values use `OR` logic.
-- Prefixed and unprefixed search values cannot be mixed.
-- Blank `n/` values and unrecognized prefixes are rejected.
-- Each matching contact appears only once.
-
-Examples:
-
-- `find n/John Doe` matches `John Doe` and `john doeder`, as it searches for the phrase `John Doe`.
-- `find n/John n/Alice` matches contacts whose names contain `John` or `Alice`.
-- `find Alice n/Bob` is invalid because legacy and prefixed search values are mixed.
-- `find n/` is invalid because the name search value is blank.
 
 
 ### Viewing help: `help`
@@ -327,7 +335,7 @@ Action | Format, Examples
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG]…​`<br> e.g., `edit 2 n/James Lee e/jameslee@example.com r/Employee`
 **Exit** | `exit` 
-**Find** | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
+**Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]...` or `find KEYWORD [MORE_KEYWORDS]` (Legacy Search)<br> e.g., `find n/John r/Supplier`, `find James Jake`
 **Help** | `help`
 **List** | `list`
 **Redo** | `redo`

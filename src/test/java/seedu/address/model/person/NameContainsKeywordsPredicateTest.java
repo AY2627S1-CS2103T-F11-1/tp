@@ -97,7 +97,7 @@ public class NameContainsKeywordsPredicateTest {
     }
 
     @Test
-    public void test_mixedBlankAndNonblankKeywords_ignoresBlanks() {
+    public void test_mixedBlankAndNonBlankKeywords_ignoresBlanks() {
         Person person = new PersonBuilder().withName("Alice").build();
 
         assertTrue(new NameContainsKeywordsPredicate(List.of("", " ", "Alice")).test(person));
