@@ -114,6 +114,11 @@ public class EditCommand extends Command {
         model.commitAddressBook();
 
         logger.finer(() -> "Person edited in model: displayed contact index=" + index.getOneBased()
+                + ", name supplied=" + editPersonDescriptor.getName().isPresent()
+                + ", phone supplied=" + editPersonDescriptor.getPhone().isPresent()
+                + ", email supplied=" + editPersonDescriptor.getEmail().isPresent()
+                + ", address supplied=" + editPersonDescriptor.getAddress().isPresent()
+                + ", role supplied=" + editPersonDescriptor.getRole().isPresent()
                 + ", requested tag additions="
                 + editPersonDescriptor.getTagsToAdd().orElse(Collections.emptySet()).size()
                 + ", requested tag deletions="
