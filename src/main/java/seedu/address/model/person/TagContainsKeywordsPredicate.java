@@ -33,6 +33,8 @@ public class TagContainsKeywordsPredicate implements Predicate<Person> {
 
     @Override
     public boolean test(Person person) {
+        assert person != null : "Person to test must not be null";
+
         return person.getTags().stream()
                 .anyMatch(this::matchesAnyKeyword);
     }

@@ -74,6 +74,8 @@ public class FindCommandParser implements Parser<FindCommand> {
                 predicates.add(new TagContainsKeywordsPredicate(prefixedTags));
             }
 
+            assert !predicates.isEmpty() : "Prefixed search must produce at least one predicate";
+
             return new FindCommand(predicates.toArray(Predicate[]::new));
         }
 
