@@ -112,9 +112,13 @@ public class EditCommand extends Command {
      */
     private static Person createEditedPerson(Person personToEdit, EditPersonDescriptor editPersonDescriptor)
             throws CommandException {
-        assert personToEdit != null;
+        assert personToEdit != null : "The selected person must exist before applying edits";
 
+        Set<Tag> tagsToAdd = editPersonDescriptor.getTagsToAdd().orElse(Collections.emptySet());
         Set<Tag> tagsToDelete = editPersonDescriptor.getTagsToDelete().orElse(Collections.emptySet());
+        assert Collections.disjoint(tagsToAdd, tagsToDelete)
+                : "Validated tag additions and deletions must not overlap";
+
         Optional<Tag> missingTag = tagsToDelete.stream()
                 .filter(tag -> !personToEdit.getTags().contains(tag))
                 .sorted((first, second) -> first.tagName.compareToIgnoreCase(second.tagName))
@@ -130,7 +134,11 @@ public class EditCommand extends Command {
         Role updatedRole = editPersonDescriptor.getRole().orElse(personToEdit.getRole());
         Set<Tag> updatedTags = new HashSet<>(personToEdit.getTags());
         updatedTags.removeAll(tagsToDelete);
-        updatedTags.addAll(editPersonDescriptor.getTagsToAdd().orElse(Collections.emptySet()));
+        updatedTags.addAll(tagsToAdd);
+
+        assert updatedTags.containsAll(tagsToAdd) : "The edited tags must contain every requested addition";
+        assert Collections.disjoint(updatedTags, tagsToDelete)
+                : "The edited tags must not contain any requested deletion";
 
         return new Person(updatedName, updatedPhone, updatedEmail, updatedAddress, updatedRole, updatedTags);
     }
