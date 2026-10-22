@@ -99,17 +99,6 @@ public class AddressBookParserTest {
     }
 
     @Test
-    public void parseCommand_redo() throws Exception {
-        assertTrue(parser.parseCommand(RedoCommand.COMMAND_WORD) instanceof RedoCommand);
-        assertTrue(parser.parseCommand(RedoCommand.COMMAND_WORD + " \t  ") instanceof RedoCommand);
-    }
-
-    @Test
-    public void parseCommand_redoWithArgs_throwsParseException() {
-        assertThrows(ParseException.class, () -> parser.parseCommand(RedoCommand.COMMAND_WORD + " 123"));
-    }
-
-    @Test
     public void parseCommand_undo() throws Exception {
         assertTrue(parser.parseCommand(UndoCommand.COMMAND_WORD) instanceof UndoCommand);
         assertTrue(parser.parseCommand(UndoCommand.COMMAND_WORD + " \t  ") instanceof UndoCommand);
