@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
 
+import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.core.index.Index;
 import seedu.address.commons.util.CollectionUtil;
 import seedu.address.commons.util.ToStringBuilder;
@@ -62,6 +64,8 @@ public class EditCommand extends Command {
     public static final String MESSAGE_TAG_NOT_FOUND =
             "Cannot delete tag: %1$s. The selected contact does not have this tag.";
 
+    private static final Logger logger = LogsCenter.getLogger(EditCommand.class);
+
     private final Index index;
     private final EditPersonDescriptor editPersonDescriptor;
 
@@ -80,9 +84,11 @@ public class EditCommand extends Command {
     @Override
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
+        logger.fine("Executing EditCommand for displayed contact index: " + index.getOneBased());
         List<Person> lastShownList = model.getFilteredPersonList();
 
         if (index.getZeroBased() >= lastShownList.size()) {
+            logger.warning("EditCommand rejected: Displayed contact index is out of bounds");
             throw new CommandException(Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
         }
 
@@ -93,15 +99,23 @@ public class EditCommand extends Command {
         boolean hasEmail = model.hasEmail(editedPerson.getEmail(), personToEdit);
 
         if (hasPhone && hasEmail) {
+            logger.warning("EditCommand rejected: Duplicate phone and email exist in address book");
             throw new CommandException(Messages.MESSAGE_DUPLICATE_PHONE_AND_EMAIL);
         } else if (hasPhone) {
+            logger.warning("EditCommand rejected: Duplicate phone exists in address book");
             throw new CommandException(Messages.MESSAGE_DUPLICATE_PHONE);
         } else if (hasEmail) {
+            logger.warning("EditCommand rejected: Duplicate email exists in address book");
             throw new CommandException(Messages.MESSAGE_DUPLICATE_EMAIL);
         }
 
         model.setPerson(personToEdit, editedPerson);
         model.updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
+        logger.finer(() -> "Person edited in model: displayed contact index=" + index.getOneBased()
+                + ", requested tag additions="
+                + editPersonDescriptor.getTagsToAdd().orElse(Collections.emptySet()).size()
+                + ", requested tag deletions="
+                + editPersonDescriptor.getTagsToDelete().orElse(Collections.emptySet()).size());
         return new CommandResult(String.format(MESSAGE_EDIT_PERSON_SUCCESS, Messages.format(editedPerson)));
     }
 
@@ -124,6 +138,7 @@ public class EditCommand extends Command {
                 .sorted((first, second) -> first.tagName.compareToIgnoreCase(second.tagName))
                 .findFirst();
         if (missingTag.isPresent()) {
+            logger.warning("EditCommand rejected: A requested tag deletion is absent from the selected contact");
             throw new CommandException(String.format(MESSAGE_TAG_NOT_FOUND, missingTag.get().tagName));
         }
 
