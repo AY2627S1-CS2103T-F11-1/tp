@@ -123,20 +123,41 @@ Examples:
 
 Edits an existing contact in KeyBossWarriorsPro.
 
-**Format:** `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG]…​`
+**Format:** `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]…​ [dt/TAG_TO_DELETE]…​`
 
 * `INDEX` must be a positive integer and must refer to a contact in the currently displayed list.
-* At least one of the optional fields must be provided.
-* Existing values will be updated to the input values.
+* At least one field or tag operation must be provided.
+* Supplied name, phone number, email address, address, and role values replace the corresponding existing values. Omitted fields keep their existing values.
 * Field constraints described under `add` apply to every field supplied with `edit`.
 * You cannot edit a contact's phone number or email address to match another existing contact in KeyBossWarriorsPro (email comparisons are case-insensitive).
-* When editing tags, all of the contact's existing tags are removed; adding tags is not cumulative.
-* To remove all of a contact's tags, enter `t/` without a tag after it.
+* `t/TAG_TO_ADD` adds the named tag while preserving the contact's existing tags. Adding a tag the contact already has succeeds without creating a duplicate.
+* `dt/TAG_TO_DELETE` removes the named tag while preserving all other tags. Every tag requested for deletion must already belong to the selected contact.
+* Repeat `t/` or `dt/` to add or delete several tags. Both operations can be used in the same command, in any order.
+* Tag comparisons are case-insensitive, and multiple consecutive spaces within a tag name are collapsed into one. For example, `dt/TRAINEE` removes an existing `trainee` tag.
+* A tag cannot be supplied to both `t/` and `dt/` in the same command, even with different letter casing.
+* Empty or whitespace-only `t/` and `dt/` values are invalid. To remove all tags, explicitly name each one using a separate `dt/TAG_TO_DELETE`.
+* Each edit succeeds in full or makes no changes. If any requested deletion is missing or another part of the command is invalid, all contact details and tags stay unchanged.
 
 Examples:
+
 * `edit 1 r/Employee` Changes the role of the 1st contact to `Employee`.
 * `edit 1 p/91234567 e/johndoe@example.com r/Supplier` Updates the 1st contact's phone number, email address, and role.
-* `edit 2 n/Betsy Crower r/Customer t/` Changes the 2nd contact's name and role, and clears all existing tags.
+* `edit 2 n/Betsy Crower r/Customer t/regular` Changes the 2nd contact's name and role, and adds `regular` while preserving existing tags.
+
+For each example below, assume contact 1 initially has the tags `trainee` and `supplier`:
+
+* `edit 1 t/solderer` Results in `trainee`, `supplier`, and `solderer`.
+* `edit 1 dt/trainee` Results in `supplier`.
+* `edit 1 t/solderer dt/trainee` Results in `supplier` and `solderer`.
+* `edit 1 dt/trainee dt/supplier` Removes both named tags, leaving the contact with no tags.
+
+**Tag errors**
+
+Command | Error message
+--------|------------------
+`edit 1 t/` or `edit 1 dt/` | `Tag names cannot be empty. Specify a tag after t/ or dt/.`
+`edit 1 t/trainee dt/TRAINEE` | `Cannot add and delete the same tag: trainee. Remove it from either t/ or dt/.`
+`edit 1 n/Alex dt/trainee dt/solderer` | `Cannot delete tag: solderer. The selected contact does not have this tag.` The name and both original tags remain unchanged.
 
 
 ### Undoing a change: `undo`
@@ -341,7 +362,7 @@ Action | Format, Examples
 **Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…​` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 r/Supplier t/friend t/colleague`
 **Clear** | `clear`
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
-**Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG]…​`<br> e.g., `edit 2 n/James Lee e/jameslee@example.com r/Employee`
+**Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]…​ [dt/TAG_TO_DELETE]…​`<br> e.g., `edit 1 t/solderer dt/trainee` (requires contact 1 to have `trainee`)
 **Exit** | `exit` 
 **Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...` or `find KEYWORD [MORE_KEYWORDS]` (Legacy Search)<br> e.g., `find n/John r/Supplier`, `find James Jake`
 **Help** | `help`

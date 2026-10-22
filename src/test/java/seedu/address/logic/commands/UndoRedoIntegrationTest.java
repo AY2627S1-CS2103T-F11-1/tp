@@ -93,7 +93,7 @@ public class UndoRedoIntegrationTest {
                 .withEmail("updated@example.com")
                 .withAddress("456 Updated Street")
                 .withRole("Customer")
-                .withTags("updated")
+                .withTags("friends", "updated")
                 .build();
 
         logic.execute("edit 1 n/Alice Updated p/91234567 e/updated@example.com "
