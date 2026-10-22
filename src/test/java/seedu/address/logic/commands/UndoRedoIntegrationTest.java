@@ -16,10 +16,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import seedu.address.logic.Messages;
-import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.Logic;
 import seedu.address.logic.LogicManager;
+import seedu.address.logic.Messages;
+import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
@@ -254,8 +254,8 @@ public class UndoRedoIntegrationTest {
         assertState(false, true, ALICE);
         String savedJson = Files.readString(addressBookStorage.getAddressBookFilePath());
 
-        CommandException exception = assertThrows(CommandException.class,
-                () -> logic.execute(PersonUtil.getAddCommand(ALICE)));
+        CommandException exception =
+                assertThrows(CommandException.class, () -> logic.execute(PersonUtil.getAddCommand(ALICE)));
 
         assertEquals(Messages.MESSAGE_DUPLICATE_PHONE_AND_EMAIL, exception.getMessage());
         assertState(false, true, ALICE);
