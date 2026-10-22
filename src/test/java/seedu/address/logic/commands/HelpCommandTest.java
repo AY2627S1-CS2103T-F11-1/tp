@@ -34,6 +34,24 @@ public class HelpCommandTest {
     }
 
     @Test
+    public void execute_helpEdit_returnsEditUsageInResultFeedback() throws Exception {
+        CommandResult result = executeHelpInput("help edit");
+
+        assertEquals(EditCommand.COMMAND_USAGE, result.getFeedbackToUser());
+        assertFalse(result.isShowHelp());
+        assertFalse(result.isExit());
+    }
+
+    @Test
+    public void execute_helpDelete_returnsDeleteUsageInResultFeedback() throws Exception {
+        CommandResult result = executeHelpInput("help delete");
+
+        assertEquals(DeleteCommand.COMMAND_USAGE, result.getFeedbackToUser());
+        assertFalse(result.isShowHelp());
+        assertFalse(result.isExit());
+    }
+
+    @Test
     public void execute_helpFind_returnsFindUsageInResultFeedback() throws Exception {
         CommandResult result = executeHelpInput("help find");
 
