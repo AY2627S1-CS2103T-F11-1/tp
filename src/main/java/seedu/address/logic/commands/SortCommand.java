@@ -18,11 +18,25 @@ public class SortCommand extends Command {
     public static final String COMMAND_WORD = "sort";
 
     public static final String MESSAGE_USAGE = COMMAND_WORD
-            + ": Shows all contacts sorted by the specified fields, in priority order.\n"
-            + "Usage: sort n/ [r/] or sort r/ [n/]\n"
-            + "Examples: sort n/, sort r/ n/";
+            + ": Shows all contacts sorted alphabetically by name, role, or both, "
+            + "ignoring differences in letter case.\n"
+            + "Usage: sort [n/] [r/] or sort [r/] [n/]\n"
+            + "With no fields specified, sort defaults to sorting by name.\n"
+            + "When both fields are specified, the first takes priority "
+            + "and the second breaks ties.\n"
+            + "Each field may appear only once and takes no value.\n"
+            + "Examples: sort, sort n/, sort r/, sort r/ n/";
 
     public static final String MESSAGE_SUCCESS = "Listed all contacts in sorted order.";
+
+    public static final String MESSAGE_DUPLICATE_FIELD =
+            "Error: SORT accepts each field only once: %s";
+
+    public static final String MESSAGE_UNEXPECTED_VALUE =
+            "Error: SORT does not accept values after %s";
+
+    public static final String MESSAGE_UNEXPECTED_TOKEN =
+            "Error: SORT expects n/ or r/, but received: %s";
 
     /**
      * Fields supported for sorting contacts.
