@@ -147,6 +147,10 @@ The `Storage` component,
 * writes files atomically using `FileUtil#writeToFile`, writing to a temporary sibling file before replacing the target file to prevent data corruption.
 * depends on some classes in the `Model` component (because the `Storage` component's job is to save/retrieve objects that belong to the `Model`).
 
+The sequence diagram below shows how the application recovers when a corrupted data file is encountered at startup:
+
+![BackupCorruptedFileSequenceDiagram](images/BackupCorruptedFileSequenceDiagram.png)
+
 ### Common classes
 
 Classes used by multiple components are in the `seedu.address.commons` package.
