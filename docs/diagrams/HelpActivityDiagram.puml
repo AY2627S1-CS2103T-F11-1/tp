@@ -6,22 +6,22 @@ skinparam ArrowFontSize 12
 start
 :Parse help input;
 
-if (Command target provided?) then (no)
+if (Command target provided?) then ([no])
     :Create CommandResult with opening feedback\nand showHelp = true;
-else (yes)
-    if (Target supported?) then (yes)
+else ([yes])
+    if (Target supported?) then ([yes])
         :Look up the target command's COMMAND_USAGE;
         :Create CommandResult with usage feedback\nand showHelp = false;
-    else (no)
+    else ([no])
         :Create CommandResult with guidance\nand showHelp = false;
     endif
 endif
 
 :Display feedback in ResultDisplay;
 
-if (showHelp is true?) then (yes)
+if (showHelp is true?) then ([yes])
     :Open or focus HelpWindow;
-else (no)
+else ([no])
 endif
 
 stop
