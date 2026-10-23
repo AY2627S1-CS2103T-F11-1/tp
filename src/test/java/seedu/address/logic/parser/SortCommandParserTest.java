@@ -41,6 +41,8 @@ public class SortCommandParserTest {
     @Test
     public void parse_blankArgs_defaultsToName() {
         SortCommand expectedSortCommand = new SortCommand(List.of(SortField.NAME));
+        assertParseSuccess(parser, "", expectedSortCommand);
+
         assertParseSuccess(parser, " ", expectedSortCommand);
 
         assertParseSuccess(parser, " \t   ", expectedSortCommand);
