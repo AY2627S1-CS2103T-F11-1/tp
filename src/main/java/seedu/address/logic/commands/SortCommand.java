@@ -12,7 +12,7 @@ import seedu.address.model.Model;
 import seedu.address.model.person.Person;
 
 /**
- * Sorts the contacts in KeyBossWarriorsPro using name and/or role crtieria.
+ * Sorts the contacts in KeyBossWarriorsPro using name and/or role criteria.
  */
 public class SortCommand extends Command {
     public static final String COMMAND_WORD = "sort";

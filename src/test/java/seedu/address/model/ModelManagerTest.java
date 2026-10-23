@@ -350,6 +350,7 @@ public class ModelManagerTest {
 
     @Test
     public void updateSortedPersonList_afterFiltering_sortsFilteredResults() {
+        modelManager.addPerson(ALICE);
         modelManager.addPerson(DANIEL);
         modelManager.addPerson(BENSON);
 
