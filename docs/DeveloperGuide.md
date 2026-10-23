@@ -320,6 +320,10 @@ When `LogicManager` executes a command, it requests `Storage` to persist the upd
 7. If an error occurs during writing or moving, a `finally` block deletes the temporary file and the `IOException` is re-thrown.
 8. `LogicManager` catches `AccessDeniedException` or `IOException`, converts it into a `CommandException`, and `MainWindow` displays the save error to the user in the command result display. The original file on disk remains untouched.
 
+The sequence diagram below illustrates the interactions across components during an atomic write operation:
+
+![AtomicWriteSequenceDiagram](images/AtomicWriteSequenceDiagram.png)
+
 #### Design considerations
 **Aspect: How file writes are performed**
 * **Alternative 1 (current choice):** Write to a sibling temporary file and atomically replace the destination file.
