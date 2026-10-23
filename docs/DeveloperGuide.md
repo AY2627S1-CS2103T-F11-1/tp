@@ -147,6 +147,10 @@ The `Storage` component,
 * writes files atomically using `FileUtil#writeToFile`, writing to a temporary sibling file before replacing the target file to prevent data corruption.
 * depends on some classes in the `Model` component (because the `Storage` component's job is to save/retrieve objects that belong to the `Model`).
 
+The sequence diagram below shows how the application recovers when a corrupted data file is encountered at startup:
+
+![BackupCorruptedFileSequenceDiagram](images/BackupCorruptedFileSequenceDiagram.png)
+
 ### Common classes
 
 Classes used by multiple components are in the `seedu.address.commons` package.
@@ -319,6 +323,10 @@ When `LogicManager` executes a command, it requests `Storage` to persist the upd
 6. If the filesystem does not support atomic moves (`AtomicMoveNotSupportedException`), it falls back to `StandardCopyOption.REPLACE_EXISTING`.
 7. If an error occurs during writing or moving, a `finally` block deletes the temporary file and the `IOException` is re-thrown.
 8. `LogicManager` catches `AccessDeniedException` or `IOException`, converts it into a `CommandException`, and `MainWindow` displays the save error to the user in the command result display. The original file on disk remains untouched.
+
+The sequence diagram below illustrates the interactions across components during an atomic write operation:
+
+![AtomicWriteSequenceDiagram](images/AtomicWriteSequenceDiagram.png)
 
 #### Design considerations
 **Aspect: How file writes are performed**

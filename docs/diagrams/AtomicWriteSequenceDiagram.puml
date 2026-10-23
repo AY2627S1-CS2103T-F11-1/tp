@@ -1,0 +1,52 @@
+@startuml
+!include style.puml
+skinparam ArrowFontStyle plain
+
+box Logic LOGIC_COLOR_T1
+participant ":LogicManager" as LogicManager LOGIC_COLOR
+end box
+
+box Storage STORAGE_COLOR_T1
+participant ":StorageManager" as StorageManager STORAGE_COLOR
+participant ":JsonAddressBookStorage" as JsonAddressBookStorage STORAGE_COLOR
+end box
+
+box Commons #lightgrey
+participant "<<class>>\nJsonUtil" as JsonUtil #grey
+participant "<<class>>\nFileUtil" as FileUtil #grey
+end box
+
+[-> LogicManager : execute("delete 1")
+activate LogicManager
+
+LogicManager -> StorageManager : saveAddressBook(addressBook)
+activate StorageManager
+
+StorageManager -> JsonAddressBookStorage : saveAddressBook(addressBook)
+activate JsonAddressBookStorage
+
+JsonAddressBookStorage -> JsonUtil : saveJsonFile(serializableAddressBook, filePath)
+activate JsonUtil
+
+JsonUtil -> FileUtil : writeToFile(filePath, jsonContent)
+activate FileUtil
+
+FileUtil -> FileUtil : Files.createTempFile(dir, prefix, ".tmp")
+FileUtil -> FileUtil : Files.write(tempFile, bytes)
+FileUtil -> FileUtil : Files.move(tempFile, filePath, ATOMIC_MOVE, ...)
+
+FileUtil --> JsonUtil
+deactivate FileUtil
+
+JsonUtil --> JsonAddressBookStorage
+deactivate JsonUtil
+
+JsonAddressBookStorage --> StorageManager
+deactivate JsonAddressBookStorage
+
+StorageManager --> LogicManager
+deactivate StorageManager
+
+[<-- LogicManager
+deactivate LogicManager
+@enduml
