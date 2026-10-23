@@ -161,6 +161,18 @@ Classes used by multiple components are in the `seedu.address.commons` package.
 
 This section describes some noteworthy details on how certain features are implemented.
 
+### Command-specific help
+
+`AddressBookParser` parses the optional command name after `help` and creates a `HelpCommand`. Bare `help` opens the full help window, while `help COMMAND` displays usage for a supported command in the result area.
+
+![Help command activity diagram](images/HelpActivityDiagram.png)
+
+* Bare `help` returns opening feedback in a `CommandResult` with `showHelp` set to `true`.
+* For a supported target, `HelpCommand` retrieves the command's `COMMAND_USAGE` from `COMMAND_USAGE_BY_NAME` and returns it as feedback with `showHelp` set to `false`.
+* An unsupported target returns guidance with `showHelp` set to `false`. The supported command names in the guidance are derived from the same map.
+
+`MainWindow` displays the feedback in `ResultDisplay` and opens or focuses `HelpWindow` only when `showHelp` is `true`. The activity diagram assumes at most one command target; input with multiple target words is rejected during parsing, and the parser error is displayed in the result area.
+
 ### Adding and deleting contact tags
 
 The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_ADD]... [dt/TAG_TO_DELETE]...`, alongside the existing contact fields. Additions preserve existing tags, and deletions remove only explicitly named tags. The complete edit succeeds or leaves all contact details and the displayed list unchanged.
