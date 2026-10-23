@@ -2,18 +2,13 @@
 !include style.puml
 skinparam ArrowFontStyle plain
 
-box Main UI_COLOR_T1
-participant ":MainApp" as MainApp UI_COLOR
+box Main #lightgrey
+participant ":MainApp" as MainApp #grey
 end box
 
 box Storage STORAGE_COLOR_T1
 participant ":StorageManager" as StorageManager STORAGE_COLOR
 participant ":JsonAddressBookStorage" as JsonAddressBookStorage STORAGE_COLOR
-end box
-
-box Model MODEL_COLOR_T1
-participant "initialData:AddressBook" as AddressBook MODEL_COLOR
-participant ":ModelManager" as ModelManager MODEL_COLOR
 end box
 
 [-> MainApp : initModelManager(storage, userPrefs)
@@ -31,12 +26,6 @@ deactivate JsonAddressBookStorage
 StorageManager --> MainApp : throw DataLoadingException
 deactivate StorageManager
 
-create AddressBook
-MainApp -> AddressBook
-activate AddressBook
-AddressBook --> MainApp
-deactivate AddressBook
-
 MainApp -> StorageManager : backupAddressBookFile()
 activate StorageManager
 
@@ -44,9 +33,6 @@ StorageManager -> JsonAddressBookStorage : backupAddressBookFile()
 activate JsonAddressBookStorage
 
 JsonAddressBookStorage -> JsonAddressBookStorage : copy to timestamped backup path
-activate JsonAddressBookStorage STORAGE_COLOR_T1
-JsonAddressBookStorage --[STORAGE_COLOR]> JsonAddressBookStorage
-deactivate JsonAddressBookStorage
 
 JsonAddressBookStorage --> StorageManager : backupPath
 deactivate JsonAddressBookStorage
@@ -54,12 +40,6 @@ deactivate JsonAddressBookStorage
 StorageManager --> MainApp : backupPath
 deactivate StorageManager
 
-create ModelManager
-MainApp -> ModelManager : new ModelManager(initialData, userPrefs)
-activate ModelManager
-ModelManager --> MainApp : model
-deactivate ModelManager
-
-[<-- MainApp : model
+[<-- MainApp
 deactivate MainApp
 @enduml

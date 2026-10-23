@@ -29,19 +29,8 @@ JsonUtil -> FileUtil : writeToFile(filePath, jsonContent)
 activate FileUtil
 
 FileUtil -> FileUtil : createTempFile(dir, prefix, ".tmp")
-activate FileUtil STORAGE_COLOR_T1
-FileUtil --[STORAGE_COLOR]> FileUtil : tempFile
-deactivate FileUtil
-
 FileUtil -> FileUtil : write(tempFile, bytes)
-activate FileUtil STORAGE_COLOR_T1
-FileUtil --[STORAGE_COLOR]> FileUtil
-deactivate FileUtil
-
 FileUtil -> FileUtil : move(tempFile, filePath, ATOMIC_MOVE, ...)
-activate FileUtil STORAGE_COLOR_T1
-FileUtil --[STORAGE_COLOR]> FileUtil
-deactivate FileUtil
 
 FileUtil --> JsonUtil
 deactivate FileUtil
@@ -55,6 +44,6 @@ deactivate JsonAddressBookStorage
 StorageManager --> LogicManager
 deactivate StorageManager
 
-[<-- LogicManager : result
+[<-- LogicManager
 deactivate LogicManager
 @enduml
