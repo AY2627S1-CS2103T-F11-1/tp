@@ -40,6 +40,6 @@ deactivate JsonAddressBookStorage
 StorageManager --> MainApp : backupPath
 deactivate StorageManager
 
-[<-- MainApp
+[<-- MainApp : model
 deactivate MainApp
 @enduml
