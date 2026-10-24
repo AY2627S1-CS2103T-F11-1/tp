@@ -3,6 +3,8 @@ package seedu.address.logic.commands;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DATE;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DESCRIPTION;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandFailure;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandSuccess;
 import static seedu.address.logic.commands.CommandTestUtil.showPersonAtIndex;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.Test;
 
 import seedu.address.commons.core.index.Index;
 import seedu.address.logic.Messages;
+import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
@@ -49,6 +52,34 @@ public class DeleteCommandTest {
         expectedModel.commitAddressBook();
 
         assertCommandSuccess(deleteCommand, model, expectedMessage, expectedModel);
+    }
+
+    @Test
+    public void execute_deleteContactWithFollowUp_undoRestoresAndRedoRemoves() {
+        Person original = new PersonBuilder(model.getFilteredPersonList().get(0))
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION)
+                .build();
+
+        AddressBook initialState = new AddressBook(model.getAddressBook());
+        initialState.setPerson(initialState.getPersonList().get(0), original);
+        model.setAddressBook(initialState);
+        model.commitAddressBook();
+
+        Model expectedModel = new ModelManager(getTypicalAddressBook(), new UserPrefs());
+        expectedModel.setAddressBook(initialState);
+        expectedModel.commitAddressBook();
+        expectedModel.deletePerson(original);
+        expectedModel.commitAddressBook();
+
+        String expectedMessage =
+                String.format(DeleteCommand.MESSAGE_DELETE_CONTACT_SUCCESS, Messages.format(original));
+        assertCommandSuccess(new DeleteCommand(INDEX_FIRST_PERSON), model, expectedMessage, expectedModel);
+
+        model.undoAddressBook();
+        assertEquals(initialState, model.getAddressBook());
+
+        model.redoAddressBook();
+        assertEquals(expectedModel.getAddressBook(), model.getAddressBook());
     }
 
     @Test

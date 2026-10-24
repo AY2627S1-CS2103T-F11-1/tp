@@ -16,12 +16,12 @@ public class FollowUp {
 
     public static final int MAX_DESCRIPTION_LENGTH = 200;
 
-    public static final String MESSAGE_CONSTRAINTS =
-            "Follow-up descriptions must not be blank and must not exceed "
-                    + MAX_DESCRIPTION_LENGTH + " characters after trimming.";
+    public static final String MESSAGE_CONSTRAINTS = "Follow-up descriptions must not be blank, must not exceed "
+            + MAX_DESCRIPTION_LENGTH + " characters after trimming, "
+            + "and must not contain control characters or Unicode line or paragraph separators.";
 
     public static final String DATE_MESSAGE_CONSTRAINTS =
-            "Follow-up dude dates must have a year between 0000 and 9999.";
+            "Follow-up due dates must have a year between 0000 and 9999.";
 
     private static final int UNICODE_LINE_SEPARATOR = 0x2028;
     private static final int UNICODE_PARAGRAPH_SEPARATOR = 0x2029;
@@ -44,9 +44,9 @@ public class FollowUp {
         requireNonNull(dueDate);
         requireNonNull(description);
 
+        checkArgument(isValidDueDate(dueDate), DATE_MESSAGE_CONSTRAINTS);
         String trimmedDescription = description.strip();
         checkArgument(isValidDescription(trimmedDescription), MESSAGE_CONSTRAINTS);
-        checkArgument(isValidDueDate(dueDate), DATE_MESSAGE_CONSTRAINTS);
 
         this.dueDate = dueDate;
         this.description = trimmedDescription;
