@@ -71,6 +71,11 @@ public class FollowUpCommandParser implements Parser<FollowUpCommand> {
         return new SetFollowUpCommand(index, new FollowUp(dueDate, description));
     }
 
+    /**
+     * Parses an exact four-digit-year date, accepting past dates.
+     *
+     * @throws ParseException if the textual format or calendar data is invalid
+     */
     private static LocalDate parseDueDate(String value) throws ParseException {
         if (!value.matches(DATE_FORMAT_REGEX)) {
             throw new ParseException(MESSAGE_INVALID_DATE);
