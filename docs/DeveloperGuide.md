@@ -161,6 +161,58 @@ Classes used by multiple components are in the `seedu.address.commons` package.
 
 This section describes some noteworthy details on how certain features are implemented.
 
+### Adding a contact
+
+KeyBossWarriorsPro allows keyboard shop managers to add new contacts with an industry-specific `Role` (e.g., `Supplier`, `Employee`, `Partner`, `Customer`) and optional tags. Contact uniqueness is governed by communication identifiers (phone number and email address) rather than names.
+
+#### Implementation details
+
+The sequence diagram below illustrates how an `add` command travels through `Logic` and `Model` components when a user executes `add n/John Doe p/98765432 ... r/Supplier`:
+
+![AddSequenceDiagram](images/AddSequenceDiagram.png)
+
+How the command parsing and execution works:
+
+1. `LogicManager#execute()` calls `AddressBookParser#parseCommand()`.
+2. `AddressBookParser` instantiates an `AddCommandParser` and invokes its `parse()` method.
+3. `AddCommandParser` performs multi-tier input validation:
+   * `ArgumentTokenizer#verifyNoUnrecognizedPrefixes()` ensures no unrecognized prefixes are supplied.
+   * `ArgumentMultimap#verifyNoMissingPrefixesFor()` verifies that all compulsory prefixes (`n/`, `p/`, `e/`, `a/`, `r/`) are present.
+   * Checks that the preamble is empty.
+   * `ArgumentMultimap#verifyNoDuplicatePrefixesFor()` rejects repeated compulsory prefixes.
+   * Parses individual fields into domain value objects (`Name`, `Phone`, `Email`, `Address`, `Role`, and a set of `Tag` objects) via `ParserUtil`.
+4. A new `Person` entity `toAdd` is constructed, and `AddCommandParser` returns an `AddCommand` object (labeled `command`). Because `AddCommandParser` is a transient parser instance created solely to parse a single command string, it is discarded immediately after `parse()` completes, as indicated by the destroy marker (`X`).
+5. `LogicManager` executes `AddCommand#execute(Model)`.
+6. `AddCommand` queries `Model` to verify uniqueness:
+   * `Model#hasPhone(toAdd.getPhone())`
+   * `Model#hasEmail(toAdd.getEmail())`
+7. If uniqueness validation passes, `Model#addPerson(toAdd)` inserts the contact into `UniquePersonList`, and `Model#commitAddressBook()` saves the state snapshot into `VersionedAddressBook` to support undo/redo.
+8. A `CommandResult` containing success feedback (labeled `result`) is returned to `LogicManager`.
+
+The activity diagram below illustrates the duplicate resolution and defensive error-handling branching during `AddCommand#execute()`. Each decision node specifies explicit, mutually exclusive guard conditions on all outgoing branches, and all execution paths converge cleanly to a single final node:
+
+![AddCommandActivityDiagram](images/AddCommandActivityDiagram.png)
+
+#### Design considerations
+
+**Aspect: Contact identity and duplicate criteria**
+
+* **Alternative 1 (current choice):** Identity uniqueness enforced independently on phone number and email address.
+  * Pros: Matches realistic keyboard shop management where multiple contacts may share identical names (e.g., common customer names), but communication channels must remain unique. Provides targeted error feedback indicating whether the phone, email, or both clashed.
+  * Cons: Requires multiple uniqueness checks against `UniquePersonList` before insertion.
+* **Alternative 2:** Identity determined solely by contact name (baseline AB3).
+  * Pros: Simpler lookup logic.
+  * Cons: Disallows contacts sharing a name and allows duplicate phone numbers and email addresses to enter the pipeline undetected.
+
+**Aspect: Input prefix validation**
+
+* **Alternative 1 (current choice):** Strict rejection of unrecognized prefixes via `ArgumentTokenizer#verifyNoUnrecognizedPrefixes()`.
+  * Pros: Prevents user typos from failing silently (e.g., mistyping `r/Supplier` as `w/Supplier` or supplying extra unsupported prefixes).
+  * Cons: Requires maintaining explicit prefix whitelists for each command parser.
+* **Alternative 2:** Permissive parsing where unrecognized prefixes are treated as part of preamble or ignored.
+  * Pros: Simpler parsing code.
+  * Cons: Causes silent input drops where mistyped fields are omitted without warning the user.
+
 ### Command-specific help
 
 `AddressBookParser` parses the optional command name after `help` and creates a `HelpCommand`. Bare `help` opens the full help window, while `help COMMAND` displays usage for a supported command in the result area.
