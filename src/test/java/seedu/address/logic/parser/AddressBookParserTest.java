@@ -4,9 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DATE;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DESCRIPTION;
+import static seedu.address.logic.parser.CliSyntax.PREFIX_FOLLOW_UP_DATE;
+import static seedu.address.logic.parser.CliSyntax.PREFIX_FOLLOW_UP_DESCRIPTION;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,16 +19,20 @@ import org.junit.jupiter.api.Test;
 
 import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.ClearCommand;
+import seedu.address.logic.commands.ClearFollowUpCommand;
 import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.EditCommand;
 import seedu.address.logic.commands.EditCommand.EditPersonDescriptor;
 import seedu.address.logic.commands.ExitCommand;
 import seedu.address.logic.commands.FindCommand;
+import seedu.address.logic.commands.FollowUpCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.RedoCommand;
+import seedu.address.logic.commands.SetFollowUpCommand;
 import seedu.address.logic.commands.UndoCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
+import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.EditPersonDescriptorBuilder;
@@ -129,5 +138,43 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_unknownCommand_throwsParseException() {
         assertThrows(ParseException.class, MESSAGE_UNKNOWN_COMMAND, () -> parser.parseCommand("unknownCommand"));
+    }
+
+    @Test
+    public void parseCommand_followUpSet() throws Exception {
+        FollowUp followUp = new FollowUp(
+                LocalDate.parse(VALID_FOLLOW_UP_DATE), VALID_FOLLOW_UP_DESCRIPTION);
+
+        SetFollowUpCommand command = (SetFollowUpCommand) parser.parseCommand(
+                FollowUpCommand.COMMAND_WORD + " " + INDEX_FIRST_PERSON.getOneBased()
+                        + " " + PREFIX_FOLLOW_UP_DATE + VALID_FOLLOW_UP_DATE
+                        + " " + PREFIX_FOLLOW_UP_DESCRIPTION + VALID_FOLLOW_UP_DESCRIPTION);
+
+        assertEquals(new SetFollowUpCommand(INDEX_FIRST_PERSON, followUp), command);
+    }
+
+    @Test
+    public void parseCommand_followUpClear() throws Exception {
+        ClearFollowUpCommand command = (ClearFollowUpCommand) parser.parseCommand(
+                FollowUpCommand.COMMAND_WORD + " " + INDEX_FIRST_PERSON.getOneBased() + " clear");
+
+        assertEquals(new ClearFollowUpCommand(INDEX_FIRST_PERSON), command);
+    }
+
+    @Test
+    public void parseCommand_followUpWithoutArguments_throwsParseException() {
+        assertThrows(ParseException.class,
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.MESSAGE_USAGE), () ->
+                        parser.parseCommand(FollowUpCommand.COMMAND_WORD));
+    }
+
+    @Test
+    public void parseCommand_followUpMixedOperations_throwsParseException() {
+        assertThrows(ParseException.class,
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.MESSAGE_USAGE), () ->
+                        parser.parseCommand(
+                        FollowUpCommand.COMMAND_WORD + " " + INDEX_FIRST_PERSON.getOneBased()
+                                + " clear " + PREFIX_FOLLOW_UP_DATE + VALID_FOLLOW_UP_DATE
+                                + " " + PREFIX_FOLLOW_UP_DESCRIPTION + VALID_FOLLOW_UP_DESCRIPTION));
     }
 }
