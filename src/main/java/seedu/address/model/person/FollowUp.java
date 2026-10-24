@@ -20,8 +20,14 @@ public class FollowUp {
             "Follow-up descriptions must not be blank and must not exceed "
                     + MAX_DESCRIPTION_LENGTH + " characters after trimming.";
 
+    public static final String DATE_MESSAGE_CONSTRAINTS =
+            "Follow-up dude dates must have a year between 0000 and 9999.";
+
     private static final int UNICODE_LINE_SEPARATOR = 0x2028;
     private static final int UNICODE_PARAGRAPH_SEPARATOR = 0x2029;
+
+    private static final int MIN_YEAR = 0;
+    private static final int MAX_YEAR = 9999;
 
     private final LocalDate dueDate;
     private final String description;
@@ -40,6 +46,7 @@ public class FollowUp {
 
         String trimmedDescription = description.strip();
         checkArgument(isValidDescription(trimmedDescription), MESSAGE_CONSTRAINTS);
+        checkArgument(isValidDueDate(dueDate), DATE_MESSAGE_CONSTRAINTS);
 
         this.dueDate = dueDate;
         this.description = trimmedDescription;
@@ -55,6 +62,14 @@ public class FollowUp {
         return !trimmedDescription.isBlank()
                 && trimmedDescription.length() <= MAX_DESCRIPTION_LENGTH
                 && trimmedDescription.codePoints().noneMatch(FollowUp::isDisallowedDescriptionCharacter);
+    }
+
+    /**
+     * Returns whether the date can be represented with a four-digit year.
+     */
+    public static boolean isValidDueDate(LocalDate dueDate) {
+        requireNonNull(dueDate);
+        return dueDate.getYear() >= MIN_YEAR && dueDate.getYear() <= MAX_YEAR;
     }
 
     /**
