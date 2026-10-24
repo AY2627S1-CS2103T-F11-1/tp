@@ -1,0 +1,31 @@
+@startuml
+skin rose
+skinparam ActivityFontSize 15
+skinparam ArrowFontSize 12
+
+start
+:Execute AddCommand;
+
+:Check Model for duplicate Phone and Email;
+
+if () then ([both Phone and Email exist])
+    :Log warning;
+    :Throw CommandException\n(duplicate phone and email);
+else ([at least one absent])
+    if () then ([only Phone exists])
+        :Log warning;
+        :Throw CommandException\n(duplicate phone);
+    else ([Phone absent])
+        if () then ([only Email exists])
+            :Log warning;
+            :Throw CommandException\n(duplicate email);
+        else ([neither exists])
+            :Add Person to Model;
+            :Commit AddressBook to history;
+            :Create CommandResult\nwith success message;
+        endif
+    endif
+endif
+
+stop
+@enduml
