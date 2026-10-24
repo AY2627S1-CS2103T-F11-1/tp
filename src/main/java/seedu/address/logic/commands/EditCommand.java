@@ -27,6 +27,7 @@ import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.Model;
 import seedu.address.model.person.Address;
 import seedu.address.model.person.Email;
+import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Name;
 import seedu.address.model.person.Person;
 import seedu.address.model.person.Phone;
@@ -158,12 +159,14 @@ public class EditCommand extends Command {
         Set<Tag> updatedTags = new HashSet<>(personToEdit.getTags());
         updatedTags.removeAll(tagsToDelete);
         updatedTags.addAll(tagsToAdd);
+        Optional<FollowUp> currentFollowUp = personToEdit.getFollowUp();
 
         assert updatedTags.containsAll(tagsToAdd) : "The edited tags must contain every requested addition";
         assert Collections.disjoint(updatedTags, tagsToDelete)
                 : "The edited tags must not contain any requested deletion";
 
-        return new Person(updatedName, updatedPhone, updatedEmail, updatedAddress, updatedRole, updatedTags);
+        return new Person(updatedName, updatedPhone, updatedEmail,
+                updatedAddress, updatedRole, updatedTags, currentFollowUp);
     }
 
     @Override
