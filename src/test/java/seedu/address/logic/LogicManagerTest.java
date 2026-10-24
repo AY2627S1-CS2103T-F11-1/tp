@@ -10,13 +10,16 @@ import static seedu.address.logic.commands.CommandTestUtil.NAME_DESC_AMY;
 import static seedu.address.logic.commands.CommandTestUtil.PHONE_DESC_AMY;
 import static seedu.address.logic.commands.CommandTestUtil.ROLE_DESC_AMY;
 import static seedu.address.testutil.Assert.assertThrows;
+import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.AMY;
 import static seedu.address.testutil.TypicalPersons.BENSON;
+import static seedu.address.testutil.TypicalPersons.CARL;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
@@ -29,6 +32,7 @@ import seedu.address.logic.commands.CommandResult;
 import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.RedoCommand;
+import seedu.address.logic.commands.SortCommand;
 import seedu.address.logic.commands.UndoCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.exceptions.ParseException;
@@ -196,6 +200,222 @@ public class LogicManagerTest {
         assertEquals(expectedModel, model);
         assertTrue(Files.isDirectory(invalidFilePath));
         assertNoTempFilesRemain(temporaryFolder);
+    }
+
+    @Test
+    public void execute_sortThenDelete_usesDisplayedIndex() throws Exception {
+        model.addPerson(CARL);
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+
+        logic.execute("sort n/");
+        assertEquals(List.of(ALICE, BENSON, CARL), logic.getFilteredPersonList());
+
+        logic.execute("delete 1");
+
+        // ALICE occupies displayed index 1, although CARL was inserted first
+        assertFalse(model.hasPerson(ALICE));
+        assertEquals(List.of(BENSON, CARL), logic.getFilteredPersonList());
+        assertEquals(List.of(CARL, BENSON), model.getAddressBook().getPersonList());
+    }
+
+    @Test
+    public void execute_sortThenEdit_usesDisplayedIndexAndRepositionsContact() throws Exception {
+        model.addPerson(CARL);
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+
+        logic.execute("sort n/");
+        assertEquals(List.of(ALICE, BENSON, CARL), logic.getFilteredPersonList());
+
+        Person renamedAlice = new PersonBuilder(ALICE).withName("Zoe").build();
+
+        logic.execute("edit 1 n/Zoe");
+
+        // The edited contact keeps ALICE's other details and moves to the end
+        assertEquals(List.of(BENSON, CARL, renamedAlice), logic.getFilteredPersonList());
+        assertEquals(List.of(CARL, renamedAlice, BENSON), model.getAddressBook().getPersonList());
+    }
+
+    @Test
+    public void execute_sortThenEditRole_repositionsContactByRole() throws Exception {
+        model.addPerson(BENSON);
+        model.addPerson(ALICE);
+        model.addPerson(AMY);
+
+        logic.execute("sort r/ n/");
+        assertEquals(List.of(AMY, ALICE, BENSON), logic.getFilteredPersonList());
+
+        Person accountantBenson = new PersonBuilder(BENSON)
+                .withRole("Accountant")
+                .build();
+
+        logic.execute("edit 3 r/Accountant");
+
+        assertEquals(List.of(accountantBenson, AMY, ALICE),
+                logic.getFilteredPersonList());
+        assertEquals(List.of(accountantBenson, ALICE, AMY),
+                model.getAddressBook().getPersonList());
+    }
+
+    @Test
+    public void execute_findThenSort_showsAllContactsSortedByName() throws Exception {
+        model.addPerson(CARL);
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+
+        logic.execute("find n/Alice");
+        assertEquals(List.of(ALICE), logic.getFilteredPersonList());
+
+        Model expectedModel = new ModelManager();
+        expectedModel.addPerson(CARL);
+        expectedModel.addPerson(ALICE);
+        expectedModel.addPerson(BENSON);
+        expectedModel.updateSortedPersonList(Comparator.comparing(person -> person.getName().fullName));
+
+        // Bare sort must default to name sorting and reveal all contacts
+        assertCommandSuccess("sort", SortCommand.MESSAGE_SUCCESS, expectedModel);
+        assertEquals(List.of(ALICE, BENSON, CARL), logic.getFilteredPersonList());
+
+        // Saving after sorting must preserve the underlying contact order.
+        JsonAddressBookStorage savedStorage =
+                new JsonAddressBookStorage(temporaryFolder.resolve("addressBook.json"));
+
+        ReadOnlyAddressBook savedAddressBook =
+                savedStorage.readAddressBook().orElseThrow();
+
+        assertEquals(List.of(CARL, ALICE, BENSON),
+                savedAddressBook.getPersonList());
+    }
+
+    @Test
+    public void execute_sortThenFindThenList_preservesSortOrder() throws Exception {
+        model.addPerson(BENSON);
+        model.addPerson(ALICE);
+        model.addPerson(AMY);
+
+        // AMY is a Distributor; ALICE and BENSON are Suppliers
+        logic.execute("sort r/ n/");
+        assertEquals(List.of(AMY, ALICE, BENSON), logic.getFilteredPersonList());
+
+        logic.execute("find r/Supplier");
+        assertEquals(List.of(ALICE, BENSON), logic.getFilteredPersonList());
+
+        logic.execute("list");
+        assertEquals(List.of(AMY, ALICE, BENSON), logic.getFilteredPersonList());
+
+        assertEquals(List.of(BENSON, ALICE, AMY), model.getAddressBook().getPersonList());
+    }
+
+    @Test
+    public void execute_sortThenDeleteUndoRedo_preservesSortOrder() throws Exception {
+        model.addPerson(CARL);
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+
+        // Record the initial populated state so undo can restore it
+        model.commitAddressBook();
+
+        logic.execute("sort n/");
+        assertEquals(List.of(ALICE, BENSON, CARL), logic.getFilteredPersonList());
+
+        logic.execute("delete 1");
+        assertEquals(List.of(BENSON, CARL), logic.getFilteredPersonList());
+
+        logic.execute("undo");
+        assertEquals(List.of(ALICE, BENSON, CARL), logic.getFilteredPersonList());
+        assertEquals(List.of(CARL, ALICE, BENSON), model.getAddressBook().getPersonList());
+
+        logic.execute("redo");
+        assertEquals(List.of(BENSON, CARL), logic.getFilteredPersonList());
+        assertEquals(List.of(CARL, BENSON), model.getAddressBook().getPersonList());
+    }
+
+    @Test
+    public void execute_sortBetweenUndoAndRedo_preservesRedoHistory() throws Exception {
+        model.addPerson(CARL);
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        model.commitAddressBook();
+
+        // Before sorting, index 1 refers to CARL
+        logic.execute("delete 1");
+        assertFalse(model.hasPerson(CARL));
+
+        logic.execute("undo");
+        assertEquals(List.of(CARL, ALICE, BENSON), logic.getFilteredPersonList());
+        assertTrue(model.canRedoAddressBook());
+
+        logic.execute("sort n/");
+        assertEquals(List.of(ALICE, BENSON, CARL), logic.getFilteredPersonList());
+        assertTrue(model.canRedoAddressBook());
+
+        // Redo must repeat the original deletion, regardless of the new indices
+        logic.execute("redo");
+        assertEquals(List.of(ALICE, BENSON), logic.getFilteredPersonList());
+        assertFalse(model.hasPerson(CARL));
+        assertFalse(model.canRedoAddressBook());
+    }
+
+    @Test
+    public void execute_invalidSort_preservesState() throws Exception {
+        model.addPerson(BENSON);
+        model.addPerson(ALICE);
+        model.addPerson(AMY);
+
+        logic.execute("sort r/ n/");
+        logic.execute("find r/Supplier");
+        assertEquals(List.of(ALICE, BENSON), logic.getFilteredPersonList());
+
+        Model expectedModel = new ModelManager();
+        expectedModel.addPerson(BENSON);
+        expectedModel.addPerson(ALICE);
+        expectedModel.addPerson(AMY);
+
+        // Define the expected order independently of the command's comparator
+        List<Person> expectedOrder = List.of(AMY, ALICE, BENSON);
+        expectedModel.updateSortedPersonList(Comparator.comparingInt(expectedOrder::indexOf));
+        expectedModel.updateFilteredPersonList(person -> !person.equals(AMY));
+
+        assertCommandFailure("sort n/ n/", ParseException.class,
+                String.format(SortCommand.MESSAGE_DUPLICATE_FIELD, "n/"), expectedModel);
+
+        // The failed command must preserve the active filter
+        assertEquals(List.of(ALICE, BENSON), logic.getFilteredPersonList());
+
+        // Revealing all contacts must retain the previous role-first ordering
+        logic.execute("list");
+        assertEquals(expectedOrder, logic.getFilteredPersonList());
+    }
+
+    @Test
+    public void execute_sortWithEqualKeys_preservesContactsAndDeletesDisplayedIdentity() throws Exception {
+        Person otherAlice = new PersonBuilder(BENSON)
+                .withName(ALICE.getName().fullName)
+                .withRole(ALICE.getRole().value)
+                .build();
+
+        model.addPerson(CARL);
+        model.addPerson(ALICE);
+        model.addPerson(otherAlice);
+
+        logic.execute("sort n/ r/");
+
+        assertEquals(3, logic.getFilteredPersonList().size());
+        assertTrue(logic.getFilteredPersonList().contains(ALICE));
+        assertTrue(logic.getFilteredPersonList().contains(otherAlice));
+        assertEquals(CARL, logic.getFilteredPersonList().get(2));
+
+        Person firstDisplayed = logic.getFilteredPersonList().get(0);
+        assertTrue(firstDisplayed.equals(ALICE) || firstDisplayed.equals(otherAlice));
+
+        Person remainingAlice = firstDisplayed.equals(ALICE) ? otherAlice : ALICE;
+
+        logic.execute("delete 1");
+
+        assertFalse(model.hasPerson(firstDisplayed));
+        assertTrue(model.hasPerson(remainingAlice));
+        assertEquals(List.of(remainingAlice, CARL), logic.getFilteredPersonList());
     }
 
     @Test

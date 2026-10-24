@@ -6,9 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.model.Model.PREDICATE_SHOW_ALL_PERSONS;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.ALICE;
+import static seedu.address.testutil.TypicalPersons.AMY;
 import static seedu.address.testutil.TypicalPersons.BENSON;
+import static seedu.address.testutil.TypicalPersons.BOB;
 import static seedu.address.testutil.TypicalPersons.CARL;
+import static seedu.address.testutil.TypicalPersons.DANIEL;
 
+import java.util.Comparator;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -302,6 +306,109 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void updateSortedPersonList_sortByName_sortsDisplayedListOnly() {
+        modelManager.addPerson(CARL);
+        modelManager.addPerson(ALICE);
+        modelManager.addPerson(BENSON);
+
+        Comparator<Person> byName = Comparator.comparing(person -> person.getName().fullName);
+
+        modelManager.updateSortedPersonList(byName);
+
+        assertEquals(List.of(ALICE, BENSON, CARL), modelManager.getFilteredPersonList());
+
+        // Underlying order in address book remains unchanged
+        assertEquals(List.of(CARL, ALICE, BENSON), modelManager.getAddressBook().getPersonList());
+    }
+
+    @Test
+    public void updateSortedPersonList_sortByRole_sortsDisplayedList() {
+        modelManager.addPerson(BOB); // Employee
+        modelManager.addPerson(AMY); // Distributor
+
+        Comparator<Person> byRole = Comparator.comparing(person -> person.getRole().value);
+
+        modelManager.updateSortedPersonList(byRole);
+
+        assertEquals(List.of(AMY, BOB), modelManager.getFilteredPersonList());
+    }
+
+    @Test
+    public void updateSortedPersonList_chainedComparator_respectsPriority() {
+        modelManager.addPerson(BENSON); // Supplier
+        modelManager.addPerson(ALICE); // Supplier
+        modelManager.addPerson(AMY); // Distributor
+
+        Comparator<Person> byRoleThenName = Comparator
+                .comparing((Person person) -> person.getRole().value)
+                .thenComparing(person -> person.getName().fullName);
+
+        modelManager.updateSortedPersonList(byRoleThenName);
+
+        assertEquals(List.of(AMY, ALICE, BENSON), modelManager.getFilteredPersonList());
+    }
+
+    @Test
+    public void updateSortedPersonList_afterFiltering_sortsFilteredResults() {
+        modelManager.addPerson(ALICE);
+        modelManager.addPerson(DANIEL);
+        modelManager.addPerson(BENSON);
+
+        modelManager.updateFilteredPersonList(new NameContainsKeywordsPredicate(List.of("Meier")));
+
+        Comparator<Person> byName = Comparator.comparing(person -> person.getName().fullName);
+
+        modelManager.updateSortedPersonList(byName);
+
+        assertEquals(List.of(BENSON, DANIEL), modelManager.getFilteredPersonList());
+    }
+
+    @Test
+    public void updateSortedPersonList_existingListReference_updatesAfterAdd() {
+        modelManager.addPerson(CARL);
+        modelManager.addPerson(ALICE);
+
+        ObservableList<Person> displayedPersons = modelManager.getFilteredPersonList();
+
+        Comparator<Person> byName = Comparator.comparing(person -> person.getName().fullName);
+
+        modelManager.updateSortedPersonList(byName);
+        modelManager.addPerson(BENSON);
+
+        assertEquals(List.of(ALICE, BENSON, CARL), displayedPersons);
+    }
+
+    @Test
+    public void updateSortedPersonList_existingListReference_updatesAfterDelete() {
+        modelManager.addPerson(CARL);
+        modelManager.addPerson(ALICE);
+        modelManager.addPerson(BENSON);
+
+        Comparator<Person> byName = Comparator.comparing(person -> person.getName().fullName);
+
+        modelManager.updateSortedPersonList(byName);
+
+        ObservableList<Person> displayedPersons = modelManager.getFilteredPersonList();
+
+        modelManager.deletePerson(ALICE);
+
+        assertEquals(List.of(BENSON, CARL), displayedPersons);
+    }
+
+    @Test
+    public void updateSortedPersonList_existingListReference_updatesAfterEdit() {
+        modelManager.addPerson(CARL);
+        modelManager.addPerson(BOB);
+
+        Comparator<Person> byName = Comparator.comparing(person -> person.getName().fullName);
+
+        modelManager.updateSortedPersonList(byName);
+        modelManager.setPerson(CARL, ALICE);
+
+        assertEquals(List.of(ALICE, BOB), modelManager.getFilteredPersonList());
+    }
+
+    @Test
     public void equals() {
         AddressBook addressBook = new AddressBookBuilder().withPerson(ALICE).withPerson(BENSON).build();
         AddressBook differentAddressBook = new AddressBook();
@@ -331,6 +438,17 @@ public class ModelManagerTest {
 
         // resets modelManager to initial state for upcoming tests
         modelManager.updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
+
+        // different sortedList -> returns false
+        AddressBook sortableAddressBook = new AddressBookBuilder()
+                .withPerson(CARL)
+                .withPerson(ALICE)
+                .build();
+        ModelManager sortedModel = new ModelManager(sortableAddressBook, userPrefs);
+        ModelManager unsortedModel = new ModelManager(sortableAddressBook, userPrefs);
+        Comparator<Person> byName = Comparator.comparing(person -> person.getName().fullName);
+        sortedModel.updateSortedPersonList(byName);
+        assertFalse(sortedModel.equals(unsortedModel));
 
         // different userPrefs -> returns false
         UserPrefs differentUserPrefs = new UserPrefs();
