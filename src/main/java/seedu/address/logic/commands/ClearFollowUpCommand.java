@@ -15,7 +15,7 @@ import seedu.address.model.person.Person;
 /**
  * Removes the follow-up of a contact in the currently displayed list.
  */
-public class ClearFollowUpCommand {
+public class ClearFollowUpCommand extends FollowUpCommand {
 
     public static final String MESSAGE_SUCCESS = "Follow-up cleared for %1$s.";
     public static final String MESSAGE_NO_FOLLOW_UP = "%1$s has no follow-up.";
