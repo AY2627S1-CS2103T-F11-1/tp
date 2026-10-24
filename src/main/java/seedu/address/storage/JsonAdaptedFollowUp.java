@@ -55,9 +55,6 @@ class JsonAdaptedFollowUp {
             throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, "dueDate"));
         }
         final LocalDate modelDueDate = parseDueDate(dueDate);
-        if (!FollowUp.isValidDueDate(modelDueDate)) {
-            throw new IllegalValueException(FollowUp.DATE_MESSAGE_CONSTRAINTS);
-        }
 
         if (description == null) {
             throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, "description"));
