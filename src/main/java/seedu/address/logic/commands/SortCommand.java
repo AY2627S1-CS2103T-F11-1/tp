@@ -29,6 +29,8 @@ public class SortCommand extends Command {
 
     public static final String MESSAGE_SUCCESS = "Listed all contacts in sorted order.";
 
+    public static final String MESSAGE_EMPTY_ADDRESS_BOOK = "Error: There are no contacts to sort.";
+
     public static final String MESSAGE_DUPLICATE_FIELD =
             "Error: SORT accepts each field only once: %s";
 
@@ -77,7 +79,11 @@ public class SortCommand extends Command {
 
         model.updateSortedPersonList(comparator);
 
-        return new CommandResult(MESSAGE_SUCCESS);
+        String message = model.getAddressBook().getPersonList().isEmpty()
+                ? MESSAGE_EMPTY_ADDRESS_BOOK
+                : MESSAGE_SUCCESS;
+
+        return new CommandResult(message);
     }
 
     /**

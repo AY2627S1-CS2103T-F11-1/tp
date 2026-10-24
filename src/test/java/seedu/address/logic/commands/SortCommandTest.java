@@ -89,7 +89,22 @@ public class SortCommandTest {
         // BVA: zero contacts.
         SortCommand command = new SortCommand(List.of(NAME));
 
-        assertCommandSuccess(command, model, SortCommand.MESSAGE_SUCCESS, expectedModel);
+        assertCommandSuccess(command, model, SortCommand.MESSAGE_EMPTY_ADDRESS_BOOK, expectedModel);
+    }
+
+    @Test
+    public void execute_emptyAddressBook_sortsSubsequentlyAddedContacts() {
+        SortCommand command = new SortCommand(List.of(NAME));
+
+        assertCommandSuccess(command, model,
+                SortCommand.MESSAGE_EMPTY_ADDRESS_BOOK, expectedModel);
+
+        model.addPerson(CARL);
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+
+        assertEquals(List.of(ALICE, BENSON, CARL),
+                model.getFilteredPersonList());
     }
 
     @Test
