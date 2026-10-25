@@ -55,8 +55,8 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 * Items followed by `…`​ can appear zero or more times.<br>
   For example, `[t/TAG]…​` may be omitted, or written as `t/friend` or `t/friend t/family`.
 
-* Parameters can be in any order.<br>
-  For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
+* Unless stated otherwise, parameters can be in any order.<br>
+  For `sort`, field order determines sorting priority.
 
 * Extraneous parameters for commands that take no parameters are ignored.<br>
   For example, `help 123` is interpreted as `help`.
@@ -343,7 +343,7 @@ Examples:
 
 Displays all contacts sorted by name, role, or both, making it easier to browse contacts in preferred order.
 
-**Format:** `sort [n/] [r]` or `sort [r/] [n/]`
+**Format:** `sort [n/] [r/]` or `sort [r/] [n/]`
 
 | Command | Behaviour |
 |---|---|
