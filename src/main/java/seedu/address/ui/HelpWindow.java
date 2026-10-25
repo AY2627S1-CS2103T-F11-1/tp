@@ -22,6 +22,8 @@ import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.EditCommand;
 import seedu.address.logic.commands.ExitCommand;
 import seedu.address.logic.commands.FindCommand;
+import seedu.address.logic.commands.FollowUpCommand;
+import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
 
@@ -44,6 +46,10 @@ public class HelpWindow extends UiPart<Stage> {
             formatCommandUsage(DeleteCommand.MESSAGE_USAGE),
             COMMAND_DIVIDER,
             formatCommandUsage(FindCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(FollowUpCommand.MESSAGE_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(FollowUpsCommand.MESSAGE_USAGE),
             "",
             "ADDRESS BOOK",
             SECTION_DIVIDER,
