@@ -2,10 +2,12 @@ package seedu.address.logic.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DATE;
 import static seedu.address.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -227,5 +229,84 @@ public class ParserUtilTest {
         Set<Tag> expectedTagSet = Set.of(new Tag(VALID_TAG_1), new Tag(VALID_TAG_2));
 
         assertEquals(expectedTagSet, actualTagSet);
+    }
+
+    @Test
+    public void parseFollowUpDate_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseFollowUpDate(null));
+    }
+
+    @Test
+    public void parseFollowUpDate_validDate_returnsLocalDate() throws Exception {
+        assertEquals(LocalDate.parse(VALID_FOLLOW_UP_DATE),
+                ParserUtil.parseFollowUpDate(VALID_FOLLOW_UP_DATE));
+    }
+
+    @Test
+    public void parseFollowUpDate_surroundingWhitespace_returnsTrimmedDate() throws Exception {
+        assertEquals(LocalDate.parse(VALID_FOLLOW_UP_DATE),
+                ParserUtil.parseFollowUpDate(" \t" + VALID_FOLLOW_UP_DATE + "\n "));
+    }
+
+    @Test
+    public void parseFollowUpDate_supportedDates_returnsLocalDate() throws Exception {
+        String[] dates = {
+            "0000-01-01",
+            "0000-02-29",
+            "1900-02-28",
+            "2000-02-29",
+            "2001-01-01",
+            "2026-04-30",
+            "9999-12-31"
+        };
+
+        for (String date : dates) {
+            assertEquals(LocalDate.parse(date), ParserUtil.parseFollowUpDate(date));
+        }
+    }
+
+    @Test
+    public void parseFollowUpDate_invalidFormat_throwsParseException() {
+        String[] dates = {
+            "",
+            " \t\n ",
+            "not a date",
+            "26-11-01",
+            "2026-1-01",
+            "2026-11-1",
+            "20261101",
+            "2026/11/01",
+            "2026 -11-01",
+            "2026-11-01 extra",
+            "2026-11-01T00:00:00",
+            "2026-11-01Z",
+            "+02026-11-01",
+            "+10000-01-01",
+            "-0001-01-01"
+        };
+
+        for (String date : dates) {
+            assertThrows(ParseException.class,
+                    ParserUtil.MESSAGE_INVALID_FOLLOW_UP_DATE, () -> ParserUtil.parseFollowUpDate(date));
+        }
+    }
+
+    @Test
+    public void parseFollowUpDate_invalidCalendarDate_throwsParseException() {
+        String[] dates = {
+            "2026-00-01",
+            "2026-13-01",
+            "2026-01-00",
+            "2026-01-32",
+            "2026-04-31",
+            "2026-02-29",
+            "2000-02-30",
+            "1900-02-29"
+        };
+
+        for (String date : dates) {
+            assertThrows(ParseException.class,
+                    ParserUtil.MESSAGE_INVALID_FOLLOW_UP_DATE, () -> ParserUtil.parseFollowUpDate(date));
+        }
     }
 }

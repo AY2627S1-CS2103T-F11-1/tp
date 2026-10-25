@@ -26,6 +26,7 @@ import seedu.address.logic.commands.EditCommand.EditPersonDescriptor;
 import seedu.address.logic.commands.ExitCommand;
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.commands.FollowUpCommand;
+import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.RedoCommand;
@@ -176,5 +177,43 @@ public class AddressBookParserTest {
                         FollowUpCommand.COMMAND_WORD + " " + INDEX_FIRST_PERSON.getOneBased()
                                 + " clear " + PREFIX_FOLLOW_UP_DATE + VALID_FOLLOW_UP_DATE
                                 + " " + PREFIX_FOLLOW_UP_DESCRIPTION + VALID_FOLLOW_UP_DESCRIPTION));
+    }
+
+    @Test
+    public void parseCommand_followUpsAll() throws Exception {
+        assertEquals(FollowUpsCommand.all(),
+                parser.parseCommand(FollowUpsCommand.COMMAND_WORD));
+        assertEquals(FollowUpsCommand.all(),
+                parser.parseCommand(FollowUpsCommand.COMMAND_WORD + " \t "));
+    }
+
+    @Test
+    public void parseCommand_followUpsOverdue() throws Exception {
+        assertEquals(FollowUpsCommand.overdue(),
+                parser.parseCommand(FollowUpsCommand.COMMAND_WORD + " overdue"));
+    }
+
+    @Test
+    public void parseCommand_followUpsDueBy() throws Exception {
+        assertEquals(FollowUpsCommand.dueBy(LocalDate.parse(VALID_FOLLOW_UP_DATE)),
+                parser.parseCommand(FollowUpsCommand.COMMAND_WORD
+                        + " " + PREFIX_FOLLOW_UP_DATE + VALID_FOLLOW_UP_DATE));
+    }
+
+    @Test
+    public void parseCommand_followUpsInvalidDate_throwsParseException() {
+        assertThrows(ParseException.class, ParserUtil.MESSAGE_INVALID_FOLLOW_UP_DATE, () ->
+                parser.parseCommand(FollowUpsCommand.COMMAND_WORD + " by/2026-02-30"));
+    }
+
+    @Test
+    public void parseCommand_followUpsUnsupportedArguments_throwsParseException() {
+        String expectedMessage =
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.MESSAGE_USAGE);
+
+        assertThrows(ParseException.class, expectedMessage, () ->
+                parser.parseCommand(FollowUpsCommand.COMMAND_WORD + " late"));
+        assertThrows(ParseException.class, expectedMessage, () ->
+                parser.parseCommand(FollowUpsCommand.COMMAND_WORD + " overdue by/2026-11-01"));
     }
 }
