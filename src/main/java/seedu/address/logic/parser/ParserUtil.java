@@ -2,6 +2,9 @@ package seedu.address.logic.parser;
 
 import static java.util.Objects.requireNonNull;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -22,6 +25,12 @@ import seedu.address.model.tag.Tag;
 public class ParserUtil {
 
     public static final String MESSAGE_INVALID_INDEX = "Error: INDEX must be a positive integer";
+
+    public static final String MESSAGE_INVALID_FOLLOW_UP_DATE =
+            "Follow-up dates must be valid calendar dates in YYYY-MM-DD format.";
+
+    // Requires exactly four year digits and two digits each for month and day.
+    private static final String FOLLOW_UP_DATE_REGEX = "[0-9]{4}-[0-9]{2}-[0-9]{2}";
 
     /**
      * Parses {@code oneBasedIndex} into an {@code Index} and returns it. Leading and trailing whitespaces will be
@@ -136,5 +145,27 @@ public class ParserUtil {
             tagSet.add(parseTag(tagName));
         }
         return tagSet;
+    }
+
+    /**
+     * Parses a follow-up date in the exact format {@code YYYY-MM-DD}.
+     * Leading and trailing whitespace is removed. Past dates are accepted.
+     *
+     * @throws NullPointerException if date is null
+     * @throws ParseException if the format or calendar date is invalid
+     */
+    public static LocalDate parseFollowUpDate(String date) throws ParseException {
+        requireNonNull(date);
+        String trimmedDate = date.trim();
+
+        if (!trimmedDate.matches(FOLLOW_UP_DATE_REGEX)) {
+            throw new ParseException(MESSAGE_INVALID_FOLLOW_UP_DATE);
+        }
+
+        try {
+            return LocalDate.parse(trimmedDate, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeParseException e) {
+            throw new ParseException(MESSAGE_INVALID_FOLLOW_UP_DATE);
+        }
     }
 }
