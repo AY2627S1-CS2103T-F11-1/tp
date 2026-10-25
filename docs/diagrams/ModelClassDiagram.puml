@@ -54,5 +54,5 @@ Address -[hidden]right-> Email
 Email -[hidden]right-> Role
 Role -[hidden]right-> Tag
 
-ModelManager --> "~* filtered" Person
+ModelManager --> "~* displayed" Person
 @enduml
