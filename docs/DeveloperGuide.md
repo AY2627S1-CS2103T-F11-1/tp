@@ -122,7 +122,7 @@ How the parsing works:
 
 The `Model` component,
 
-* stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object). Each `Person` contains a `Name`, `Phone`, `Email`, `Address`, `Role`, and a set of `Tag` objects.
+* stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object). Each `Person` contains a `Name`, `Phone`, `Email`, `Address`, `Role`, a set of `Tag` objects, and an optional `FollowUp`.
 * stores the `Person` objects selected by the current filter, such as search results, in a separate _filtered_ list. It exposes this list as an unmodifiable `ObservableList<Person>` that the UI can observe and bind to, so the UI updates when the list changes.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
@@ -214,6 +214,58 @@ Requested deletion absent from the selected contact | `EditCommand.MESSAGE_TAG_N
 * `EditCommandTest` covers additions, selective deletions, combined operations, filtered lists, existing tags, missing deletions, and preservation of the full model on failure. It also parses command text through `AddressBookParser` before execution to cover the acceptance examples and failure cases.
 * `AddressBookParserTest` checks that an edit containing both operations is routed to the edit parser.
 
+### Contact follow-up management
+
+Each `Person` owns an `Optional<FollowUp>`. A contact can have zero or one follow-up.
+
+#### Model and persistence
+`FollowUp` stores an immutable `LocalDate` due date and description. Both fields are mandatory when a follow-up exists.
+* Due dates accept past values and restrict years to `0000`–`9999`.
+* Descriptions are stripped of surrounding whitespace, must be non-blank, and must not exceed 200 UTF-16 code units, as measured by `String.length()`.
+* Internal ISO control characters and Unicode line and paragraph separators are rejected. Other casing and internal spacing are preserved.
+* Equality and hashing include both fields, with case-sensitive description comparison.
+  `FollowUp` has no back-reference to `Person`. The owning contact establishes the association, so changing contact details does not require updating a separate contact identifier.
+
+`Person.equals()` and `hashCode()` include the optional follow-up. `isSamePerson()` retains its existing phone/email identity rules. Contact edits preserve the follow-up, while deleting a contact removes it.
+
+`JsonAdaptedFollowUp` converts the nested JSON representation to and from the model. `JsonAdaptedPerson` treats missing or null follow-ups as absent, preserving compatibility with older files. A present follow-up with missing or invalid fields is rejected through the existing invalid-data handling mechanism.
+
+#### Setting and clearing follow-ups
+`AddressBookParser` routes `followup` to `FollowUpCommandParser`, which returns one of two commands:
+* `SetFollowUpCommand` creates or replaces a follow-up using a displayed contact index, due date, and description.
+* `ClearFollowUpCommand` removes the selected contact's follow-up and rejects contacts without one.
+
+The abstract `FollowUpCommand` holds the shared command word and usage message.
+
+The parser uses the existing tokenizer and prefix-validation utilities. Both set fields are mandatory, duplicate and unknown prefixes are rejected, and clear syntax cannot be combined with set parameters. `ParserUtil.parseFollowUpDate()` enforces the exact four-digit-year format and rejects impossible calendar dates.
+
+Each modifying command resolves the index against the currently displayed list, constructs a replacement `Person`, calls `Model#setPerson()`, and commits once to undo history. Other contact fields and the current filter are preserved. Failed validation does not modify data or history. Automatic persistence uses the existing logic/storage flow.
+
+#### Querying follow-ups
+`FollowUpsCommandParser` supports an empty query, `overdue`, or a single `by/` date cutoff. These map to the `all()`, `overdue()`, and `dueBy()` factories of `FollowUpsCommand`.
+The command replaces the model's current contact predicate, searching the entire address book:
+
+* `ALL` accepts contacts with a follow-up.
+* `OVERDUE` accepts follow-ups due strictly before today.
+* `BY_DATE` accepts follow-ups due on or before the cutoff.
+
+The overdue query uses an injectable `Clock`. Today's date is captured when the command executes and remains fixed in the predicate until the query is rerun. Results retain address-book order.
+
+Queries do not commit snapshots or alter contact data. An empty result displays `No follow-ups found.`
+
+#### UI integration
+`PersonCard` populates the follow-up date and description defined in `PersonListCard.fxml`. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
+
+The existing observable-list and cell-update mechanism refreshes cards when contacts are replaced. No separate follow-up listener is required.
+
+#### Test coverage
+
+* Model tests cover validation, normalization, equality, and contact identity.
+* Storage tests cover JSON round trips, older records, and malformed nested follow-ups.
+* Command tests cover creation, replacement, removal, filtered indexes, failure preservation, and undo/redo.
+* Query tests use fixed clocks to verify date boundaries, time zones, filtering, and history preservation.
+* Parser tests cover supported forms, invalid arguments, shared date parsing, and command routing.
+
 ### Undo/redo feature
 
 #### Implementation
@@ -228,7 +280,7 @@ The proposed undo/redo mechanism is facilitated by `VersionedAddressBook`. It ex
 
 These operations are exposed in the `Model` interface as `Model#commitAddressBook()`, `Model#undoAddressBook()` and `Model#redoAddressBook()` respectively.
 
-`AddCommand`, `DeleteCommand`, `EditCommand`, and `ClearCommand` commit once after successful execution, immediately before returning their result. Validation failures do not commit. Successful modifying commands commit even when the resulting contact data is unchanged.
+`AddCommand`, `DeleteCommand`, `EditCommand`, `ClearCommand`, `SetFollowUpCommand` and `ClearFollowUpCommand` commit once after successful execution, immediately before returning their result. Validation failures do not commit. Successful modifying commands commit even when the resulting contact data is unchanged.
 
 `UndoCommandParser` and `RedoCommandParser` accept empty or whitespace-only arguments and reject additional arguments. Their commands check availability before requesting the corresponding model operation. Undo and redo do not create new snapshots.
 
@@ -675,6 +727,23 @@ Command | Expected result
 `edit 1 t/builder dt/BUILDER` | Conflict error for `builder`; the contact and filtered list are unchanged.
 `edit 1 t/` and `edit 1 dt/` (separately) | Empty-tag error; the contact and filtered list are unchanged.
 `edit 1 dt/supplier dt/builder` | Both named tags are removed, leaving no tags.
+
+### Managing and viewing follow-ups
+
+Create a contact with a unique name, phone number, and email. Run `find` with that name so only the test contact is displayed. Use valid dates relative to the computer's current local date.
+
+Action | Expected result
+-------|----------------
+Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The card shows the date and description.
+Set another follow-up with a different date and description. | Both values replace the existing follow-up.
+Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is preserved.
+Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
+Run `followups by/DATE` using the follow-up's exact due date. | The contact appears because the cutoff is inclusive.
+Find the test contact and run `followup 1 clear`. | The follow-up disappears; the contact remains.
+Run `undo`, then `redo`. | The follow-up is restored, then removed again.
+Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
+Restart after setting a follow-up. | The saved follow-up is restored.
+Display a long description and resize the window. | Verify the full text remains accessible and record any horizontal-scrolling limitation.
 
 ### Saving data
 

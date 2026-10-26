@@ -160,6 +160,72 @@ Command | Error message
 `edit 1 n/Alex dt/trainee dt/solderer` | `Cannot delete tag: solderer. The selected contact does not have this tag.` The name and both original tags remain unchanged.
 
 
+### Managing a contact's follow-up: `followup`
+
+Creates, replaces, or removes a contact's pending follow-up. Each contact can have zero or one follow-up, regardless of role.
+
+**Format:** `followup INDEX by/DUE_DATE abt/DESCRIPTION`
+
+* `INDEX` must be a positive integer referring to a contact in the currently displayed list, including results from `find` or `followups`.
+* Both `by/` and `abt/` are mandatory and must appear exactly once. They may appear in either order.
+* Setting a follow-up replaces any existing follow-up in full. To change only the date or description, supply both fields again.
+* `DUE_DATE` must be a valid calendar date in `YYYY-MM-DD` format, with a year from `0000` to `9999`. Past dates are accepted.
+* `DESCRIPTION` must not be blank and must not exceed 200 Java string characters after surrounding whitespace is removed. Most ordinary characters count as one; some characters, such as emoji, count as two.
+* Description casing and internal spacing are preserved. Internal control characters, such as tabs and newlines, and Unicode line or paragraph separators are not permitted.
+* Prefix-like text preceded by a space is interpreted as command syntax. Avoid text such as ` by/`, ` abt/`, or ` date/` inside descriptions; these can produce duplicate-prefix, unknown-prefix, or invalid-value errors.
+* Successful changes preserve other contact details and the current filter. A contact may disappear from the results if it no longer matches that filter.
+* Follow-ups are displayed on contact cards and saved automatically. Changes support `undo` and `redo`.
+* Editing other contact details preserves the follow-up. Deleting the contact removes its follow-up.
+
+Examples:
+
+* `followup 1 by/2026-11-01 abt/Confirm PCB quotation` sets or replaces contact 1's follow-up.
+* `find n/Betsy` followed by `followup 1 by/2026-11-02 abt/Confirm weekend availability` sets a follow-up for the first displayed search result.
+
+#### Removing a follow-up
+
+**Format:** `followup INDEX clear`
+
+* Removes the follow-up without deleting the contact.
+* Use this when the action is completed or cancelled. Completed follow-ups are not retained in a history.
+* The selected contact must already have a follow-up.
+* `clear` cannot be combined with `by/`, `abt/`, or extra arguments.
+* This is different from the standalone `clear` command, which removes all contacts.
+
+Example:
+
+* `followup 1 clear` removes contact 1's follow-up.
+
+
+### Viewing contacts with follow-ups: `followups`
+
+Displays contacts with pending follow-ups across the entire address book, replacing any previous search filter.
+
+**Formats:**
+
+Command | Behavior
+--------|---------
+`followups` | Displays all contacts with a follow-up.
+
+`followups overdue` | Displays contacts with follow-ups due before today.
+
+`followups by/DUE_DATE` | Displays contacts with follow-ups due on or before the specified date.
+* Contacts without follow-ups are excluded.
+* Results retain address-book order and are numbered from 1. Use these displayed indexes for subsequent contact commands.
+* A follow-up due today is not overdue.
+* Today is determined using the computer's local date when the command executes. Rerun the command to refresh date-based results after the date changes.
+* Date cutoffs follow the same date constraints as `followup`. Past cutoffs are accepted.
+* Query modes cannot be combined. Index arguments are not supported.
+* Queries do not modify contact details or undo/redo history.
+* If no contacts match, the list is empty and the application displays `No follow-ups found.`
+
+Examples:
+
+* `followups`
+* `followups overdue`
+* `followups by/2026-11-01`
+
+
 ### Undoing a change: `undo`
 
 Reverses the most recent successful modifying command (`add`, `delete`, `edit`, or `clear`).
@@ -369,3 +435,5 @@ Action | Format, Examples
 **List** | `list`
 **Redo** | `redo`
 **Undo** | `undo`
+**Follow-up** | `followup INDEX by/DUE_DATE abt/DESCRIPTION` or `followup INDEX clear`<br> e.g., `followup 1 by/2026-11-01 abt/Confirm quotation`
+**Follow-up queries** | `followups`, `followups overdue`, or `followups by/DUE_DATE`<br> e.g., `followups by/2026-11-01`
