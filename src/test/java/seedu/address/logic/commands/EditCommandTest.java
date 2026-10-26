@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.commands.CommandTestUtil.DESC_AMY;
 import static seedu.address.logic.commands.CommandTestUtil.DESC_BOB;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DATE;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DESCRIPTION;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_NAME_BOB;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_PHONE_BOB;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_ROLE_BOB;
@@ -60,6 +62,50 @@ public class EditCommandTest {
     }
 
     @Test
+    public void execute_editContactFields_preservesFollowUp() throws Exception {
+        Person original = new PersonBuilder(model.getFilteredPersonList().get(0))
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION)
+                .build();
+        AddressBook initialState = new AddressBook(model.getAddressBook());
+        initialState.setPerson(initialState.getPersonList().get(0), original);
+        model.setAddressBook(initialState);
+        model.commitAddressBook();
+
+        Person edited = new PersonBuilder(original)
+                .withName("Updated Contact")
+                .withPhone("91234567")
+                .withEmail("updated@example.com")
+                .withAddress("Updated address")
+                .withRole("Employee")
+                .build();
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder(edited).build();
+
+        Model expectedModel = new ModelManager(getTypicalAddressBook(), new UserPrefs());
+        expectedModel.setAddressBook(initialState);
+        expectedModel.commitAddressBook();
+
+        expectedModel.setPerson(original, edited);
+        expectedModel.commitAddressBook();
+
+        String expectedMessage = String.format(EditCommand.MESSAGE_EDIT_PERSON_SUCCESS, Messages.format(edited));
+        assertCommandSuccess(new EditCommand(INDEX_FIRST_PERSON, descriptor), model, expectedMessage, expectedModel);
+
+        model.undoAddressBook();
+        assertEquals(initialState, model.getAddressBook());
+
+        model.redoAddressBook();
+        assertEquals(edited, model.getAddressBook().getPersonList().get(0));
+    }
+
+    @Test
+    public void execute_editContactWithoutFollowUp_keepsFollowUpAbsent() throws Exception {
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withName("Updated Contact").build();
+        new EditCommand(INDEX_FIRST_PERSON, descriptor).execute(model);
+        assertEquals("Updated Contact", model.getAddressBook().getPersonList().get(0).getName().fullName);
+        assertTrue(model.getAddressBook().getPersonList().get(0).getFollowUp().isEmpty());
+    }
+
+    @Test
     public void execute_addTags_preservesExistingTags() {
         EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
                 .withTagsToAdd("solderer", "supplier").build();
@@ -111,6 +157,38 @@ public class EditCommandTest {
         EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
                 .withTagsToAdd("solderer").withTagsToDelete("owesMoney").build();
         assertTagEditSuccess(INDEX_FIRST_PERSON, descriptor, "friends", "solderer");
+    }
+
+    @Test
+    public void execute_editTagsFilteredList_preservesFollowUp() {
+        Person original = new PersonBuilder(model.getFilteredPersonList().get(1))
+                .withTags("trainee", "builder")
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION)
+                .build();
+        AddressBook initialState = new AddressBook(model.getAddressBook());
+        initialState.setPerson(initialState.getPersonList().get(1), original);
+        model.setAddressBook(initialState);
+        model.commitAddressBook();
+
+        Person edited = new PersonBuilder(original).withTags("builder", "solderer").build();
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
+                .withTagsToAdd("solderer")
+                .withTagsToDelete("trainee")
+                .build();
+
+        Model expectedModel = new ModelManager(getTypicalAddressBook(), new UserPrefs());
+        expectedModel.setAddressBook(initialState);
+        expectedModel.commitAddressBook();
+
+        expectedModel.setPerson(original, edited);
+        expectedModel.commitAddressBook();
+
+        showPersonAtIndex(model, INDEX_SECOND_PERSON);
+
+        String expectedMessage =
+                String.format(EditCommand.MESSAGE_EDIT_PERSON_SUCCESS, Messages.format(edited));
+        assertCommandSuccess(new EditCommand(INDEX_FIRST_PERSON, descriptor),
+                model, expectedMessage, expectedModel);
     }
 
     @Test

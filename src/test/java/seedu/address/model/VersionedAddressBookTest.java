@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DATE;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DESCRIPTION;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.AMY;
 import static seedu.address.testutil.TypicalPersons.BOB;
@@ -15,7 +17,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import seedu.address.model.person.Person;
 import seedu.address.testutil.AddressBookBuilder;
+import seedu.address.testutil.PersonBuilder;
 
 public class VersionedAddressBookTest {
 
@@ -211,6 +215,40 @@ public class VersionedAddressBookTest {
                 emptyAddressBook, addressBookWithAmy, addressBookWithBob);
 
         assertThrows(VersionedAddressBook.NoRedoableStateException.class, versionedAddressBook::redo);
+    }
+
+    @Test
+    public void undoRedo_followUpChanges_restoresCorrectSnapshots() {
+        Person original = new PersonBuilder(AMY)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION)
+                .build();
+        Person replacement = new PersonBuilder(original)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, "Confirm revised quotation")
+                .build();
+        Person withoutFollowUp = new PersonBuilder(replacement)
+                .withoutFollowUp()
+                .build();
+
+        ReadOnlyAddressBook originalState =
+                new AddressBookBuilder().withPerson(original).build();
+        ReadOnlyAddressBook replacementState =
+                new AddressBookBuilder().withPerson(replacement).build();
+        ReadOnlyAddressBook removedState =
+                new AddressBookBuilder().withPerson(withoutFollowUp).build();
+
+        VersionedAddressBook versioned = new VersionedAddressBook(addressBookWithAmy);
+
+        versioned.setPerson(AMY, original);
+        versioned.commit();
+        versioned.setPerson(original, replacement);
+        versioned.commit();
+        versioned.setPerson(replacement, withoutFollowUp);
+        versioned.commit();
+
+        assertAddressBookListStatus(versioned,
+                Arrays.asList(addressBookWithAmy, originalState, replacementState),
+                removedState,
+                Collections.emptyList());
     }
 
     @Test

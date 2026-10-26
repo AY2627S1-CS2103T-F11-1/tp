@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_ADDRESS_BOB;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_EMAIL_BOB;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DATE;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DESCRIPTION;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_NAME_BOB;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_PHONE_BOB;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_TAG_HUSBAND;
@@ -59,6 +61,16 @@ public class PersonTest {
 
         // different phone and different email -> returns false
         assertFalse(ALICE.isSamePerson(BOB));
+
+        // different follow-up, same contact identity -> returns true
+        editedAlice = new PersonBuilder(ALICE)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION).build();
+        assertTrue(ALICE.isSamePerson(editedAlice));
+
+        // different phone and different email, same contact identity -> returns false
+        Person editedBob = new PersonBuilder(BOB)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION).build();
+        assertFalse(editedAlice.isSamePerson(editedBob));
     }
 
     @Test
@@ -108,13 +120,44 @@ public class PersonTest {
         // different tags -> returns false
         editedAlice = new PersonBuilder(ALICE).withTags(VALID_TAG_HUSBAND).build();
         assertFalse(ALICE.equals(editedAlice));
+
+        // follow-up present vs absent -> returns false
+        editedAlice = new PersonBuilder(ALICE)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION).build();
+        assertFalse(ALICE.equals(editedAlice));
+        assertFalse(editedAlice.equals(ALICE));
+
+        // same follow-up and person -> returns true
+        Person editedAliceCopy = new PersonBuilder(ALICE)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION).build();
+        assertTrue(editedAlice.equals(editedAliceCopy));
+
+        // different follow-up date -> returns false
+        Person editedAliceChangedDate = new PersonBuilder(ALICE)
+                .withFollowUp("9999-12-31", VALID_FOLLOW_UP_DESCRIPTION).build();
+        assertFalse(editedAlice.equals(editedAliceChangedDate));
+
+        // different description -> returns false
+        Person editedAliceChangedDescription = new PersonBuilder(ALICE)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION.toLowerCase()).build();
+        assertFalse(editedAlice.equals(editedAliceChangedDescription));
+    }
+
+    @Test
+    public void hashCode_equalPersonsWithFollowUp_returnsSameHashCode() {
+        Person original = new PersonBuilder(ALICE)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION).build();
+        Person equalCopy = new PersonBuilder(original).build();
+
+        assertEquals(original, equalCopy);
+        assertEquals(original.hashCode(), equalCopy.hashCode());
     }
 
     @Test
     public void toStringMethod() {
         String expected = Person.class.getCanonicalName() + "{name=" + ALICE.getName() + ", phone=" + ALICE.getPhone()
                 + ", email=" + ALICE.getEmail() + ", address=" + ALICE.getAddress() + ", role=" + ALICE.getRole()
-                + ", tags=" + ALICE.getTags() + "}";
+                + ", tags=" + ALICE.getTags() + ", followUp=" + ALICE.getFollowUp() + "}";
         assertEquals(expected, ALICE.toString());
     }
 }
