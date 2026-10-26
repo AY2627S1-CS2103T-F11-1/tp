@@ -6,8 +6,6 @@ import static seedu.address.logic.parser.CliSyntax.PREFIX_FOLLOW_UP_DATE;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_FOLLOW_UP_DESCRIPTION;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 
 import seedu.address.commons.core.index.Index;
 import seedu.address.logic.commands.ClearFollowUpCommand;
@@ -25,11 +23,6 @@ public class FollowUpCommandParser implements Parser<FollowUpCommand> {
             "Follow-up due dates must be valid calendar dates in YYYY-MM-DD format.";
 
     private static final String CLEAR_KEYWORD = "clear";
-
-    // Requires four digits for year and two digits each for month and day.
-    // Calendar validity is checked separately by LocalDate.parse().
-    private static final String DATE_FORMAT_REGEX = "[0-9]{4}-[0-9]{2}-[0-9]{2}";
-
     /**
      * Parses the given {@code String} of arguments in the context of the FollowUpCommand
      * and returns a FollowUpCommand object for execution.
@@ -61,7 +54,7 @@ public class FollowUpCommandParser implements Parser<FollowUpCommand> {
         arguments.verifyNoMissingPrefixesFor(PREFIX_FOLLOW_UP_DATE, PREFIX_FOLLOW_UP_DESCRIPTION);
         arguments.verifyNoDuplicatePrefixesFor(PREFIX_FOLLOW_UP_DATE, PREFIX_FOLLOW_UP_DESCRIPTION);
 
-        LocalDate dueDate = parseDueDate(arguments.getValue(PREFIX_FOLLOW_UP_DATE).orElseThrow());
+        LocalDate dueDate = ParserUtil.parseFollowUpDate(arguments.getValue(PREFIX_FOLLOW_UP_DATE).orElseThrow());
         String description = arguments.getValue(PREFIX_FOLLOW_UP_DESCRIPTION).orElseThrow();
 
         if (!FollowUp.isValidDescription(description)) {
@@ -70,22 +63,4 @@ public class FollowUpCommandParser implements Parser<FollowUpCommand> {
 
         return new SetFollowUpCommand(index, new FollowUp(dueDate, description));
     }
-
-    /**
-     * Parses an exact four-digit-year date, accepting past dates.
-     *
-     * @throws ParseException if the textual format or calendar data is invalid
-     */
-    private static LocalDate parseDueDate(String value) throws ParseException {
-        if (!value.matches(DATE_FORMAT_REGEX)) {
-            throw new ParseException(MESSAGE_INVALID_DATE);
-        }
-
-        try {
-            return LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE);
-        } catch (DateTimeParseException e) {
-            throw new ParseException(MESSAGE_INVALID_DATE);
-        }
-    }
-
 }

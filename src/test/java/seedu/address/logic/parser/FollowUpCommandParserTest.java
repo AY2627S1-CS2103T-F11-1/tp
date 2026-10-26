@@ -122,7 +122,7 @@ public class FollowUpCommandParserTest {
     public void parse_blankDate_failure() {
         assertParseFailure(parser,
                 "1 " + PREFIX_FOLLOW_UP_DATE + DESCRIPTION_ARGUMENT,
-                FollowUpCommandParser.MESSAGE_INVALID_DATE);
+                ParserUtil.MESSAGE_INVALID_FOLLOW_UP_DATE);
     }
 
     @Test
@@ -138,7 +138,7 @@ public class FollowUpCommandParserTest {
         for (String date : dates) {
             assertParseFailure(parser,
                     "1 " + PREFIX_FOLLOW_UP_DATE + date + DESCRIPTION_ARGUMENT,
-                    FollowUpCommandParser.MESSAGE_INVALID_DATE);
+                    ParserUtil.MESSAGE_INVALID_FOLLOW_UP_DATE);
         }
     }
 
