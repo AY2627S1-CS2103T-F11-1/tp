@@ -14,11 +14,17 @@ public class ClearCommand extends Command {
 
     public static final String MESSAGE_USAGE = COMMAND_WORD + ": Clears all entries from KeyBossWarriorsPro.";
     public static final String MESSAGE_SUCCESS = "KeyBossWarriorsPro has been cleared!";
-
+    public static final String MESSAGE_EMPTY_ADDRESS_BOOK =
+            "KeyBossWarriorsPro is already empty; no contacts were cleared.";
 
     @Override
     public CommandResult execute(Model model) {
         requireNonNull(model);
+
+        if (model.getAddressBook().getPersonList().isEmpty()) {
+            return new CommandResult(MESSAGE_EMPTY_ADDRESS_BOOK);
+        }
+
         model.setAddressBook(new AddressBook());
         model.commitAddressBook();
         return new CommandResult(MESSAGE_SUCCESS);

@@ -103,6 +103,8 @@ Clears all entries from KeyBossWarriorsPro.
 
 **Format:** `clear`
 
+* If KeyBossWarriorsPro is already empty (contains 0 contacts), no entries are cleared, the undo/redo history is preserved, and the message `KeyBossWarriorsPro is already empty; no contacts were cleared.` is shown.
+
 
 ### Deleting a contact: `delete`
 
