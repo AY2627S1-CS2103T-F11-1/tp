@@ -30,7 +30,7 @@ public class UndoCommandParserTest {
 
     @Test
     public void parse_invalidArgs_throwsParseException() {
-        String expectedMessage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, UndoCommand.MESSAGE_USAGE);
+        String expectedMessage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, UndoCommand.COMMAND_USAGE);
 
         assertParseFailure(parser, " 123", expectedMessage);
         assertParseFailure(parser, " all", expectedMessage);

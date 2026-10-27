@@ -44,9 +44,7 @@ public class EditCommand extends Command {
     public static final String COMMAND_DESCRIPTION = "Edits the details of the person identified "
             + "by the index number used in the displayed person list. "
             + "Supplied name, phone, email, address, and role values replace existing values. "
-            + "Use t/ to add tags and dt/ to delete tags; tag names must be explicitly provided.\n"
-            + "Parameters: INDEX (must be a positive integer) "
-            + "Existing values will be overwritten by the input values.";
+            + "Use t/ to add tags and dt/ to delete tags; tag names must be explicitly provided.";
     public static final String COMMAND_PARAMETERS = "INDEX (must be a positive integer) "
             + "[" + PREFIX_NAME + "NAME] "
             + "[" + PREFIX_PHONE + "PHONE] "
@@ -54,9 +52,7 @@ public class EditCommand extends Command {
             + "[" + PREFIX_ADDRESS + "ADDRESS] "
             + "[" + PREFIX_ROLE + "ROLE] "
             + "[" + PREFIX_TAG + "TAG_TO_ADD]... "
-            + "[" + PREFIX_DELETE_TAG + "TAG_TO_DELETE]...\n"
-            + "Example: " + COMMAND_WORD + " 1 "
-            + PREFIX_ROLE + "Supplier";
+            + "[" + PREFIX_DELETE_TAG + "TAG_TO_DELETE]...";
 
     public static final String COMMAND_EXAMPLE = COMMAND_WORD + " 1 " + PREFIX_ROLE + "Supplier";
     public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "

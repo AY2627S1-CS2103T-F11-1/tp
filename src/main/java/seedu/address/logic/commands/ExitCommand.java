@@ -10,6 +10,7 @@ public class ExitCommand extends Command {
 
     public static final String COMMAND_WORD = "exit";
     public static final String COMMAND_DESCRIPTION = "Exits the program.";
+    public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION;
 
     public static final String MESSAGE_EXIT_ACKNOWLEDGEMENT = "Exiting KeyBossWarriorsPro as requested ...";
     public static final String MESSAGE_EXIT_DISCLAIMER =

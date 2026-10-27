@@ -26,6 +26,9 @@ import seedu.address.logic.commands.FollowUpCommand;
 import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
+import seedu.address.logic.commands.RedoCommand;
+import seedu.address.logic.commands.SortCommand;
+import seedu.address.logic.commands.UndoCommand;
 
 /**
  * Controller for a help page
@@ -39,40 +42,35 @@ public class HelpWindow extends UiPart<Stage> {
     public static final String HELP_MESSAGE = String.join("\n",
             "PEOPLE",
             SECTION_DIVIDER,
-            formatCommand(AddCommand.COMMAND_WORD, AddCommand.COMMAND_DESCRIPTION,
-                    "Parameters: " + AddCommand.COMMAND_PARAMETERS,
-                    "Example: " + AddCommand.COMMAND_EXAMPLE),
+            formatCommandUsage(AddCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommand(EditCommand.COMMAND_WORD, EditCommand.COMMAND_DESCRIPTION,
-                    "Parameters: " + EditCommand.COMMAND_PARAMETERS,
-                    "Example: " + EditCommand.COMMAND_EXAMPLE),
+            formatCommandUsage(EditCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommand(DeleteCommand.COMMAND_WORD, DeleteCommand.COMMAND_DESCRIPTION,
-                    "Parameters: " + DeleteCommand.COMMAND_PARAMETERS,
-                    "Example: " + DeleteCommand.COMMAND_EXAMPLE),
+            formatCommandUsage(DeleteCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommandUsage(FindCommand.MESSAGE_USAGE),
+            formatCommandUsage(FindCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommandUsage(FollowUpCommand.MESSAGE_USAGE),
+            formatCommandUsage(FollowUpCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommandUsage(FollowUpsCommand.MESSAGE_USAGE),
-            formatCommand(FindCommand.COMMAND_WORD, FindCommand.COMMAND_DESCRIPTION,
-                    "Parameters: " + FindCommand.COMMAND_PARAMETERS,
-                    "Example: " + FindCommand.COMMAND_EXAMPLE),
+            formatCommandUsage(FollowUpsCommand.COMMAND_USAGE),
             "",
             "ADDRESS BOOK",
             SECTION_DIVIDER,
-            formatCommand(ListCommand.COMMAND_WORD, ListCommand.COMMAND_DESCRIPTION),
+            formatCommandUsage(ListCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommand(ClearCommand.COMMAND_WORD, ClearCommand.COMMAND_DESCRIPTION),
+            formatCommandUsage(SortCommand.COMMAND_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(ClearCommand.COMMAND_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(UndoCommand.COMMAND_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(RedoCommand.COMMAND_USAGE),
             "",
             "APPLICATION",
             SECTION_DIVIDER,
-            formatCommand(HelpCommand.COMMAND_WORD, HelpCommand.COMMAND_DESCRIPTION,
-                    "Parameters: " + HelpCommand.COMMAND_PARAMETERS,
-                    "Example: " + HelpCommand.COMMAND_EXAMPLE),
+            formatCommandUsage(HelpCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommand(ExitCommand.COMMAND_WORD, ExitCommand.COMMAND_DESCRIPTION));
+            formatCommandUsage(ExitCommand.COMMAND_USAGE));
 
     private static final Logger logger = LogsCenter.getLogger(HelpWindow.class);
     private static final String FXML = "HelpWindow.fxml";
@@ -116,14 +114,11 @@ public class HelpWindow extends UiPart<Stage> {
         this(new Stage());
     }
 
-    /** Formats a command description and its optional parameter and example details for the help window. */
-    private static String formatCommand(String commandWord, String description, String... details) {
-        StringBuilder formattedCommand = new StringBuilder(commandWord.toUpperCase(Locale.ROOT))
-                .append("\n").append(description);
-        for (String detail : details) {
-            formattedCommand.append("\n").append(detail);
-        }
-        return formattedCommand.toString();
+    /** Formats shared usage text with an uppercase heading for the help window. */
+    private static String formatCommandUsage(String commandUsage) {
+        int separator = commandUsage.indexOf(": ");
+        return commandUsage.substring(0, separator).toUpperCase(Locale.ROOT)
+                + "\n" + commandUsage.substring(separator + 2);
     }
 
     /**

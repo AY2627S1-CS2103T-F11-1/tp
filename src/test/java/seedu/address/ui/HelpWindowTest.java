@@ -21,10 +21,18 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.stage.Stage;
 import seedu.address.logic.commands.AddCommand;
+import seedu.address.logic.commands.ClearCommand;
 import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.EditCommand;
+import seedu.address.logic.commands.ExitCommand;
 import seedu.address.logic.commands.FindCommand;
+import seedu.address.logic.commands.FollowUpCommand;
+import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
+import seedu.address.logic.commands.ListCommand;
+import seedu.address.logic.commands.RedoCommand;
+import seedu.address.logic.commands.SortCommand;
+import seedu.address.logic.commands.UndoCommand;
 
 public class HelpWindowTest {
 
@@ -71,10 +79,27 @@ public class HelpWindowTest {
         assertUsageIsDisplayed(EditCommand.COMMAND_USAGE);
         assertUsageIsDisplayed(DeleteCommand.COMMAND_USAGE);
         assertUsageIsDisplayed(FindCommand.COMMAND_USAGE);
-        assertUsageIsDisplayed("list: Shows all persons in the address book.");
-        assertUsageIsDisplayed("clear: Clears all entries from KeyBossWarriorsPro.");
-        assertTrue(HelpWindow.HELP_MESSAGE.contains(HelpCommand.COMMAND_DESCRIPTION));
-        assertUsageIsDisplayed("exit: Exits the program.");
+        assertUsageIsDisplayed(FollowUpCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(FollowUpsCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(SortCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(ListCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(ClearCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(UndoCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(RedoCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(HelpCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(ExitCommand.COMMAND_USAGE);
+    }
+
+    @Test
+    public void helpMessage_commandsWithoutParameters_haveDescriptionOnly() {
+        String[] commands = {"LIST", "CLEAR", "UNDO", "REDO", "EXIT"};
+        for (String command : commands) {
+            String section = HelpWindow.HELP_MESSAGE.split("\n" + command + "\n", 2)[1];
+            String description = section.split("\n", 2)[0];
+            String remainder = section.substring(description.length());
+            assertTrue(remainder.isEmpty() || remainder.startsWith("\n----------------------------------------")
+                    || remainder.startsWith("\n\n"), command + " should contain only a description");
+        }
     }
 
     private static void assertUsageIsDisplayed(String messageUsage) {
@@ -83,6 +108,9 @@ public class HelpWindowTest {
 
         String expected = messageUsage.substring(0, separator).toUpperCase(Locale.ROOT)
                 + "\n" + messageUsage.substring(separator + 2);
+        String heading = "\n" + messageUsage.substring(0, separator).toUpperCase(Locale.ROOT) + "\n";
+        assertEquals(HelpWindow.HELP_MESSAGE.indexOf(heading), HelpWindow.HELP_MESSAGE.lastIndexOf(heading),
+                "Each command should appear only once");
         assertTrue(HelpWindow.HELP_MESSAGE.contains(expected),
                 "Help output should include the usage text: " + messageUsage);
     }

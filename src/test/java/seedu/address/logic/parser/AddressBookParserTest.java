@@ -2,6 +2,7 @@ package seedu.address.logic.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DATE;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DESCRIPTION;
@@ -179,14 +180,14 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_followUpWithoutArguments_throwsParseException() {
         assertThrows(ParseException.class,
-                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.MESSAGE_USAGE), () ->
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.COMMAND_USAGE), () ->
                         parser.parseCommand(FollowUpCommand.COMMAND_WORD));
     }
 
     @Test
     public void parseCommand_followUpMixedOperations_throwsParseException() {
         assertThrows(ParseException.class,
-                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.MESSAGE_USAGE), () ->
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.COMMAND_USAGE), () ->
                         parser.parseCommand(
                         FollowUpCommand.COMMAND_WORD + " " + INDEX_FIRST_PERSON.getOneBased()
                                 + " clear " + PREFIX_FOLLOW_UP_DATE + VALID_FOLLOW_UP_DATE
@@ -223,7 +224,7 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_followUpsUnsupportedArguments_throwsParseException() {
         String expectedMessage =
-                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.MESSAGE_USAGE);
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.COMMAND_USAGE);
 
         assertThrows(ParseException.class, expectedMessage, () ->
                 parser.parseCommand(FollowUpsCommand.COMMAND_WORD + " late"));

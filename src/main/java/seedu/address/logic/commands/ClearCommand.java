@@ -12,6 +12,7 @@ public class ClearCommand extends Command {
 
     public static final String COMMAND_WORD = "clear";
     public static final String COMMAND_DESCRIPTION = "Clears all entries from KeyBossWarriorsPro.";
+    public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION;
 
     public static final String MESSAGE_SUCCESS = "KeyBossWarriorsPro has been cleared!";
 
