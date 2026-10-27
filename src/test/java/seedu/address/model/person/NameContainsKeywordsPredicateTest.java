@@ -44,6 +44,14 @@ public class NameContainsKeywordsPredicateTest {
     }
 
     @Test
+    public void test_nullPerson_throwsAssertionError() {
+        NameContainsKeywordsPredicate predicate =
+                new NameContainsKeywordsPredicate(List.of("Alice"));
+
+        assertThrows(AssertionError.class, () -> predicate.test(null));
+    }
+
+    @Test
     public void constructor_blankKeywords_storesOnlyNonblankKeywords() {
         NameContainsKeywordsPredicate predicate = new NameContainsKeywordsPredicate(List.of("", "Alice", "", "Bob"));
         NameContainsKeywordsPredicate expectedPredicate = new NameContainsKeywordsPredicate(List.of("Alice", "Bob"));
@@ -97,7 +105,7 @@ public class NameContainsKeywordsPredicateTest {
     }
 
     @Test
-    public void test_mixedBlankAndNonblankKeywords_ignoresBlanks() {
+    public void test_mixedBlankAndNonBlankKeywords_ignoresBlanks() {
         Person person = new PersonBuilder().withName("Alice").build();
 
         assertTrue(new NameContainsKeywordsPredicate(List.of("", " ", "Alice")).test(person));

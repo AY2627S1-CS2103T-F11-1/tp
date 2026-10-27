@@ -1,0 +1,45 @@
+@startuml
+!include style.puml
+skinparam ArrowFontStyle plain
+
+box Main #lightgrey
+participant ":MainApp" as MainApp #grey
+end box
+
+box Storage STORAGE_COLOR_T1
+participant ":StorageManager" as StorageManager STORAGE_COLOR
+participant ":JsonAddressBookStorage" as JsonAddressBookStorage STORAGE_COLOR
+end box
+
+[-> MainApp : initModelManager(storage, userPrefs)
+activate MainApp
+
+MainApp -> StorageManager : readAddressBook()
+activate StorageManager
+
+StorageManager -> JsonAddressBookStorage : readAddressBook()
+activate JsonAddressBookStorage
+
+JsonAddressBookStorage --> StorageManager : throw DataLoadingException
+deactivate JsonAddressBookStorage
+
+StorageManager --> MainApp : throw DataLoadingException
+deactivate StorageManager
+
+MainApp -> StorageManager : backupAddressBookFile()
+activate StorageManager
+
+StorageManager -> JsonAddressBookStorage : backupAddressBookFile()
+activate JsonAddressBookStorage
+
+JsonAddressBookStorage -> JsonAddressBookStorage : copy to timestamped backup path
+
+JsonAddressBookStorage --> StorageManager : backupPath
+deactivate JsonAddressBookStorage
+
+StorageManager --> MainApp : backupPath
+deactivate StorageManager
+
+[<-- MainApp : model
+deactivate MainApp
+@enduml

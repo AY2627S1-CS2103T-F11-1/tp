@@ -17,7 +17,7 @@ public class NameContainsKeywordsPredicate implements Predicate<Person> {
 
     /**
      * Creates a predicate using a copy of the given keywords, excluding blank entries.
-     * If no keywords remain, the predicate matches no persons.
+     * If no keywords remain, the predicate matches no contacts.
      *
      * @param keywords the search keywords
      * @throws NullPointerException if {@code keywords} or any keyword is null
@@ -32,7 +32,10 @@ public class NameContainsKeywordsPredicate implements Predicate<Person> {
 
     @Override
     public boolean test(Person person) {
+        assert person != null : "Person to test must not be null";
+
         String name = person.getName().fullName.toLowerCase(Locale.ROOT);
+
         return keywords.stream()
                 .anyMatch(keyword -> name.contains(keyword.toLowerCase(Locale.ROOT)));
     }

@@ -1,6 +1,9 @@
 package seedu.address.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DATE;
+import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DESCRIPTION;
 import static seedu.address.storage.JsonAdaptedPerson.MISSING_FIELD_MESSAGE_FORMAT;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.BENSON;
@@ -12,12 +15,15 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 import seedu.address.commons.exceptions.IllegalValueException;
+import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.person.Address;
 import seedu.address.model.person.Email;
 import seedu.address.model.person.Name;
+import seedu.address.model.person.Person;
 import seedu.address.model.person.Phone;
 import seedu.address.model.person.Role;
 import seedu.address.model.tag.Tag;
+import seedu.address.testutil.PersonBuilder;
 
 public class JsonAdaptedPersonTest {
     private static final String INVALID_NAME = "R@chel";
@@ -139,6 +145,89 @@ public class JsonAdaptedPersonTest {
                 new JsonAdaptedPerson(VALID_NAME, VALID_PHONE, VALID_EMAIL, VALID_ADDRESS, VALID_ROLE, invalidTags);
         String expectedMessage = String.format(MISSING_FIELD_MESSAGE_FORMAT, Tag.class.getSimpleName());
         assertThrows(IllegalValueException.class, expectedMessage, person::toModelType);
+    }
+
+    @Test
+    public void toModelType_personWithFollowUp_returnsPerson() throws Exception {
+        Person original = new PersonBuilder(BENSON)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION)
+                .build();
+
+        assertEquals(original, new JsonAdaptedPerson(original).toModelType());
+    }
+
+    @Test
+    public void toModelType_nullFollowUp_returnsPersonWithoutFollowUp() throws Exception {
+        JsonAdaptedPerson adapter = new JsonAdaptedPerson(
+                VALID_NAME, VALID_PHONE, VALID_EMAIL, VALID_ADDRESS,
+                VALID_ROLE, VALID_TAGS, null);
+
+        assertEquals(BENSON, adapter.toModelType());
+        assertTrue(adapter.toModelType().getFollowUp().isEmpty());
+    }
+
+    @Test
+    public void toModelType_invalidFollowUp_throwsIllegalValueException() {
+        JsonAdaptedFollowUp invalidFollowUp =
+                new JsonAdaptedFollowUp("2026-02-30", VALID_FOLLOW_UP_DESCRIPTION);
+        JsonAdaptedPerson adapter = new JsonAdaptedPerson(
+                VALID_NAME, VALID_PHONE, VALID_EMAIL, VALID_ADDRESS,
+                VALID_ROLE, VALID_TAGS, invalidFollowUp);
+
+        assertThrows(IllegalValueException.class,
+                JsonAdaptedFollowUp.INVALID_DATE_MESSAGE, adapter::toModelType);
+    }
+
+    @Test
+    public void jsonRoundTrip_personWithFollowUp_preservesValues() throws Exception {
+        Person original = new PersonBuilder(BENSON)
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION)
+                .build();
+
+        String json = JsonUtil.toJsonString(new JsonAdaptedPerson(original));
+        JsonAdaptedPerson restored = JsonUtil.fromJsonString(json, JsonAdaptedPerson.class);
+
+        assertEquals(original, restored.toModelType());
+    }
+
+    @Test
+    public void fromJson_missingFollowUp_returnsPersonWithoutFollowUp() throws Exception {
+        JsonAdaptedPerson adapter = JsonUtil.fromJsonString(legacyPersonJson(), JsonAdaptedPerson.class);
+
+        assertTrue(adapter.toModelType().getFollowUp().isEmpty());
+    }
+
+    @Test
+    public void fromJson_missingNestedFollowUpFields_throwsIllegalValueException() throws Exception {
+        String[] followUps = {
+            "{}",
+            "{\"description\": \"Confirm quotation\"}",
+            "{\"dueDate\": \"2026-11-01\"}"
+        };
+
+        for (String followUp : followUps) {
+            String json = legacyPersonJson().replace(
+                    "\"tags\": []", "\"tags\": [], \"followUp\": " + followUp);
+            JsonAdaptedPerson adapter = JsonUtil.fromJsonString(json, JsonAdaptedPerson.class);
+
+            assertThrows(IllegalValueException.class, adapter::toModelType);
+        }
+    }
+
+    /**
+     * Returns a valid older contact record without a follow-up property.
+     */
+    private static String legacyPersonJson() {
+        return """
+            {
+              "name": "Test Contact",
+              "phone": "91234567",
+              "email": "test@example.com",
+              "address": "Test address",
+              "role": "Employee",
+              "tags": []
+            }
+            """;
     }
 
 }

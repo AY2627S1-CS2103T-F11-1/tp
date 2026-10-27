@@ -17,5 +17,12 @@ hide State2
 hide State3
 
 class Pointer as "Current State" #FFFFFF
-Pointer -up-> State1
+Pointer -up-> State3
+
+note as PointerNote
+  currentStatePointer is an integer index.
+  The arrow highlights the selected history entry;
+  it does not represent an object reference.
+end note
+
 @end

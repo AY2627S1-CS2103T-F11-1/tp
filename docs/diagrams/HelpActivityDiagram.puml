@@ -1,0 +1,28 @@
+@startuml
+skin rose
+skinparam ActivityFontSize 15
+skinparam ArrowFontSize 12
+
+start
+:Parse help input;
+
+if (Command target provided?) then ([no])
+    :Create CommandResult with opening feedback\nand showHelp = true;
+else ([yes])
+    if (Target supported?) then ([yes])
+        :Look up the target command's COMMAND_USAGE;
+        :Create CommandResult with usage feedback\nand showHelp = false;
+    else ([no])
+        :Create CommandResult with guidance\nand showHelp = false;
+    endif
+endif
+
+:Display feedback in ResultDisplay;
+
+if (showHelp is true?) then ([yes])
+    :Open or focus HelpWindow;
+else ([no])
+endif
+
+stop
+@enduml

@@ -7,6 +7,8 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 
 /**
@@ -42,6 +44,12 @@ public class PersonCard extends UiPart<Region> {
     private Label email;
     @FXML
     private FlowPane tags;
+    @FXML
+    private VBox followUpSection;
+    @FXML
+    private Label followUpDueDate;
+    @FXML
+    private Label followUpDescription;
 
     /**
      * Creates a {@code PersonCard} with the given {@code Person} and index to display.
@@ -58,5 +66,23 @@ public class PersonCard extends UiPart<Region> {
         person.getTags().stream()
                 .sorted(Comparator.comparing(tag -> tag.tagName))
                 .forEach(tag -> tags.getChildren().add(new Label(tag.tagName)));
+        initializeFollowUp();
+    }
+
+    /**
+     * Displays the contact's follow-up when present.
+     * Otherwise, hides the section and excludes it from layout calculations.
+     */
+    private void initializeFollowUp() {
+        boolean hasFollowUp = person.getFollowUp().isPresent();
+
+        followUpSection.setVisible(hasFollowUp);
+        followUpSection.setManaged(hasFollowUp);
+
+        if (hasFollowUp) {
+            FollowUp followUp = person.getFollowUp().orElseThrow();
+            followUpDueDate.setText("Follow-up due: " + followUp.getDueDate());
+            followUpDescription.setText(followUp.getDescription());
+        }
     }
 }

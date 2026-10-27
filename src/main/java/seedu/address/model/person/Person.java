@@ -5,6 +5,7 @@ import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import seedu.address.commons.util.ToStringBuilder;
@@ -25,18 +26,32 @@ public class Person {
     private final Address address;
     private final Role role;
     private final Set<Tag> tags = new HashSet<>();
+    private final Optional<FollowUp> followUp;
 
     /**
      * Every field must be present and not null.
      */
     public Person(Name name, Phone phone, Email email, Address address, Role role, Set<Tag> tags) {
-        requireAllNonNull(name, phone, email, address, role, tags);
+        this(name, phone, email, address, role, tags, Optional.empty());
+    }
+
+    /**
+     * Constructs a contact with an optional follow-up.
+     * All arguments must be non-null. Use {@code Optional.empty()}
+     * when the contact has no follow-up.
+     *
+     * @throws NullPointerException if any argument is null
+     */
+    public Person(Name name, Phone phone, Email email, Address address,
+                  Role role, Set<Tag> tags, Optional<FollowUp> followUp) {
+        requireAllNonNull(name, phone, email, address, role, tags, followUp);
         this.name = name;
         this.phone = phone;
         this.email = email;
         this.address = address;
         this.role = role;
         this.tags.addAll(tags);
+        this.followUp = followUp;
     }
 
     public Name getName() {
@@ -65,6 +80,13 @@ public class Person {
      */
     public Set<Tag> getTags() {
         return Collections.unmodifiableSet(tags);
+    }
+
+    /**
+     * Returns the contact's follow-up, or an empty optional if none exists.
+     */
+    public Optional<FollowUp> getFollowUp() {
+        return followUp;
     }
 
     /**
@@ -101,13 +123,14 @@ public class Person {
                 && email.equals(otherPerson.email)
                 && address.equals(otherPerson.address)
                 && role.equals(otherPerson.role)
-                && tags.equals(otherPerson.tags);
+                && tags.equals(otherPerson.tags)
+                && followUp.equals(otherPerson.followUp);
     }
 
     @Override
     public int hashCode() {
         // use this method for custom fields hashing instead of implementing your own
-        return Objects.hash(name, phone, email, address, role, tags);
+        return Objects.hash(name, phone, email, address, role, tags, followUp);
     }
 
     @Override
@@ -119,6 +142,7 @@ public class Person {
                 .add("address", address)
                 .add("role", role)
                 .add("tags", tags)
+                .add("followUp", followUp)
                 .toString();
     }
 
