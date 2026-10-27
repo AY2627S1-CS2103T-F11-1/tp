@@ -227,14 +227,15 @@ Examples:
 
 ### Undoing a change: `undo`
 
-Reverses the most recent successful modifying command (`add`, `delete`, `edit`, or `clear`).
+Reverses the most recent successful modifying command (`add`, `delete`, `edit`, `clear`, or `followup`).
 
 **Format:** `undo`
 
 * Each `undo` reverses one modifying command. You can undo repeatedly until you reach the start of the current session.
+* Undoing `followup` restores the contact's previous follow-up. If none existed, the newly added follow-up is removed. Undoing `followup INDEX clear` restores the cleared follow-up.
 * Successful undo displays `Undo success!` and resets the view to show all contacts.
 * If no changes can be undone, the application displays `No more commands to undo!`.
-* Commands such as `find`, `list`, and `help` are not undone.
+* Commands such as `find`, `list`, `help`, and the `followups` query do not create undoable changes.
 * Undo history is cleared when you close the application. Changes from previous sessions cannot be undone.
 * Additional arguments, such as `undo 2`, are rejected.
 
@@ -242,6 +243,11 @@ Example:
 
 1. `delete 1` deletes the first displayed contact.
 2. `undo` restores the deleted contact and displays all contacts.
+
+Follow-up example:
+
+1. `followup 1 by/2026-11-01 abt/Confirm quotation` sets or replaces the first displayed contact's follow-up.
+2. `undo` restores that contact's previous follow-up, or removes the new follow-up if none existed before.
 
 ### Redoing a change: `redo`
 
@@ -380,16 +386,22 @@ Displays all contacts sorted by name, role, or both, making it easier to browse 
 
 ### Viewing help: `help [COMMAND]`
 
-Use `help` on its own to open the full help window, which lists all commands and their descriptions, parameters, and examples. Use `help COMMAND` to display a supported command's usage directly in the result display without opening the window. Targeted help is available for `add`, `edit`, `delete`, and `find`. For detailed explanations and examples, refer to this user guide.
+Use `help` on its own to open the full help window, which lists all commands. Use `help COMMAND` to display a command's usage directly in the result display without opening the window. Targeted help is available for `add`, `clear`, `delete`, `edit`, `exit`, `find`, `followup`, `followups`, `help`, `list`, `redo`, `sort`, and `undo`. For detailed explanations and examples, refer to this user guide.
 
 ![help message](images/help.png)
 
 **Format:** `help [COMMAND]`
 
+Help text follows the same format in the full help window and the result display:
+
+* Commands without parameters (`clear`, `exit`, `list`, `redo`, and `undo`) show only a brief description, with no parameter or example details.
+* Commands with required or optional parameters show a description, parameter syntax, and examples. This includes `help`, `sort`, and `followups`, which can also be used without arguments.
+
 Examples:
 
 * `help` opens the full help window.
 * `help add` displays the usage, parameters, and an example for `add` in the result display.
+* `help undo` displays a brief description of `undo`, without parameters or an example.
 * `help unknown` displays guidance and lists the commands with targeted help.
 
 
