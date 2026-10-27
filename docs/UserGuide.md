@@ -112,6 +112,7 @@ Deletes the contact at the specified position in the currently displayed contact
 * `INDEX` **must be a positive integer** 1, 2, 3, …​
 * `INDEX` refers to the contact's position in the contact list currently displayed to the user.
 * The index is temporary and may change when commands such as `list`, `find`, `add`, `edit`, or `delete` change the displayed list.
+* The confirmation message summarizes all details of the deleted contact, including any active follow-up due date and description.
 
 Examples:
 * `list` followed by `delete 2` deletes the second contact in the currently displayed list.
