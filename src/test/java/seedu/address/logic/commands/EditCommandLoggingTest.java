@@ -134,7 +134,8 @@ public class EditCommandLoggingTest {
     public void execute_invalidIndex_logsWarningWithoutSuccess() {
         Index invalidIndex = Index.fromOneBased(model.getFilteredPersonList().size() + 1);
         EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withName("Alex").build();
-        assertFailureLog(new EditCommand(invalidIndex, descriptor), Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX,
+        assertFailureLog(new EditCommand(invalidIndex, descriptor),
+                Messages.getIndexOutOfRangeMessage(invalidIndex.getOneBased(), model.getFilteredPersonList().size()),
                 "EditCommand rejected: Displayed contact index is out of bounds");
     }
 

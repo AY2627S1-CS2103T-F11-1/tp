@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.util.function.Predicate;
 
 import seedu.address.commons.util.ToStringBuilder;
+import seedu.address.logic.Messages;
 import seedu.address.model.Model;
 import seedu.address.model.person.Person;
 
@@ -28,9 +29,6 @@ public class FollowUpsCommand extends Command {
             + "\n         " + COMMAND_WORD + " by/2026-11-01";
     public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
-
-    public static final String MESSAGE_SUCCESS = "%1$d follow-up(s) found.";
-    public static final String MESSAGE_NO_FOLLOW_UPS = "No follow-ups found.";
 
     private enum Mode {
         ALL, OVERDUE, BY_DATE
@@ -103,7 +101,7 @@ public class FollowUpsCommand extends Command {
         model.updateFilteredPersonList(createPredicate());
 
         int count = model.getFilteredPersonList().size();
-        return new CommandResult(count == 0 ? MESSAGE_NO_FOLLOW_UPS : String.format(MESSAGE_SUCCESS, count));
+        return new CommandResult(Messages.getFollowUpsFoundMessage(count));
     }
 
     /**

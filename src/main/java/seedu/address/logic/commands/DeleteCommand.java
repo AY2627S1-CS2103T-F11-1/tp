@@ -25,40 +25,22 @@ public class DeleteCommand extends Command {
     public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
-    public static final String MESSAGE_DELETE_CONTACT_SUCCESS = "Deleted contact: %1$s";
+    public static final String MESSAGE_DELETE_CONTACT_SUCCESS = "Deleted contact: %1$s.";
 
-    public static final String MESSAGE_INDEX_REQUIRED = "Error: INDEX is required";
+    public static final String MESSAGE_INDEX_REQUIRED = Messages.MESSAGE_INDEX_REQUIRED;
 
-    public static final String MESSAGE_EXTRA_ARGUMENTS = "Error: DELETE accepts only one INDEX";
+    public static final String MESSAGE_EXTRA_ARGUMENTS = "DELETE accepts only one INDEX.";
 
-    public static final String MESSAGE_NO_CONTACTS_TO_DELETE = "Error: There are no contacts to delete";
+    public static final String MESSAGE_NO_CONTACTS_TO_DELETE = Messages.MESSAGE_NO_CONTACTS_DISPLAYED;
 
-    public static final String MESSAGE_INDEX_OUT_OF_RANGE = "Error: INDEX %1$d is outside the displayed contact list "
-            + "(valid range: 1-%2$d)";
+    public static final String MESSAGE_INDEX_OUT_OF_RANGE = Messages.MESSAGE_INDEX_OUT_OF_RANGE;
 
-    public static final String MESSAGE_SINGLE_INDEX_OUT_OF_RANGE =
-            "Error: INDEX %1$d is outside the displayed contact list (valid index: 1)";
+    public static final String MESSAGE_SINGLE_INDEX_OUT_OF_RANGE = Messages.MESSAGE_SINGLE_INDEX_OUT_OF_RANGE;
 
     private final Index targetIndex;
 
     public DeleteCommand(Index targetIndex) {
         this.targetIndex = targetIndex;
-    }
-
-    /**
-     * Returns an error message for an index outside the displayed contact list.
-     * Uses singular wording when only one contact is displayed.
-     *
-     * @param index the one-based index supplied by the user
-     * @param displayedListSize the number of contacts currently displayed
-     * @return an appropriate out-of-range error message
-     */
-    private static String getIndexOutOfRangeMessage(int index, int displayedListSize) {
-        if (displayedListSize == 1) {
-            return String.format(MESSAGE_SINGLE_INDEX_OUT_OF_RANGE, index);
-        }
-
-        return String.format(MESSAGE_INDEX_OUT_OF_RANGE, index, displayedListSize);
     }
 
     /**
@@ -80,7 +62,8 @@ public class DeleteCommand extends Command {
 
         // Execution error: index out of range
         if (targetIndex.getZeroBased() >= lastShownList.size()) {
-            throw new CommandException(getIndexOutOfRangeMessage(targetIndex.getOneBased(), lastShownList.size()));
+            throw new CommandException(
+                    Messages.getIndexOutOfRangeMessage(targetIndex.getOneBased(), lastShownList.size()));
         }
 
         Person personToDelete = lastShownList.get(targetIndex.getZeroBased());

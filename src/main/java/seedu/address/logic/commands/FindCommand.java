@@ -28,13 +28,13 @@ public class FindCommand extends Command {
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String MESSAGE_MISSING_CRITERIA =
-            "Error: FIND requires at least one search criterion";
+            "FIND requires at least one search criterion.";
 
     public static final String MESSAGE_MIXED_SEARCH_MODE =
-            "Error: FIND cannot mix unprefixed keywords with prefixed search values";
+            "FIND cannot mix unprefixed keywords with prefixed search values.";
 
     public static final String MESSAGE_EMPTY_PREFIX_VALUE =
-            "Error: FIND requires a non-blank value after n/, r/, t/";
+            "FIND requires a non-blank value after n/, r/, t/.";
 
     private final List<Predicate<Person>> predicates;
 
@@ -64,8 +64,7 @@ public class FindCommand extends Command {
         model.updateFilteredPersonList(person ->
                 predicates.stream().allMatch(predicate -> predicate.test(person)));
 
-        return new CommandResult(
-                String.format(Messages.MESSAGE_PERSONS_LISTED_OVERVIEW, model.getFilteredPersonList().size()));
+        return new CommandResult(Messages.getContactsFoundMessage(model.getFilteredPersonList().size()));
     }
 
     @Override

@@ -2,6 +2,7 @@ package seedu.address.logic.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.logic.Messages.MESSAGE_INDEX_REQUIRED;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.logic.commands.CommandTestUtil.VALID_FOLLOW_UP_DATE;
@@ -189,9 +190,8 @@ public class AddressBookParserTest {
 
     @Test
     public void parseCommand_followUpWithoutArguments_throwsParseException() {
-        assertThrows(ParseException.class,
-                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.COMMAND_USAGE), () ->
-                        parser.parseCommand(FollowUpCommand.COMMAND_WORD));
+        assertThrows(ParseException.class, MESSAGE_INDEX_REQUIRED, () ->
+                parser.parseCommand(FollowUpCommand.COMMAND_WORD));
     }
 
     @Test

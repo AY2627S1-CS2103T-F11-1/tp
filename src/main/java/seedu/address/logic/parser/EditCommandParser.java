@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import seedu.address.commons.core.index.Index;
+import seedu.address.logic.Messages;
 import seedu.address.logic.commands.EditCommand;
 import seedu.address.logic.commands.EditCommand.EditPersonDescriptor;
 import seedu.address.logic.parser.exceptions.ParseException;
@@ -35,6 +36,10 @@ public class EditCommandParser implements Parser<EditCommand> {
         ArgumentMultimap argMultimap =
                 ArgumentTokenizer.tokenize(args, PREFIX_NAME, PREFIX_PHONE, PREFIX_EMAIL, PREFIX_ADDRESS,
                         PREFIX_ROLE, PREFIX_TAG, PREFIX_DELETE_TAG);
+
+        if (argMultimap.getPreamble().isBlank()) {
+            throw new ParseException(Messages.MESSAGE_INDEX_REQUIRED);
+        }
 
         Index index = ParserUtil.parseIndex(argMultimap.getPreamble());
 

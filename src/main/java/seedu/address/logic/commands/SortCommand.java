@@ -27,16 +27,16 @@ public class SortCommand extends Command {
 
     public static final String MESSAGE_SUCCESS = "Listed all contacts in sorted order.";
 
-    public static final String MESSAGE_EMPTY_ADDRESS_BOOK = "Error: There are no contacts to sort.";
+    public static final String MESSAGE_EMPTY_ADDRESS_BOOK = "There are no contacts to sort.";
 
     public static final String MESSAGE_DUPLICATE_FIELD =
-            "Error: SORT accepts each field only once: %s";
+            "SORT accepts each field only once: %s.";
 
     public static final String MESSAGE_UNEXPECTED_VALUE =
-            "Error: SORT does not accept values after %s";
+            "SORT does not accept values after %s.";
 
     public static final String MESSAGE_UNEXPECTED_TOKEN =
-            "Error: SORT expects n/ or r/, but received: %s";
+            "SORT expects n/ or r/, but received: %s.";
 
     /**
      * Fields supported for sorting contacts.

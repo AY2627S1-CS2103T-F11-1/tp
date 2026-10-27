@@ -87,7 +87,7 @@ public class ClearFollowUpCommandTest {
         Model emptyModel = new ModelManager();
 
         assertCommandFailure(new ClearFollowUpCommand(INDEX_FIRST_PERSON),
-                emptyModel, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                emptyModel, ClearFollowUpCommand.MESSAGE_NO_CONTACTS_TO_CLEAR);
     }
 
     @Test
@@ -95,7 +95,8 @@ public class ClearFollowUpCommandTest {
         Index invalidIndex = Index.fromOneBased(model.getFilteredPersonList().size() + 1);
 
         assertCommandFailure(new ClearFollowUpCommand(invalidIndex),
-                model, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                model, Messages.getIndexOutOfRangeMessage(invalidIndex.getOneBased(),
+                        model.getFilteredPersonList().size()));
     }
 
     @Test
@@ -104,7 +105,8 @@ public class ClearFollowUpCommandTest {
         showPersonAtIndex(model, INDEX_FIRST_PERSON);
 
         assertCommandFailure(new ClearFollowUpCommand(INDEX_SECOND_PERSON),
-                model, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                model, Messages.getIndexOutOfRangeMessage(INDEX_SECOND_PERSON.getOneBased(),
+                        model.getFilteredPersonList().size()));
     }
 
     @Test
