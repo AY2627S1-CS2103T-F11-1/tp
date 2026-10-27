@@ -42,7 +42,7 @@ public class AddCommand extends Command {
     public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
-    public static final String MESSAGE_SUCCESS = "New person added: %1$s";
+    public static final String MESSAGE_SUCCESS = "New person added: %1$s.";
 
     private static final Logger logger = LogsCenter.getLogger(AddCommand.class);
 

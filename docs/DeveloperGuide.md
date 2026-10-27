@@ -989,7 +989,7 @@ The roles and phone numbers distinguish the two Alice contacts. Perform each gro
       contacts in role-then-name order, confirming the comparator is unchanged.
 
    1. Test case: `clear`, then `sort n/`.<br>
-      Expected: Empty list and feedback `Error: There are no contacts to sort.`
+      Expected: Empty list and feedback `There are no contacts to sort.`
       Add Zoe and Alice (Supplier) using their setup commands: Alice appears before Zoe.
 
 ### Saving data

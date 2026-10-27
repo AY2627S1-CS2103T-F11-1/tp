@@ -58,8 +58,9 @@ public class EditCommand extends Command {
     public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
-    public static final String MESSAGE_EDIT_PERSON_SUCCESS = "Edited person: %1$s";
+    public static final String MESSAGE_EDIT_PERSON_SUCCESS = "Edited person: %1$s.";
     public static final String MESSAGE_NOT_EDITED = "At least one field to edit must be provided.";
+    public static final String MESSAGE_NO_CONTACTS_TO_EDIT = Messages.MESSAGE_NO_CONTACTS_DISPLAYED;
     public static final String MESSAGE_EMPTY_TAG =
             "Tag names cannot be empty. Specify a tag after t/ or dt/.";
     public static final String MESSAGE_TAG_CONFLICT =
@@ -90,9 +91,15 @@ public class EditCommand extends Command {
         logger.fine("Executing EditCommand for displayed contact index: " + index.getOneBased());
         List<Person> lastShownList = model.getFilteredPersonList();
 
+        if (lastShownList.isEmpty()) {
+            logger.warning("EditCommand rejected: No contacts are displayed");
+            throw new CommandException(MESSAGE_NO_CONTACTS_TO_EDIT);
+        }
+
         if (index.getZeroBased() >= lastShownList.size()) {
             logger.warning("EditCommand rejected: Displayed contact index is out of bounds");
-            throw new CommandException(Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+            throw new CommandException(
+                    Messages.getIndexOutOfRangeMessage(index.getOneBased(), lastShownList.size()));
         }
 
         Person personToEdit = lastShownList.get(index.getZeroBased());
