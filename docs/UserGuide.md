@@ -62,6 +62,8 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
   For example, `help 123` is interpreted as `help`.
 * For `list`, additional arguments are ignored and a warning is displayed.
   For example, `list 3` lists all contacts and does not navigate to contact 3.
+* For `clear`, additional arguments are ignored and a warning is displayed.
+  For example, `clear 1` clears all entries and does not delete only contact 1.
 * For `exit`, a message explains that any extra text is ignored before the application closes.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
@@ -102,6 +104,9 @@ Examples:
 Clears all entries from KeyBossWarriorsPro.
 
 **Format:** `clear`
+
+* Additional arguments are ignored and a warning is displayed. For example, `clear 1` or `clear all` clears all contacts and warns that the additional arguments were ignored.
+
 
 
 ### Deleting a contact: `delete`
