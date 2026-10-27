@@ -55,8 +55,9 @@ public class HelpWindowTest {
 
     @Test
     public void helpMessage_groupsCommandsAndUsesConsistentTextPattern() {
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("PEOPLE\n"));
-        assertTrue(HelpWindow.HELP_MESSAGE.contains("ADDRESS BOOK\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("MANAGE CONTACTS\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("BROWSE CONTACTS\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("UNDO AND REDO\n"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("APPLICATION\n"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("ADD\nAdds a person to the address book."));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("Parameters: n/NAME"));
@@ -71,6 +72,30 @@ public class HelpWindowTest {
         assertTrue(HelpWindow.HELP_MESSAGE.contains("Example: " + HelpCommand.COMMAND_EXAMPLE));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nEXIT\nExits the program."));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("----------------------------------------"));
+    }
+
+    @Test
+    public void helpMessage_placesCommandsInTaskCategories() {
+        String[] categories = {"MANAGE CONTACTS", "BROWSE CONTACTS", "UNDO AND REDO", "APPLICATION"};
+        String[][] commandsByCategory = {
+            {"ADD", "EDIT", "DELETE", "CLEAR", "FOLLOWUP"},
+            {"LIST", "FIND", "SORT", "FOLLOWUPS"},
+            {"UNDO", "REDO"},
+            {"HELP", "EXIT"}
+        };
+
+        for (int i = 0; i < categories.length; i++) {
+            int start = HelpWindow.HELP_MESSAGE.indexOf(categories[i] + "\n");
+            int end = i + 1 < categories.length
+                    ? HelpWindow.HELP_MESSAGE.indexOf(categories[i + 1] + "\n")
+                    : HelpWindow.HELP_MESSAGE.length();
+            assertTrue(start >= 0 && end > start, "Categories should appear in the expected order");
+            String section = HelpWindow.HELP_MESSAGE.substring(start, end);
+            for (String command : commandsByCategory[i]) {
+                assertTrue(section.contains("\n" + command + "\n"),
+                        command + " should appear under " + categories[i]);
+            }
+        }
     }
 
     @Test
