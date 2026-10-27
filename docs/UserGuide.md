@@ -392,6 +392,15 @@ Use `help` on its own to open the full help window, which lists all commands. Us
 
 **Format:** `help [COMMAND]`
 
+The full help window groups commands into four categories:
+
+| Category | Purpose | Commands |
+| --- | --- | --- |
+| Manage contacts | Add, update, or remove contact data, including follow-ups. | `add`, `edit`, `delete`, `clear`, `followup` |
+| Browse contacts | View, filter, or sort contacts without changing their data. | `list`, `find`, `sort`, `followups` |
+| Undo and redo | Reverse or restore contact changes. | `undo`, `redo` |
+| Application | View help or exit the application. | `help`, `exit` |
+
 Help text follows the same format in the full help window and the result display:
 
 * Commands without parameters (`clear`, `exit`, `list`, `redo`, and `undo`) show only a brief description, with no parameter or example details.
