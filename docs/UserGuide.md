@@ -55,8 +55,8 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 * Items followed by `…`​ can appear zero or more times.<br>
   For example, `[t/TAG]…​` may be omitted, or written as `t/friend` or `t/friend t/family`.
 
-* Parameters can be in any order.<br>
-  For example, if the command specifies `n/NAME p/PHONE_NUMBER`, `p/PHONE_NUMBER n/NAME` is also acceptable.
+* Unless stated otherwise, parameters can be in any order.<br>
+  For `sort`, field order determines sorting priority.
 
 * Extraneous parameters for commands that take no parameters are ignored.<br>
   For example, `help 123` is interpreted as `help`.
@@ -339,6 +339,46 @@ Examples:
 
 
 
+### Sorting all contacts: `sort`
+
+Displays all contacts sorted by name, role, or both, making it easier to browse contacts in preferred order.
+
+**Format:** `sort [n/] [r/]` or `sort [r/] [n/]`
+
+| Command | Behaviour |
+|---|---|
+| `sort` | Sort by name. |
+| `sort n/` | Sort by name. |
+| `sort r/` | Sort by role. |
+| `sort n/ r/` | Sort by name, then role for contacts with matching names. |
+| `sort r/ n/` | Sort by role, then name for contacts with matching roles. |
+
+* Sorting is ascending and case-insensitive. For example, `alice` and
+  `Alice` are treated as equal when comparing names.
+* When both fields are supplied, their order matters: the first field
+  takes priority, and the second breaks ties.
+* Each field may appear only once and takes no value. Use lowercase
+  prefixes `n/` and `r/`, separated by whitespace.
+* Sorting clears any active search filter and displays **all contacts**,
+  not just the current search results.
+* Running another sort command replaces the previous sorting criteria.
+
+**Using the sorted list**
+
+* Contact indices follow the sorted displayed order. After sorting,
+  check the displayed index before using `edit` or `delete`.
+* Subsequent `find` results remain sorted. Running `list` shows all
+  contacts while retaining the selected sort order.
+* Adding, editing, or deleting contacts automatically updates the sorted
+  view. Changing a contact's name or role may change its displayed index.
+* Sorting does not modify contact details or the contact order saved
+  to the data file.
+* Sorting cannot be undone. Undo and redo apply to contact-data changes
+  while retaining the selected sort order. Sorting does not discard
+  available redo history.
+* The selected sort order lasts until the application closes. After
+  restarting, contacts appear in their saved order until sorted again.
+
 ### Viewing help: `help`
 
 Opens the help window, which lists the available commands and their usage instructions. For detailed explanations and examples, refer to this user guide.
@@ -437,3 +477,4 @@ Action | Format, Examples
 **Undo** | `undo`
 **Follow-up** | `followup INDEX by/DUE_DATE abt/DESCRIPTION` or `followup INDEX clear`<br> e.g., `followup 1 by/2026-11-01 abt/Confirm quotation`
 **Follow-up queries** | `followups`, `followups overdue`, or `followups by/DUE_DATE`<br> e.g., `followups by/2026-11-01`
+**Sort** | `sort [n/] [r/]`

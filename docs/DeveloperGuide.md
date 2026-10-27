@@ -122,8 +122,13 @@ How the parsing works:
 
 The `Model` component,
 
+<<<<<<< HEAD
 * stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object). Each `Person` contains a `Name`, `Phone`, `Email`, `Address`, `Role`, a set of `Tag` objects, and an optional `FollowUp`.
 * stores the `Person` objects selected by the current filter, such as search results, in a separate _filtered_ list. It exposes this list as an unmodifiable `ObservableList<Person>` that the UI can observe and bind to, so the UI updates when the list changes.
+=======
+* stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object). Each `Person` contains a `Name`, `Phone`, `Email`, `Address`, `Role`, and a set of `Tag` objects.
+* maintains a `FilteredList<Person>` backed by the address book's contact list, and a `SortedList<Person>` wrapping that filtered view. The `getFilteredPersonList()` API exposes the filtered and sorted displayed list as an unmodifiable `ObservableList<Person>`. The UI and index-based commands use the same displayed ordering, while the underlying contact order remains unchanged.
+>>>>>>> c709bbe9 (Update User Guide and Developer Guide to reflect sort command)
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
@@ -266,6 +271,7 @@ Requested deletion absent from the selected contact | `EditCommand.MESSAGE_TAG_N
 * `EditCommandTest` covers additions, selective deletions, combined operations, filtered lists, existing tags, missing deletions, and preservation of the full model on failure. It also parses command text through `AddressBookParser` before execution to cover the acceptance examples and failure cases.
 * `AddressBookParserTest` checks that an edit containing both operations is routed to the edit parser.
 
+<<<<<<< HEAD
 ### Contact follow-up management
 
 Each `Person` owns an `Optional<FollowUp>`. A contact can have zero or one follow-up.
@@ -317,6 +323,86 @@ The existing observable-list and cell-update mechanism refreshes cards when cont
 * Command tests cover creation, replacement, removal, filtered indexes, failure preservation, and undo/redo.
 * Query tests use fixed clocks to verify date boundaries, time zones, filtering, and history preservation.
 * Parser tests cover supported forms, invalid arguments, shared date parsing, and command routing.
+=======
+### Sorting contacts
+
+The sort feature changes the displayed contact order without rearranging the address book's underlying contact list.
+It supports case-insensitive, ascending ordering by name, role, or both, with field order determining priority.
+
+#### Parsing and validation
+
+`AddressBookParser` delegates sort arguments to `SortCommandParser`. Empty or whitespace-only arguments default to
+`SortField.NAME`. Otherwise, the parser splits arguments on whitespace and maps standalone `n/` and `r/` tokens to
+an ordered list of `SortField` values. Duplicate fields, values attached to prefixes, and unsupported tokens produce
+specific `ParseException` messages before any model state changes.
+
+`SortCommand` independently requires one or two distinct, non-null fields and makes an immutable defensive copy of
+the supplied list. This preserves field priority even if the caller later modifies its original list.
+
+#### Comparator construction and execution
+
+`SortCommand#execute()`:
+
+1. Creates a comparator for the first field using `Comparator.comparing()` with `String.CASE_INSENSITIVE_ORDER`.
+2. Chains any subsequent field using `thenComparing()`, so it breaks ties in the preceding field.
+3. Clears the active filter using `Model#updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS)`.
+4. Applies the comparator using `Model#updateSortedPersonList()`.
+5. Returns a `CommandResult`, selecting empty-address-book feedback when the underlying contact list is empty.
+
+The empty-address-book check affects feedback only: sorting is still applied so contacts added afterwards follow
+the selected order. An empty search result does not trigger this feedback if the underlying address book has contacts.
+Executing another sort command replaces the previous comparator rather than adding to the previous sorting criteria.
+
+#### Model integration, persistence, and history
+
+`ModelManager` constructs `filteredPersons` from the address book's observable contact list, then constructs
+`sortedPersons` from `filteredPersons`. `updateFilteredPersonList()` changes the predicate on the filtered view;
+`updateSortedPersonList()` changes the comparator on the sorted view. Neither operation rearranges stored contacts.
+With no comparator, the sorted view follows its source order.
+
+![Partial class diagram of the model's filtered and sorted contact views](images/SortModelClassDiagram.png)
+
+The partial class diagram shows each view's source relationship. The sorted view supplies displayed order;
+the underlying contact list retains its source order for persistence. Unrelated model classes and list inheritance
+relationships are omitted for clarity.
+
+`getFilteredPersonList()` retains its existing API name but returns `sortedPersons`. The UI and commands such as
+`EditCommand` and `DeleteCommand` therefore resolve displayed indices against the same list. Changes to the source
+contacts propagate through both views, including repositioning a contact when an edit changes its sort keys.
+`ModelManager#equals()` also compares the displayed lists so models with different visible ordering are distinguished.
+
+After successful execution, `LogicManager` saves `model.getAddressBook()`, not the displayed view. The comparator is
+not serialized, so sorting does not change saved contact order and is reset on restart.
+
+Sort does not call `commitAddressBook()`, so it creates no undo snapshot and does not discard redo history.
+Undo and redo restore contact data and clear the filter without replacing the active comparator. Subsequent find
+and list commands also retain the selected sort order.
+
+#### Design considerations
+
+**Aspect: Sorting a displayed view rather than the stored list**
+
+* **Current choice:** Wrap the filtered list in a `SortedList`. This separates presentation order from stored data
+  and undo history, keeps displayed indices consistent, and automatically maintains ordering after contact changes.
+* **Alternative:** Reorder the underlying contact list. This would change the order saved to storage and require
+  additional handling to separate sorting from contact-data history and maintain ordering after later changes.
+
+**Aspect: Sorting all contacts rather than only search results**
+
+Sort explicitly resets the filter so it provides a way to browse the complete address book in a chosen order.
+Filtering remains independent: users can run find afterwards to narrow the sorted view without losing its comparator.
+
+#### Test coverage
+
+* `SortCommandParserTest` covers default sorting, field priority, whitespace, and invalid arguments.
+* `SortCommandTest` covers constructor validation, defensive copying, comparator priority, case handling, empty and
+  single-contact lists, filter clearing, replacement sorting, and sorting contacts added after an empty-book sort.
+* `ModelManagerTest` covers displayed ordering, chained comparators, filtering, live add/edit/delete updates through
+  an existing list reference, and model equality.
+* `AddressBookParserTest` checks command dispatch to the sort parser.
+* `LogicManagerTest` exercises complete command sequences involving displayed indices, filtering, editing,
+  deletion, undo/redo, invalid sorts, equal-key contact identities, and preservation of saved contact order.
+>>>>>>> c709bbe9 (Update User Guide and Developer Guide to reflect sort command)
 
 ### Undo/redo feature
 
@@ -500,6 +586,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | artisan keyboard shop manager | load saved contacts automatically at startup                                               | begin work without re-entering all details.                               |
 | `* * *`  | artisan keyboard shop manager | view command syntax and parameters using the help command                                  | learn commands within the application.                                    |
 | `* * *`  | artisan keyboard shop manager | exit the application using a CLI command                                                   | exit gracefully while keeping my terminal open.                           |
+| `* *`    | artisan keyboard shop manager | sort contacts by name, role, or both in my chosen priority                                  | browse contacts alphabetically or group contacts with matching roles.      |
 | `* *`    | artisan keyboard shop manager | tag contacts with finer-grain details like suppliers by the components supplied            | find suitable suppliers and service providers for custom keyboard builds. |
 | `* *`    | artisan keyboard shop manager | record suppliers' minimum order quantities                                                 | check order requirements before placing group-buy orders.                 |
 | `* *`    | artisan keyboard shop manager | record suppliers' manufacturing and shipping lead times in days                            | estimate delivery dates for keyboard pre-orders.                          |
@@ -679,6 +766,36 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
      Use case ends.
 
+**Use Case: UC6 - Sort Contacts**
+
+**MSS**
+
+1. User requests to sort contacts, optionally specifying name, role,
+   or both in the desired priority.
+2. `KeyBossWarriorsPro` displays all contacts in ascending,
+   case-insensitive order using the requested criteria, defaulting
+   to name when none are specified.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The sorting criteria are invalid, such as repeated fields,
+  unsupported fields, or values supplied after a sorting field.
+
+  * 1a1. `KeyBossWarriorsPro` explains the error and leaves the
+    displayed list and active sorting criteria unchanged.
+
+    Use case ends.
+
+* 2a. The address book contains no contacts.
+
+  * 2a1. `KeyBossWarriorsPro` informs the user that there are no
+    contacts to sort. The selected sorting criteria remain active
+    for contacts added afterwards.
+
+    Use case ends.
+
 ### Non-Functional Requirements
 
 1.  **Operating Environment:** Should work on any _mainstream OS_ (Windows 10/11, macOS, Linux) as long as it has Java `25` or above installed.
@@ -796,6 +913,64 @@ Run `undo`, then `redo`. | The follow-up is restored, then removed again.
 Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
 Restart after setting a follow-up. | The saved follow-up is restored.
 Display a long description and resize the window. | Verify the full text remains accessible and record any horizontal-scrolling limitation.
+
+### Sorting contacts
+
+Use a disposable application copy in a separate folder: these tests replace saved contacts.
+Before each numbered group, run `clear` and execute these setup commands separately, in order:
+
+```text
+add n/Zoe p/81000001 e/zoe@sort.example.com a/Test Address r/Employee
+add n/ben p/81000002 e/ben@sort.example.com a/Test Address r/Supplier
+add n/Alice p/81000003 e/alice.supplier@sort.example.com a/Test Address r/Supplier
+add n/alice p/81000004 e/alice.distributor@sort.example.com a/Test Address r/Distributor
+```
+
+The roles and phone numbers distinguish the two Alice contacts. Perform each group's cases in order.
+
+1. Sorting criteria
+
+   1. Test case: `sort` (also try `sort n/`).<br>
+      Expected: Both Alice contacts precede ben, then Zoe, ignoring case.
+      Feedback: `Listed all contacts in sorted order.`
+
+   1. Test case: `sort n/ r/`.<br>
+      Expected: alice (Distributor), Alice (Supplier), ben, Zoe. Role breaks the matching-name tie.
+
+   1. Test case: `sort r/ n/`.<br>
+      Expected: alice (Distributor), Zoe, Alice (Supplier), ben. Name breaks the Supplier tie.
+
+1. Filtering while sorting
+
+   1. Test case: `find r/Supplier`, followed by `sort n/`.<br>
+      Expected: Find shows two Suppliers; sort reveals all four contacts in name order.
+
+   1. Test case: `sort r/ n/`, then `find r/Supplier`, then `list`.<br>
+      Expected: Find shows Alice (Supplier), then ben. List restores all four in role-then-name order.
+
+1. Editing and deleting by displayed index
+
+   1. Prerequisites: Run `sort n/ r/`.
+
+   1. Test case: `edit 1 n/Zara`.<br>
+      Expected: Contact `81000004` is renamed and repositioned. Order: Alice (Supplier), ben, Zara, Zoe.
+
+   1. Test case: `delete 3`, then `undo`, then `redo`.<br>
+      Expected: Zara (`81000004`) is deleted, restored, then deleted again. Other contacts remain;
+      name-then-role sorting is retained throughout.
+
+1. Invalid arguments and empty contacts
+
+   1. Prerequisites: Run `sort r/ n/`, then `find r/Supplier`.
+
+   1. Test cases: `sort n/ n/`, `sort n/Alice`, and `sort t/` (separately).<br>
+      Expected: Duplicate-field, unexpected-value, and unexpected-token errors respectively.
+      The two displayed Suppliers and their details remain unchanged. Afterwards, `list` restores all four
+      contacts in role-then-name order, confirming the comparator is unchanged.
+
+   1. Test case: `clear`, then `sort n/`.<br>
+      Expected: Empty list and feedback `Error: There are no contacts to sort.`
+      Add Zoe and Alice (Supplier) using their setup commands: Alice appears before Zoe.
 
 ### Saving data
 

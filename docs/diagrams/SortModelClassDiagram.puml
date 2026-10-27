@@ -1,0 +1,28 @@
+@startuml
+!include style.puml
+!pragma layout smetana
+skinparam arrowThickness 1.1
+skinparam arrowColor MODEL_COLOR
+skinparam classBackgroundColor MODEL_COLOR
+skinparam ArrowFontStyle plain
+
+class ModelManager
+class "SortedList<Person>" as SortedPersons
+class "FilteredList<Person>" as FilteredPersons
+interface "ObservableList<Person>" as SourcePersons
+
+ModelManager --> "1" SortedPersons : sortedPersons
+ModelManager --> "1" FilteredPersons : filteredPersons
+SortedPersons -down-> "1" FilteredPersons : source
+FilteredPersons -down-> "1" SourcePersons : source
+
+note right of SortedPersons
+  getFilteredPersonList() returns this view.
+  Its comparator determines displayed order.
+end note
+
+note right of SourcePersons
+  Address book's underlying contact list.
+  Sorting does not rearrange this list.
+end note
+@enduml
