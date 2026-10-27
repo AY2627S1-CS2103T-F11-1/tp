@@ -115,4 +115,12 @@ public class ListCommandTest {
 
         assertEquals(firstCommand.hashCode(), secondCommand.hashCode());
     }
+
+    @Test
+    public void constants_verifyBrandingAndWarningMessages() {
+        assertEquals("Listed all contacts.", ListCommand.MESSAGE_SUCCESS);
+        assertEquals("Shows all contacts in KeyBossWarriorsPro.", ListCommand.COMMAND_DESCRIPTION);
+        assertEquals("list: Shows all contacts in KeyBossWarriorsPro.", ListCommand.COMMAND_USAGE);
+        assertEquals("Warning: Additional arguments after list were ignored.", ListCommand.MESSAGE_IGNORED_ARGUMENTS);
+    }
 }
