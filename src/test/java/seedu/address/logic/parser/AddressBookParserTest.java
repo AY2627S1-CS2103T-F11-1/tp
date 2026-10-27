@@ -92,7 +92,8 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_help() throws Exception {
         assertTrue(parser.parseCommand(HelpCommand.COMMAND_WORD) instanceof HelpCommand);
-        assertTrue(parser.parseCommand(HelpCommand.COMMAND_WORD + " 3") instanceof HelpCommand);
+        assertTrue(parser.parseCommand(HelpCommand.COMMAND_WORD + " " + AddCommand.COMMAND_WORD)
+                instanceof HelpCommand);
     }
 
     @Test
@@ -141,8 +142,13 @@ public class AddressBookParserTest {
 
     @Test
     public void parseCommand_unrecognisedInput_throwsParseException() {
-        assertThrows(ParseException.class, String.format(MESSAGE_INVALID_COMMAND_FORMAT, HelpCommand.MESSAGE_USAGE), ()
-            -> parser.parseCommand(""));
+        assertThrows(ParseException.class, AddressBookParser.MESSAGE_COMMAND_REQUIRED, () -> parser.parseCommand(""));
+    }
+
+    @Test
+    public void parseCommand_helpWithMultipleTargets_throwsParseException() {
+        String expectedMessage = AddressBookParser.MESSAGE_MULTIPLE_HELP_COMMANDS;
+        assertThrows(ParseException.class, expectedMessage, () -> parser.parseCommand("help add edit"));
     }
 
     @Test
@@ -174,14 +180,14 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_followUpWithoutArguments_throwsParseException() {
         assertThrows(ParseException.class,
-                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.MESSAGE_USAGE), () ->
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.COMMAND_USAGE), () ->
                         parser.parseCommand(FollowUpCommand.COMMAND_WORD));
     }
 
     @Test
     public void parseCommand_followUpMixedOperations_throwsParseException() {
         assertThrows(ParseException.class,
-                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.MESSAGE_USAGE), () ->
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.COMMAND_USAGE), () ->
                         parser.parseCommand(
                         FollowUpCommand.COMMAND_WORD + " " + INDEX_FIRST_PERSON.getOneBased()
                                 + " clear " + PREFIX_FOLLOW_UP_DATE + VALID_FOLLOW_UP_DATE
@@ -218,7 +224,7 @@ public class AddressBookParserTest {
     @Test
     public void parseCommand_followUpsUnsupportedArguments_throwsParseException() {
         String expectedMessage =
-                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.MESSAGE_USAGE);
+                String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.COMMAND_USAGE);
 
         assertThrows(ParseException.class, expectedMessage, () ->
                 parser.parseCommand(FollowUpsCommand.COMMAND_WORD + " late"));

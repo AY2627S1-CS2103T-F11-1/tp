@@ -18,15 +18,15 @@ public class FindCommand extends Command {
 
     public static final String COMMAND_WORD = "find";
 
-    public static final String MESSAGE_USAGE = COMMAND_WORD
-            + ": Finds contacts whose names, roles, and/or tags contain at least one search value "
-            + "as a case-insensitive substring.\n"
-            + "Usage: " + COMMAND_WORD + " [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...\n"
-            + "Repeated occurrences of the same prefix use OR logic; different prefix criteria use AND logic.\n"
-            + "Example: " + COMMAND_WORD + " n/John Doe n/Alice r/Employee t/friend\n"
-            + "Legacy mode is also supported: " + COMMAND_WORD + " alice bob";
+    public static final String COMMAND_DESCRIPTION = "Finds contacts by case-insensitive substrings in names, roles, "
+            + "and/or tags. Repeated values of the same prefix use OR; different prefixes use AND. "
+            + "Legacy unprefixed keywords search names and cannot be mixed with prefixes.";
+    public static final String COMMAND_PARAMETERS = "[n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]... "
+            + "(at least one required), or KEYWORD [MORE_KEYWORDS]...";
+    public static final String COMMAND_EXAMPLE = COMMAND_WORD + " n/John Doe n/Alice r/Employee t/friend";
+    public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
+            + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
-    // User-facing error messages
     public static final String MESSAGE_MISSING_CRITERIA =
             "Error: FIND requires at least one search criterion";
 

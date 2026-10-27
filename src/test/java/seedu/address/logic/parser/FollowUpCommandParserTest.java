@@ -27,7 +27,7 @@ public class FollowUpCommandParserTest {
     private static final String DESCRIPTION_ARGUMENT =
             " " + PREFIX_FOLLOW_UP_DESCRIPTION + VALID_FOLLOW_UP_DESCRIPTION;
     private static final String INVALID_FORMAT_MESSAGE =
-            String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.MESSAGE_USAGE);
+            String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.COMMAND_USAGE);
 
     private final FollowUpCommandParser parser = new FollowUpCommandParser();
 

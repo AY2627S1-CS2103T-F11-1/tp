@@ -371,7 +371,7 @@ public class UndoRedoIntegrationTest {
         ParseException exception = assertThrows(
                 ParseException.class, () -> logic.execute("undo 1"));
 
-        assertEquals(String.format(MESSAGE_INVALID_COMMAND_FORMAT, UndoCommand.MESSAGE_USAGE),
+        assertEquals(String.format(MESSAGE_INVALID_COMMAND_FORMAT, UndoCommand.COMMAND_USAGE),
                 exception.getMessage());
         assertContacts(ALICE, BENSON);
         assertHistory(true, true);
@@ -393,7 +393,7 @@ public class UndoRedoIntegrationTest {
         ParseException exception = assertThrows(
                 ParseException.class, () -> logic.execute("redo 1"));
 
-        assertEquals(String.format(MESSAGE_INVALID_COMMAND_FORMAT, RedoCommand.MESSAGE_USAGE),
+        assertEquals(String.format(MESSAGE_INVALID_COMMAND_FORMAT, RedoCommand.COMMAND_USAGE),
                 exception.getMessage());
         assertContacts(ALICE, BENSON);
         assertHistory(true, true);

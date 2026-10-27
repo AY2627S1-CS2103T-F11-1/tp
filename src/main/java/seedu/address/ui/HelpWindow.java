@@ -26,6 +26,9 @@ import seedu.address.logic.commands.FollowUpCommand;
 import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
+import seedu.address.logic.commands.RedoCommand;
+import seedu.address.logic.commands.SortCommand;
+import seedu.address.logic.commands.UndoCommand;
 
 /**
  * Controller for a help page
@@ -37,31 +40,45 @@ public class HelpWindow extends UiPart<Stage> {
     private static final String SECTION_DIVIDER = "========================================";
 
     public static final String HELP_MESSAGE = String.join("\n",
-            "PEOPLE",
+            "MANAGE CONTACTS",
             SECTION_DIVIDER,
-            formatCommandUsage(AddCommand.MESSAGE_USAGE),
+            formatCommandUsage(AddCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommandUsage(EditCommand.MESSAGE_USAGE),
+            formatCommandUsage(EditCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommandUsage(DeleteCommand.MESSAGE_USAGE),
+            formatCommandUsage(DeleteCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommandUsage(FindCommand.MESSAGE_USAGE),
+            formatCommandUsage(ClearCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommandUsage(FollowUpCommand.MESSAGE_USAGE),
-            COMMAND_DIVIDER,
-            formatCommandUsage(FollowUpsCommand.MESSAGE_USAGE),
+            formatCommandUsage(FollowUpCommand.COMMAND_USAGE),
             "",
-            "ADDRESS BOOK",
+            "",
+            "",
+            "BROWSE CONTACTS",
             SECTION_DIVIDER,
-            formatCommandUsage(ListCommand.MESSAGE_USAGE),
+            formatCommandUsage(ListCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommandUsage(ClearCommand.MESSAGE_USAGE),
+            formatCommandUsage(FindCommand.COMMAND_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(SortCommand.COMMAND_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(FollowUpsCommand.COMMAND_USAGE),
+            "",
+            "",
+            "",
+            "UNDO AND REDO",
+            SECTION_DIVIDER,
+            formatCommandUsage(UndoCommand.COMMAND_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(RedoCommand.COMMAND_USAGE),
+            "",
+            "",
             "",
             "APPLICATION",
             SECTION_DIVIDER,
-            formatCommandUsage(HelpCommand.MESSAGE_USAGE),
+            formatCommandUsage(HelpCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
-            formatCommandUsage(ExitCommand.MESSAGE_USAGE));
+            formatCommandUsage(ExitCommand.COMMAND_USAGE));
 
     private static final Logger logger = LogsCenter.getLogger(HelpWindow.class);
     private static final String FXML = "HelpWindow.fxml";
@@ -105,20 +122,11 @@ public class HelpWindow extends UiPart<Stage> {
         this(new Stage());
     }
 
-    /**
-     * Formats a command's usage message with its command name on a separate uppercase line.
-     *
-     * @param messageUsage the usage message to format
-     * @return the formatted usage message, or the uppercase message if it has no description separator
-     */
-    private static String formatCommandUsage(String messageUsage) {
-        int descriptionStart = messageUsage.indexOf(": ");
-        if (descriptionStart < 0) {
-            return messageUsage.toUpperCase(Locale.ROOT);
-        }
-        String commandName = messageUsage.substring(0, descriptionStart).toUpperCase(Locale.ROOT);
-        String descriptionAndDetails = messageUsage.substring(descriptionStart + 2);
-        return commandName + "\n" + descriptionAndDetails;
+    /** Formats shared usage text with an uppercase heading for the help window. */
+    private static String formatCommandUsage(String commandUsage) {
+        int separator = commandUsage.indexOf(": ");
+        return commandUsage.substring(0, separator).toUpperCase(Locale.ROOT)
+                + "\n" + commandUsage.substring(separator + 2);
     }
 
     /**
