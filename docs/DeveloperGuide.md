@@ -230,6 +230,30 @@ The activity diagram below illustrates the duplicate resolution and defensive er
 
 `MainWindow` displays the feedback in `ResultDisplay` and opens or focuses `HelpWindow` only when `showHelp` is `true`. The activity diagram assumes at most one command target; input with multiple target words is rejected during parsing, and the parser error is displayed in the result area.
 
+#### Help text conventions
+
+Each user command defines its help text in the command class. `COMMAND_USAGE` is the shared source for both command-specific help and the full help window. `HelpWindow.formatCommandUsage` converts the command name into an uppercase heading while preserving the rest of the usage text.
+
+* Use `COMMAND_WORD`, `COMMAND_DESCRIPTION`, and `COMMAND_USAGE` for help content.
+* Commands without parameters define `COMMAND_USAGE` as `COMMAND_WORD + ": " + COMMAND_DESCRIPTION`. Do not add parameter or example fields for these commands.
+* Commands with required or optional parameters also define `COMMAND_PARAMETERS` and `COMMAND_EXAMPLE`. Their `COMMAND_USAGE` combines the description with `Parameters:` and `Example:` lines. Commands with optional arguments, such as `help`, `sort`, and `followups`, follow this format even though they can run without arguments.
+* Use the `MESSAGE_` prefix for result feedback and errors, such as `MESSAGE_SUCCESS` and `MESSAGE_FAILURE`. Parsers that include usage instructions in an error should reference `COMMAND_USAGE` rather than duplicate its text.
+
+#### Help window categories
+
+`HelpWindow.HELP_MESSAGE` groups commands by user task:
+
+| Category | Commands |
+| --- | --- |
+| Manage contacts | `add`, `edit`, `delete`, `clear`, `followup` |
+| Browse contacts | `list`, `find`, `sort`, `followups` |
+| Undo and redo | `undo`, `redo` |
+| Application | `help`, `exit` |
+
+`followup` belongs under Manage contacts because it changes contact data. `followups` belongs under Browse contacts because it filters the displayed contacts without modifying their data.
+
+When adding a user command, define its help constants, register its `COMMAND_USAGE` in `HelpCommand.COMMAND_USAGE_BY_NAME`, and add it to the appropriate category in `HelpWindow.HELP_MESSAGE`. Update `HelpCommandTest` and `HelpWindowTest` to cover targeted help, category placement, and formatting. Update parser tests when usage text changes, and keep the User Guide's command list, categories, and help screenshot consistent with the implementation.
+
 ### Adding and deleting contact tags
 
 The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_ADD]... [dt/TAG_TO_DELETE]...`, alongside the existing contact fields. Additions preserve existing tags, and deletions remove only explicitly named tags. The complete edit succeeds or leaves all contact details and the displayed list unchanged.
