@@ -928,6 +928,7 @@ Set another follow-up with a different date and description. | Both values repla
 Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is preserved.
 Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
 Run `followups by/DATE` using the follow-up's exact due date. | The contact appears because the cutoff is inclusive.
+Run `followups by/DATE overdue` or `followups by/DATE extra`. | An invalid command format error appears without changing the view.
 Find the test contact and run `followup 1 clear`. | The follow-up disappears; the contact remains.
 Run `undo`, then `redo`. | The follow-up is restored, then removed again.
 Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
