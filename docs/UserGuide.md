@@ -388,7 +388,9 @@ Displays all contacts sorted by name, role, or both, making it easier to browse 
 
 Use `help` on its own to open the full help window, which lists all commands. Use `help COMMAND` to display a command's usage directly in the result display without opening the window. Targeted help is available for `add`, `clear`, `delete`, `edit`, `exit`, `find`, `followup`, `followups`, `help`, `list`, `redo`, `sort`, and `undo`. For detailed explanations and examples, refer to this user guide.
 
-![help message](images/help.png)
+![Help window showing commands for managing contacts](images/help.png)
+
+![Help window scrolled down to follow-up queries, undo and redo, and application commands](images/help-continued.png)
 
 **Format:** `help [COMMAND]`
 
