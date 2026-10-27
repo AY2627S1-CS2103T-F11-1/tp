@@ -19,6 +19,7 @@ import javafx.application.Platform;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import seedu.address.logic.commands.AddCommand;
 import seedu.address.logic.commands.ClearCommand;
@@ -149,6 +150,30 @@ public class HelpWindowTest {
         });
 
         assertEquals(URI.create(HelpWindow.USERGUIDE_URL), openedUri.get());
+    }
+
+    @Test
+    public void userGuideLink_afterClick_keepsReadableVisitedColour() throws Exception {
+        FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Stage stage = new Stage();
+            try {
+                HelpWindow helpWindow = new HelpWindow(stage, () -> true, uri -> { }, url -> { });
+                stage.getScene().getRoot().applyCss();
+                assertEquals(Color.web("#8ab4f8"), helpWindow.getUserGuideLink().getTextFill());
+
+                helpWindow.getUserGuideLink().fire();
+                stage.getScene().getRoot().applyCss();
+
+                assertTrue(helpWindow.getUserGuideLink().isVisited());
+                assertEquals(Color.web("#c4b5fd"), helpWindow.getUserGuideLink().getTextFill());
+            } finally {
+                stage.close();
+            }
+            return null;
+        });
+
+        Platform.runLater(testOnFxThread);
+        testOnFxThread.get(10, TimeUnit.SECONDS);
     }
 
     @Test
