@@ -189,6 +189,12 @@ How the command parsing and execution works:
 7. If uniqueness validation passes, `Model#addPerson(toAdd)` inserts the contact into `UniquePersonList`, and `Model#commitAddressBook()` saves the state snapshot into `VersionedAddressBook` to support undo/redo.
 8. A `CommandResult` containing success feedback (labeled `result`) is returned to `LogicManager`.
 
+`Name` accepts the same punctuation as `Role` and `Tag`: `-`, `/`, `&`, and `'`,
+provided the value starts and ends with an alphanumeric character. Values are
+still subject to the command parser's prefix rules; the broader handling of
+slash-containing values that resemble unknown prefixes remains out of scope for
+this change.
+
 The activity diagram below illustrates the duplicate resolution and defensive error-handling branching during `AddCommand#execute()`. Each decision node specifies explicit, mutually exclusive guard conditions on all outgoing branches, and all execution paths converge cleanly to a single final node:
 
 ![AddCommandActivityDiagram](images/AddCommandActivityDiagram.png)
@@ -259,6 +265,11 @@ The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_
 
 `EditCommand.EditPersonDescriptor` stores `tagsToAdd` and `tagsToDelete` separately. Each setter makes a defensive copy, and each getter returns an `Optional<Set<Tag>>` containing an unmodifiable set. An absent optional means that operation was not supplied. Both sets participate in the copy constructor, `isAnyFieldEdited()`, `equals()`, and `toString()`.
 
+Before tokenizing the arguments, `EditCommandParser` calls
+`ArgumentTokenizer#verifyNoUnrecognizedPrefixes()` with all supported edit
+prefixes (`n/`, `p/`, `e/`, `a/`, `r/`, `t/`, and `dt/`). This prevents unknown
+prefixes from being silently ignored.
+
 After parsing the index and other contact fields, `EditCommandParser`:
 
 1. Parses additions, then deletions, using `parseTagsForEdit()`. An absent prefix produces an empty optional. A supplied blank tag is rejected, including bare `t/` and `dt/`; neither clears all tags.
@@ -286,7 +297,7 @@ Requested deletion absent from the selected contact | `EditCommand.MESSAGE_TAG_N
 #### Test coverage
 
 * `EditPersonDescriptorTest` covers independent tag operations, defensive copying, unmodifiable getters, equality, and string output.
-* `EditCommandParserTest` covers both prefixes, repeated and empty values, invalid names, case-insensitive conflicts, and validation order.
+* `EditCommandParserTest` covers recognised and unrecognised prefixes, repeated and empty values, invalid names, case-insensitive conflicts, and validation order.
 * `EditCommandTest` covers additions, selective deletions, combined operations, filtered lists, existing tags, missing deletions, and preservation of the full model on failure. It also parses command text through `AddressBookParser` before execution to cover the acceptance examples and failure cases.
 * `AddressBookParserTest` checks that an edit containing both operations is routed to the edit parser.
 

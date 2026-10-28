@@ -79,12 +79,16 @@ Adds a contact to KeyBossWarriorsPro.
 
 Field | Constraint
 --------|------------------
-`NAME` | May contain alphanumeric characters and spaces.
+`NAME` | May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character.
 `PHONE_NUMBER` | Must contain at least 3 digits. Only digits are accepted.
 `EMAIL` | Must follow a valid email format, such as `john@example.com`.
 `ADDRESS` | May contain spaces and special characters.
 `ROLE` | May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character. Multiple consecutive spaces are collapsed into a single space.
 `TAG` | Optional. May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character, and cannot exceed 50 characters. Multiple consecutive spaces are collapsed into a single space. Tag comparisons and deduplication are case-insensitive.
+
+The command syntax reserves whitespace-delimited prefix-like tokens. As a result,
+a value containing a token such as `s/` after a space may be interpreted as an
+unknown prefix; support for such values is deferred.
 
 
 <div markdown="span" class="alert alert-primary">:bulb: **Tip:**
@@ -128,6 +132,7 @@ Edits an existing contact in KeyBossWarriorsPro.
 * At least one field or tag operation must be provided.
 * Supplied name, phone number, email address, address, and role values replace the corresponding existing values. Omitted fields keep their existing values.
 * Field constraints described under `add` apply to every field supplied with `edit`.
+* Unrecognized prefixes and extraneous arguments are rejected. For example, `edit 1 xx/value` is invalid.
 * You cannot edit a contact's phone number or email address to match another existing contact in KeyBossWarriorsPro (email comparisons are case-insensitive).
 * `t/TAG_TO_ADD` adds the named tag while preserving the contact's existing tags. Adding a tag the contact already has succeeds without creating a duplicate.
 * `dt/TAG_TO_DELETE` removes the named tag while preserving all other tags. Every tag requested for deletion must already belong to the selected contact.
