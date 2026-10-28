@@ -200,6 +200,28 @@ public class HelpWindowTest {
     }
 
     @Test
+    public void userGuideLink_enterKeyPressed_opensTpUserGuideUrl() throws Exception {
+        AtomicReference<URI> openedUri = new AtomicReference<>();
+        FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Stage stage = new Stage();
+            try {
+                HelpWindow helpWindow = new HelpWindow(stage, () -> true, openedUri::set, url -> { });
+                KeyEvent enterEvent = new KeyEvent(KeyEvent.KEY_PRESSED, "", "",
+                        KeyCode.ENTER, false, false, false, false);
+                helpWindow.getUserGuideLink().fireEvent(enterEvent);
+            } finally {
+                stage.close();
+            }
+            return null;
+        });
+
+        Platform.runLater(testOnFxThread);
+        testOnFxThread.get(10, TimeUnit.SECONDS);
+
+        assertEquals(URI.create(HelpWindow.USERGUIDE_URL), openedUri.get());
+    }
+
+    @Test
     public void copyUrlButton_whenClicked_copiesTpUserGuideUrl() throws Exception {
         FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
             Clipboard clipboard = Clipboard.getSystemClipboard();
@@ -208,6 +230,29 @@ public class HelpWindowTest {
             try {
                 HelpWindow helpWindow = new HelpWindow(stage);
                 helpWindow.getCopyButton().fire();
+                assertEquals(HelpWindow.USERGUIDE_URL, clipboard.getString());
+            } finally {
+                restoreClipboardContent(clipboard, previousContent);
+                stage.close();
+            }
+            return null;
+        });
+
+        Platform.runLater(testOnFxThread);
+        testOnFxThread.get(10, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void copyUrlButton_enterKeyPressed_copiesTpUserGuideUrl() throws Exception {
+        FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Clipboard clipboard = Clipboard.getSystemClipboard();
+            ClipboardContent previousContent = saveClipboardContent(clipboard);
+            Stage stage = new Stage();
+            try {
+                HelpWindow helpWindow = new HelpWindow(stage);
+                KeyEvent enterEvent = new KeyEvent(KeyEvent.KEY_PRESSED, "", "",
+                        KeyCode.ENTER, false, false, false, false);
+                helpWindow.getCopyButton().fireEvent(enterEvent);
                 assertEquals(HelpWindow.USERGUIDE_URL, clipboard.getString());
             } finally {
                 restoreClipboardContent(clipboard, previousContent);

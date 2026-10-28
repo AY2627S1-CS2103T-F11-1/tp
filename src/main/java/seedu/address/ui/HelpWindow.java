@@ -14,6 +14,7 @@ import javafx.scene.control.Hyperlink;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 import seedu.address.commons.core.LogsCenter;
@@ -115,6 +116,7 @@ public class HelpWindow extends UiPart<Stage> {
         this.clipboardWriter = clipboardWriter;
         helpMessage.setText(HELP_MESSAGE);
         configureKeyboardScrolling();
+        configureEnterKeyActions();
     }
 
     /**
@@ -224,6 +226,25 @@ public class HelpWindow extends UiPart<Stage> {
                     break;
                 default:
                     break;
+            }
+        });
+    }
+
+    /**
+     * Configures the ENTER key to activate the hyperlink and button when focused.
+     */
+    private void configureEnterKeyActions() {
+        userGuideLink.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                userGuideLink.fire();
+                event.consume();
+            }
+        });
+
+        copyButton.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ENTER) {
+                copyButton.fire();
+                event.consume();
             }
         });
     }
