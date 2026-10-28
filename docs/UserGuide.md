@@ -311,7 +311,7 @@ Finds contacts matching one or more name, role, or tag criteria. All searches ar
 * `r/` specifies a role search phrase.
 * `t/` specifies a tag search phrase. Tags can contain spaces: `find t/good friend` matches a tag containing the phrase `good friend`.
 * Each value after a prefix is treated as a continuous search phrase until the next prefix or the end of the command.
-* Use single spaces between words in search phrases. Repeated internal spaces in search phrases are matched literally.
+* Repeated spaces in `n/`, `r/`, and `t/` search phrases are collapsed into a single space before matching, just as when adding or editing these fields. For example, `find r/Regional   Supplier` and `find r/Regional Supplier` return the same results.
 * **Partial & Case-Insensitive Matching**: Matches if the term appears anywhere within the field, regardless of upper or lower case (e.g., `n/alex` matches `Alexander`, `r/distrib` matches `Distributor`).
 * **Search Logic:**
     * **Same prefix → `OR` logic**: A contact matches if it satisfies *at least one* of the values given for that prefix type (e.g. `n/alice n/bob` returns contacts whose name contains "alice" *or* "bob", case-insensitively).

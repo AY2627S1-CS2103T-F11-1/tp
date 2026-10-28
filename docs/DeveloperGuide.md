@@ -208,7 +208,17 @@ and `JsonAdaptedPersonTest` cover these paths.
 Two field-specific behaviours remain: only `Tag` has a 50-character limit, checked
 before normalisation, and `Name.equals()` compares case-sensitively while `Role`
 and `Tag` compare case-insensitively. Search predicates for all three fields ignore
-case, but do not collapse spaces in search phrases.
+case. Before constructing predicates, `FindCommandParser` collapses repeated
+ordinary spaces in each `n/`, `r/`, and `t/` search phrase using
+`normaliseSearchPhrases()`. Each phrase remains a single substring criterion;
+repeated prefixes retain OR matching, and different prefix types retain AND
+matching. Search phrases do not pass through whole-field validation, so partial
+phrases remain valid. Legacy name search continues to split keywords on whitespace.
+
+`FindCommandParserTest` covers normalisation for all three fields, repeated prefix
+groups, and partial phrases. `LogicManagerTest` reproduces adding and searching
+with the same repeated spaces, checks single-space equivalence, and verifies
+case-insensitive substring matching together with OR/AND behaviour.
 
 Prefix recognition runs before field validation. Slash-containing values such as
 `n/David s/o Me` remain rejected because `s/` is recognised as an unknown prefix;
@@ -953,6 +963,9 @@ confirm there is exactly one result before using index 1 below.
 
 Command | Expected result
 --------|------------------
+`find n/Anne-Marie   O'Connor`, then `find n/Anne-Marie O'Connor` | Both searches return the test contact.
+`find r/R&D   Partner`, then `find r/R&D Partner` | Both searches return the test contact.
+`find t/lubed/filmed   switches`, then `find t/lubed/filmed switches` | Both searches return the test contact.
 `edit 1 n/Anne-Marie    O'Connor r/R&D    Partner t/PCB    Supplier` | All supplied fields use single internal spaces. The new tag is `PCB Supplier`, and the existing tag remains.
 `edit 1 n/Changed xx/value` | Unknown-prefix error; the contact's name, role, and tags remain unchanged.
 Restart the application, then run `find n/Anne-Marie O'Connor`. | The normalised name, role, and both tags are retained.
