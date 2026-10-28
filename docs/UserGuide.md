@@ -93,10 +93,19 @@ is stored as `Anne-Marie O'Connor`. Only tags have a 50-character limit, checked
 repeated spaces are collapsed. Alphanumeric characters here mean `A`–`Z`, `a`–`z`,
 and `0`–`9`; internal tabs and line breaks are not accepted.
 
-**Slash limitation:** `t/key/board` is accepted because the value starts immediately
-after `t/`. Text such as `s/o` or `key/board` after a space looks like a prefix, so
-`n/David s/o Me` and `t/ key/board` are rejected. A recognised prefix such as `p/`
-after a space starts another field instead of remaining part of the current value.
+<div markdown="block" class="alert alert-warning">
+
+**:warning: Slash-containing values**
+
+A slash is supported, but some values conflict with the command's prefix syntax:
+
+* `t/key/board` is accepted.
+* `t/ key/board` and `n/David s/o Me` are rejected because `key/` and `s/` are interpreted as unknown prefixes.
+* A recognised prefix such as `p/` after a space starts another field instead of remaining part of the current value.
+
+This limitation applies to names, roles, and tags.
+
+</div>
 
 
 <div markdown="span" class="alert alert-primary">:bulb: **Tip:**
