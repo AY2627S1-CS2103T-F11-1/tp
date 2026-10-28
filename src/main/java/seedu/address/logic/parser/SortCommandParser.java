@@ -32,9 +32,19 @@ public class SortCommandParser implements Parser<SortCommand> {
             return new SortCommand(List.of(SortField.NAME));
         }
 
+        List<String> tokens = List.of(trimmedArgs.split("\\s+"));
+
+        if (tokens.size() == 1 && tokens.get(0).equals("clear")) {
+            return SortCommand.clearSort();
+        }
+
+        if (tokens.contains("clear")) {
+            throw new ParseException(SortCommand.MESSAGE_CLEAR_WITH_FIELDS);
+        }
+
         List<SortField> sortFields = new ArrayList<>();
 
-        for (String token : trimmedArgs.split("\\s+")) {
+        for (String token : tokens) {
             SortField field = parseField(token);
 
             if (sortFields.contains(field)) {

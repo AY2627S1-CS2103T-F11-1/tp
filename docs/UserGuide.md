@@ -344,45 +344,63 @@ Examples:
 
 
 
-### Sorting all contacts: `sort`
+### Sorting contacts: `sort`
 
-Displays all contacts sorted by name, role, or both, making it easier to browse contacts in preferred order.
+Displays all contacts in ascending, case-insensitive order by name, role, or both.
 
-**Format:** `sort [n/] [r/]` or `sort [r/] [n/]`
+**Format:** `sort [n/] [r/]` or `sort clear`
 
 | Command | Behaviour |
 |---|---|
-| `sort` | Sort by name. |
-| `sort n/` | Sort by name. |
-| `sort r/` | Sort by role. |
-| `sort n/ r/` | Sort by name, then role for contacts with matching names. |
-| `sort r/ n/` | Sort by role, then name for contacts with matching roles. |
+| `sort` | Sorts contacts by name. |
+| `sort n/` | Sorts contacts by name. |
+| `sort r/` | Sorts contacts by role. |
+| `sort n/ r/` | Sorts by name, then by role when names are identical. |
+| `sort r/ n/` | Sorts by role, then by name when roles are identical. |
+| `sort clear` | Restores the original insertion order. |
 
-* Sorting is ascending and case-insensitive. For example, `alice` and
-  `Alice` are treated as equal when comparing names.
-* When both fields are supplied, their order matters: the first field
-  takes priority, and the second breaks ties.
-* Each field may appear only once and takes no value. Use lowercase
-  prefixes `n/` and `r/`, separated by whitespace.
-* Sorting clears any active search filter and displays **all contacts**,
-  not just the current search results.
-* Running another sort command replaces the previous sorting criteria.
+* Sorting is ascending and case-insensitive.
+* When both `n/` and `r/` are provided, the first field has priority and the second field breaks ties.
+* Each sorting field may be used only once and must not have a value. For example, `sort n/Alice` is invalid.
+* Use lowercase `n/` and `r/` prefixes, separated by whitespace.
+* Sorting displays all contacts and clears any active `find` filter.
 
 **Using the sorted list**
 
-* Contact indices follow the sorted displayed order. After sorting,
-  check the displayed index before using `edit` or `delete`.
-* Subsequent `find` results remain sorted. Running `list` shows all
-  contacts while retaining the selected sort order.
-* Adding, editing, or deleting contacts automatically updates the sorted
-  view. Changing a contact's name or role may change its displayed index.
-* Sorting does not modify contact details or the contact order saved
-  to the data file.
-* Sorting cannot be undone. Undo and redo apply to contact-data changes
-  while retaining the selected sort order. Sorting does not discard
-  available redo history.
-* The selected sort order lasts until the application closes. After
-  restarting, contacts appear in their saved order until sorted again.
+* Contact indices follow the displayed order. After sorting, check the displayed index before using `edit`, `delete`, or other index-based commands.
+* `find` and `list` retain the selected sort order.
+* Adding, editing, or deleting contacts automatically updates the displayed order. Editing a contact's name or role may change its displayed index.
+* Sorting changes only the displayed order. It does not modify contact details or the order saved to the data file.
+* Running another `sort` command replaces the current ordering.
+* Sorting is not an undoable contact-data change. Use `sort clear` to restore the original insertion order.
+* Sorting is reset when the application restarts.
+
+If the address book is empty, the selected sort order is still applied and will affect contacts added later. The application displays:
+
+```text
+No contacts are currently available. The selected sort order will apply to contacts added later.
+```
+
+Example:
+
+```text
+sort r/ n/
+```
+
+This displays contacts by role first, then by name for contacts with the same role.
+
+To restore the original insertion order:
+
+```text
+sort clear
+```
+
+The application displays:
+
+```text
+Sorting cleared. Contacts will be displayed in insertion order.
+```
+
 
 ### Viewing help: `help [COMMAND]`
 
@@ -507,4 +525,4 @@ Action | Format, Examples
 **Undo** | `undo`
 **Follow-up** | `followup INDEX by/DUE_DATE abt/DESCRIPTION` or `followup INDEX clear`<br> e.g., `followup 1 by/2026-11-01 abt/Confirm quotation`
 **Follow-up queries** | `followups`, `followups overdue`, or `followups by/DUE_DATE`<br> e.g., `followups by/2026-11-01`
-**Sort** | `sort [n/] [r/]`
+**Sort** | `sort [n/] [r/]`, `sort [r/] [n/]`, or `sort clear`
