@@ -210,7 +210,8 @@ Command | Behavior
 
 `followups by/DUE_DATE` | Displays contacts with follow-ups due on or before the specified date.
 * Contacts without follow-ups are excluded.
-* Results retain address-book order and are numbered from 1. Use these displayed indexes for subsequent contact commands.
+* Results retain the active sort order. If no sort order has been selected, results follow the saved address-book order.
+* Results are numbered from 1. Use these displayed indexes for subsequent contact commands, including `followup INDEX clear`.
 * A follow-up due today is not overdue.
 * Today is determined using the computer's local date when the command executes. Rerun the command to refresh date-based results after the date changes.
 * Date cutoffs follow the same date constraints as `followup`. Past cutoffs are accepted.
@@ -372,8 +373,8 @@ Displays all contacts sorted by name, role, or both, making it easier to browse 
 
 * Contact indices follow the sorted displayed order. After sorting,
   check the displayed index before using `edit` or `delete`.
-* Subsequent `find` results remain sorted. Running `list` shows all
-  contacts while retaining the selected sort order.
+* Subsequent `find` and `followups` results retain the selected sort order.
+  Running `list` shows all contacts while retaining that order.
 * Adding, editing, or deleting contacts automatically updates the sorted
   view. Changing a contact's name or role may change its displayed index.
 * Sorting does not modify contact details or the contact order saved
