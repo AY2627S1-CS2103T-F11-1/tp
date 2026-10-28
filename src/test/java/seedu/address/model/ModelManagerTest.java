@@ -125,6 +125,17 @@ public class ModelManagerTest {
     }
 
     @Test
+    public void rollbackAddressBook_afterCommit_removesCommittedStateAndRestoresData() {
+        modelManager.addPerson(ALICE);
+        modelManager.commitAddressBook();
+
+        modelManager.rollbackAddressBook();
+        assertFalse(modelManager.hasPerson(ALICE));
+        assertFalse(modelManager.canUndoAddressBook());
+        assertFalse(modelManager.canRedoAddressBook());
+    }
+
+    @Test
     public void undoAddressBook_validHistory_restoresDataAndShowsAllPersons() {
         modelManager.addPerson(ALICE);
         modelManager.addPerson(BENSON);

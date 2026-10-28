@@ -103,6 +103,17 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public void rollbackAddressBook() {
+        addressBook.rollbackCommit();
+        updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
+    }
+
+    @Override
+    public int getAddressBookStatePointer() {
+        return addressBook.getCurrentStatePointer();
+    }
+
+    @Override
     public boolean hasPerson(Person person) {
         requireNonNull(person);
         return addressBook.hasPerson(person);
