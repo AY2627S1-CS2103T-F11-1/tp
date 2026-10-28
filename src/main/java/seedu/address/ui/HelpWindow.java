@@ -168,6 +168,10 @@ public class HelpWindow extends UiPart<Stage> {
         return copyButton;
     }
 
+    TextArea getHelpMessage() {
+        return helpMessage;
+    }
+
     /**
      * Hides the help window.
      */

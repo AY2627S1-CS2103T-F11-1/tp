@@ -217,6 +217,24 @@ public class HelpWindowTest {
         testOnFxThread.get(10, TimeUnit.SECONDS);
     }
 
+    @Test
+    public void helpMessage_isFocusTraversable() throws Exception {
+        FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Stage stage = new Stage();
+            try {
+                HelpWindow helpWindow = new HelpWindow(stage);
+                assertTrue(helpWindow.getHelpMessage().isFocusTraversable(),
+                        "helpMessage TextArea should be focus-traversable for keyboard navigation");
+            } finally {
+                stage.close();
+            }
+            return null;
+        });
+
+        Platform.runLater(testOnFxThread);
+        testOnFxThread.get(10, TimeUnit.SECONDS);
+    }
+
     private static ClipboardContent saveClipboardContent(Clipboard clipboard) {
         ClipboardContent content = new ClipboardContent();
         for (DataFormat format : clipboard.getContentTypes()) {

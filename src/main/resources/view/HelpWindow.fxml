@@ -25,7 +25,7 @@
       <VBox fx:id="helpMessageContainer" spacing="12.0" prefWidth="820.0" prefHeight="560.0">
         <children>
           <Label text="Available commands" styleClass="help-heading" />
-          <TextArea fx:id="helpMessage" editable="false" focusTraversable="false" wrapText="true"
+          <TextArea fx:id="helpMessage" editable="false" focusTraversable="true" wrapText="true"
                     prefRowCount="20" VBox.vgrow="ALWAYS" />
           <HBox alignment="CENTER_LEFT" spacing="8.0">
             <children>
