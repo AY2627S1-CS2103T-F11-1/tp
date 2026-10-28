@@ -14,6 +14,7 @@ import javafx.scene.control.Hyperlink;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.logic.commands.AddCommand;
@@ -113,6 +114,7 @@ public class HelpWindow extends UiPart<Stage> {
         this.browserLauncher = browserLauncher;
         this.clipboardWriter = clipboardWriter;
         helpMessage.setText(HELP_MESSAGE);
+        configureKeyboardScrolling();
     }
 
     /**
@@ -151,6 +153,7 @@ public class HelpWindow extends UiPart<Stage> {
         logger.fine("Showing help page about the application.");
         getRoot().show();
         getRoot().centerOnScreen();
+        helpMessage.requestFocus();
     }
 
     /**
@@ -184,6 +187,45 @@ public class HelpWindow extends UiPart<Stage> {
      */
     public void focus() {
         getRoot().requestFocus();
+        helpMessage.requestFocus();
+    }
+
+    /**
+     * Configures keyboard navigation and scrolling for the help message content.
+     */
+    private void configureKeyboardScrolling() {
+        final double lineScrollDelta = 40.0;
+        getRoot().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            double pageScrollDelta = Math.max(lineScrollDelta, helpMessage.getHeight() - lineScrollDelta);
+            switch (event.getCode()) {
+                case DOWN:
+                    helpMessage.setScrollTop(helpMessage.getScrollTop() + lineScrollDelta);
+                    event.consume();
+                    break;
+                case UP:
+                    helpMessage.setScrollTop(Math.max(0, helpMessage.getScrollTop() - lineScrollDelta));
+                    event.consume();
+                    break;
+                case PAGE_DOWN:
+                    helpMessage.setScrollTop(helpMessage.getScrollTop() + pageScrollDelta);
+                    event.consume();
+                    break;
+                case PAGE_UP:
+                    helpMessage.setScrollTop(Math.max(0, helpMessage.getScrollTop() - pageScrollDelta));
+                    event.consume();
+                    break;
+                case HOME:
+                    helpMessage.setScrollTop(0);
+                    event.consume();
+                    break;
+                case END:
+                    helpMessage.setScrollTop(Double.MAX_VALUE);
+                    event.consume();
+                    break;
+                default:
+                    break;
+            }
+        });
     }
 
     /**
