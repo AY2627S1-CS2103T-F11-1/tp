@@ -11,11 +11,11 @@ public class Name {
 
     public static final String MESSAGE_CONSTRAINTS =
             "Names should only contain alphanumeric characters, spaces, and punctuation (- / & '), "
-                    + "and must start and end with an alphanumeric character";
+            + "and must start and end with an alphanumeric character";
 
     /*
-     * The first character of the name must not be a whitespace,
-     * otherwise " " (a blank string) becomes a valid input.
+     * The name must start and end with an alphanumeric character.
+     * Internal spaces and allowed punctuation (- / & ') are accepted.
      */
     public static final String VALIDATION_REGEX = "^[\\p{Alnum}]([\\p{Alnum} /&'-]*[\\p{Alnum}])?$";
 
@@ -29,7 +29,7 @@ public class Name {
     public Name(String name) {
         requireNonNull(name);
         checkArgument(isValidName(name), MESSAGE_CONSTRAINTS);
-        fullName = name;
+        fullName = formatName(name);
     }
 
     /**
@@ -39,6 +39,12 @@ public class Name {
         return test.matches(VALIDATION_REGEX);
     }
 
+    /**
+     * Formats a name by collapsing consecutive spaces while preserving casing and punctuation.
+     */
+    private static String formatName(String name) {
+        return name.trim().replaceAll("\\s+", " ");
+    }
 
     @Override
     public String toString() {

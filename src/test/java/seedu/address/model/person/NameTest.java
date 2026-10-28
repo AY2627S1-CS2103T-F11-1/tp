@@ -1,5 +1,6 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -20,6 +21,16 @@ public class NameTest {
     }
 
     @Test
+    public void constructor_collapsesSpacesAndPreservesCasing() {
+        assertEquals("Anne-Marie O'Connor", new Name("Anne-Marie   O'Connor").fullName);
+        assertEquals("ACME & Sons", new Name("ACME   &   Sons").fullName);
+        assertEquals("David s/o Me", new Name("David  s/o   Me").fullName);
+        assertEquals("anne marie", new Name("anne   marie").fullName);
+        assertEquals("ANNE MARIE", new Name("ANNE   MARIE").fullName);
+        assertEquals("Anne-Marie", new Name("Anne-Marie").fullName);
+    }
+
+    @Test
     public void isValidName() {
         // null name
         assertThrows(NullPointerException.class, () -> Name.isValidName(null));
@@ -28,11 +39,20 @@ public class NameTest {
         assertFalse(Name.isValidName("")); // empty string
         assertFalse(Name.isValidName(" ")); // spaces only
         assertFalse(Name.isValidName("^")); // only non-alphanumeric characters
-        assertFalse(Name.isValidName("peter*")); // contains non-alphanumeric characters
+        assertFalse(Name.isValidName("peter*")); // contains unsupported punctuation
+        assertFalse(Name.isValidName(" David")); // leading space
+        assertFalse(Name.isValidName("David ")); // trailing space
+        assertFalse(Name.isValidName("David\tTan")); // internal tab
+        assertFalse(Name.isValidName("David\nTan")); // internal newline
         assertFalse(Name.isValidName("-David"));
         assertFalse(Name.isValidName("David-"));
         assertFalse(Name.isValidName("/David"));
         assertFalse(Name.isValidName("David/"));
+        assertFalse(Name.isValidName("&David"));
+        assertFalse(Name.isValidName("David&"));
+        assertFalse(Name.isValidName("'David"));
+        assertFalse(Name.isValidName("David'"));
+        assertFalse(Name.isValidName("- / & '")); // punctuation only
 
         // valid name
         assertTrue(Name.isValidName("peter jack")); // alphabets only
@@ -44,6 +64,8 @@ public class NameTest {
         assertTrue(Name.isValidName("O'Connor")); // apostrophe
         assertTrue(Name.isValidName("ACME & Sons")); // ampersand
         assertTrue(Name.isValidName("David s/o Me")); // slash
+        assertTrue(Name.isValidName("David   Tan")); // multiple internal spaces
+        assertTrue(Name.isValidName("D")); // single character
     }
 
     @Test
@@ -52,6 +74,14 @@ public class NameTest {
 
         // same values -> returns true
         assertTrue(name.equals(new Name("Valid Name")));
+
+        // same value with different spacing -> returns true after normalisation
+        Name extraSpaces = new Name("Valid   Name");
+        assertEquals(name, extraSpaces);
+        assertEquals(name.hashCode(), extraSpaces.hashCode());
+
+        // name equality remains case-sensitive
+        assertFalse(name.equals(new Name("valid name")));
 
         // same object -> returns true
         assertTrue(name.equals(name));

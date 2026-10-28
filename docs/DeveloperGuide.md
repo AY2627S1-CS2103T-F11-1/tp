@@ -189,11 +189,35 @@ How the command parsing and execution works:
 7. If uniqueness validation passes, `Model#addPerson(toAdd)` inserts the contact into `UniquePersonList`, and `Model#commitAddressBook()` saves the state snapshot into `VersionedAddressBook` to support undo/redo.
 8. A `CommandResult` containing success feedback (labeled `result`) is returned to `LogicManager`.
 
-`Name` accepts the same punctuation as `Role` and `Tag`: `-`, `/`, `&`, and `'`,
-provided the value starts and ends with an alphanumeric character. Values are
-still subject to the command parser's prefix rules; the broader handling of
-slash-containing values that resemble unknown prefixes remains out of scope for
-this change.
+#### Name, role, and tag formatting
+
+`Name`, `Role`, and `Tag` share the same character rules: ASCII letters and digits,
+internal spaces, and punctuation (`-`, `/`, `&`, and `'`). Values must start and end
+with a letter or digit. Internal tabs and line breaks are rejected. `ParserUtil`
+trims leading and trailing whitespace before validation; each value object's
+constructor validates its input before collapsing consecutive internal spaces.
+Capitalisation and punctuation are preserved. For example, `Anne-Marie   O'Connor`
+becomes `Anne-Marie O'Connor` when constructed as a `Name`.
+
+The formatting rules apply to both `add` and `edit`, and also when stored JSON is
+loaded through the value-object constructors. Existing names containing repeated
+internal spaces are therefore normalised on load and saved in that form on the
+next successful save. `NameTest`, `AddCommandParserTest`, `EditCommandParserTest`,
+and `JsonAdaptedPersonTest` cover these paths.
+
+Two field-specific behaviours remain: only `Tag` has a 50-character limit, checked
+before normalisation, and `Name.equals()` compares case-sensitively while `Role`
+and `Tag` compare case-insensitively. Search predicates for all three fields ignore
+case, but do not collapse spaces in search phrases.
+
+Prefix recognition runs before field validation. Slash-containing values such as
+`n/David s/o Me` remain rejected because `s/` is recognised as an unknown prefix;
+a supported prefix after a space starts another field. This also affects leading
+spaces before a slash-containing value: `t/key/board` works, but `t/ key/board`
+is rejected as an unknown `key/` prefix. Changing this command syntax remains
+deferred.
+
+#### Execution flow
 
 The activity diagram below illustrates the duplicate resolution and defensive error-handling branching during `AddCommand#execute()`. Each decision node specifies explicit, mutually exclusive guard conditions on all outgoing branches, and all execution paths converge cleanly to a single final node:
 
@@ -913,6 +937,25 @@ testers are expected to do more *exploratory* testing.
       Expected: Similar to previous.
 
 1. _{ more test cases …​ }_
+
+### Name, role, and tag formatting
+
+Use a disposable application copy and add a contact with unused phone and email details:
+
+```text
+add n/Anne-Marie   O'Connor p/81009001 e/formatting@example.com a/Test Address r/R&D   Partner t/lubed/filmed   switches
+```
+
+Expected: The contact has name `Anne-Marie O'Connor`, role `R&D Partner`, and tag
+`lubed/filmed switches`. Punctuation and capitalisation are preserved, while each
+run of internal spaces becomes one space. Run `find n/Anne-Marie O'Connor` and
+confirm there is exactly one result before using index 1 below.
+
+Command | Expected result
+--------|------------------
+`edit 1 n/Anne-Marie    O'Connor r/R&D    Partner t/PCB    Supplier` | All supplied fields use single internal spaces. The new tag is `PCB Supplier`, and the existing tag remains.
+`edit 1 n/Changed xx/value` | Unknown-prefix error; the contact's name, role, and tags remain unchanged.
+Restart the application, then run `find n/Anne-Marie O'Connor`. | The normalised name, role, and both tags are retained.
 
 ### Editing contact tags
 
