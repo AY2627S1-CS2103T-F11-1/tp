@@ -54,6 +54,7 @@ import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.Logic;
 import seedu.address.logic.LogicManager;
 import seedu.address.logic.commands.ListCommand;
+import seedu.address.logic.commands.SelectCommand;
 import seedu.address.model.AddressBook;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
@@ -457,6 +458,31 @@ public class MainWindowTest {
             public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
                 throw new IOException("Simulated saving failure");
             }
+        });
+    }
+
+    @Test
+    public void selectCommand_updatesDetailsAndRetainsInputFocus_invalidIndexesKeepSelection() throws Exception {
+        runOnFxThread(this::initializeContactWindow);
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertSelectionCleared();
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            submitCommand("select 2");
+            assertSelected(BENSON);
+            assertEquals(1, contactList().getSelectionModel().getSelectedIndex());
+            assertSame(command, stage.getScene().getFocusOwner());
+            TextArea feedback = (TextArea) stage.getScene().lookup("#resultDisplay");
+            assertEquals(String.format(SelectCommand.MESSAGE_SELECT_CONTACT_SUCCESS, 2, BENSON.getName().fullName),
+                    feedback.getText());
+
+            submitCommand("select 0", false);
+            assertSelected(BENSON);
+            assertSame(command, stage.getScene().getFocusOwner());
+            submitCommand("select 3", false);
+            assertSelected(BENSON);
+            assertSame(command, stage.getScene().getFocusOwner());
         });
     }
 

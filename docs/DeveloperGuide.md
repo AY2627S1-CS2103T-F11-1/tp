@@ -134,8 +134,8 @@ resulting current index, or clears selection if the contact is absent. It also r
 equal but distinct replacement objects. This retains visible contacts across filtering, sorting, and unrelated changes;
 it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
 path still conservatively clear selection. Model and Storage data structures remain unchanged.
-`CommandResult` now supports an optional exact-contact selection request. Existing commands leave this empty;
-the `select INDEX` command itself is not yet implemented.
+`CommandResult` supports an optional exact-contact selection request. `SelectCommand` supplies the contact resolved
+from the displayed list; commands without an explicit request retain their existing selection policy.
 
 `MainWindowTest` covers mouse and arrow-key events, null selection, actual edit/delete/filter/list/sort/clear/follow-up
 commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
@@ -147,27 +147,27 @@ Further UI tests cover Escape from the list, details, and feedback, draft/cursor
 independent mouse-wheel scrolling, access to the bottom of long details, and long content at divider limits after
 resizing between minimum and larger windows.
 
-#### Proposed `select INDEX` command (not implemented)
+#### `select INDEX` implementation status
 
-This proposal would let users select a contact entirely through command input. `INDEX` would be a positive,
-one-based index into the currently displayed filtered and sorted list. Missing, zero, negative, extra, non-numeric,
-and out-of-range arguments would be rejected without changing selection. A valid selection would scroll the list
-to the contact and display its details while keeping focus in command input. It would not change contact data,
-filters, sorting, or undo/redo history, and would not persist selection across restarts.
+`select INDEX` now lets users select a contact entirely through command input. `INDEX` is a positive, one-based index
+into the currently displayed filtered and sorted list. Missing, zero, negative, extra, non-numeric, overflowing,
+and out-of-range arguments are rejected without changing selection. A valid selection scrolls the list to the contact
+and displays its details while keeping focus in command input. It does not change contact data, filters, sorting,
+or undo/redo history, and does not persist selection across restarts.
 
-`SelectCommand` would resolve the current `Person` reference during execution and return it as an optional selection
-request in `CommandResult`. Existing constructors would default to no request. `LogicManager` would copy this request
-into `CommandSelectionChange` before saving. An explicit request would take precedence over retaining the previous
-selection; undo/redo would continue to clear it. This uses the existing `MainWindow` finally block and
+`SelectCommand` resolves the current `Person` reference during execution and returns it as an optional selection
+request in `CommandResult`. Existing constructors default to no request. `LogicManager` copies this request
+into `CommandSelectionChange` before saving. An explicit request takes precedence over retaining the previous
+selection; undo/redo continue to clear it. This uses the existing `MainWindow` finally block and
 `PersonListPanel#endCommand(Person)`, including reconciliation after saving errors, without Model or Storage changes.
 
-The complete planned file list is below. The selection-request plumbing in `CommandResult`, `CommandSelectionChange`,
-and `LogicManager`, with its initial tests, is implemented. The command, parser, help, and end-to-end selection
-workflow remain proposed. `LogicManager` has a package-private parser-injection constructor so tests can exercise
-request-producing commands without registering a production command.
+The complete planned file list is below. The selection-request plumbing, command, parser, and basic end-to-end GUI
+selection are implemented with core validation tests. Additional integration cases, help registration, and final
+user-facing documentation remain for later iterations. `LogicManager` also has a package-private parser-injection
+constructor for testing command results independently of production command registration.
 Paths are relative to the repository root.
 
-File | Proposed change
+File | Planned change
 -----|----------------
 `src/main/java/seedu/address/logic/commands/SelectCommand.java` (new) | Validate the displayed index and return selection feedback and the exact contact reference; do not commit history.
 `src/main/java/seedu/address/logic/parser/SelectCommandParser.java` (new) | Parse exactly one positive index using the existing index validation.
@@ -192,7 +192,7 @@ File | Proposed change
 `docs/images/help-continued.png` | Refresh the continuation screenshot after the additional help text changes scrolling positions.
 
 No `Logic` API, FXML, `MainWindow`, `PersonListPanel`, `PersonDetailsPanel`, Model, or Storage changes are required by
-this proposed approach. The existing generic command/parser diagrams already cover an additional command; their
+this approach. The existing generic command/parser diagrams already cover an additional command; their
 class structure would not change.
 
 ### Logic component
