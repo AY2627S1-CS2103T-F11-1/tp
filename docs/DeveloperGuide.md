@@ -351,10 +351,12 @@ It supports case-insensitive, ascending ordering by name, role, or both, with fi
 
 #### Parsing and validation
 
-`AddressBookParser` delegates sort arguments to `SortCommandParser`. Empty or whitespace-only arguments default to
-`SortField.NAME`. Otherwise, the parser splits arguments on whitespace and maps standalone `n/` and `r/` tokens to
-an ordered list of `SortField` values. Duplicate fields, values attached to prefixes, and unsupported tokens produce
-specific `ParseException` messages before any model state changes.
+`AddressBookParser` delegates sort arguments to `SortCommandParser`. Empty or
+whitespace-only arguments default to `SortField.NAME`. Otherwise, the parser
+accepts standalone `n/` and `r/` tokens in the supplied priority order, or the
+standalone `clear` argument. Duplicate fields, values attached to prefixes,
+unsupported tokens, and combinations such as `clear n/` produce specific
+`ParseException` messages before any model state changes.
 
 `SortCommand` independently requires one or two distinct, non-null fields and makes an immutable defensive copy of
 the supplied list. This preserves field priority even if the caller later modifies its original list.
@@ -369,9 +371,12 @@ the supplied list. This preserves field priority even if the caller later modifi
 4. Applies the comparator using `Model#updateSortedPersonList()`.
 5. Returns a `CommandResult`, selecting empty-address-book feedback when the underlying contact list is empty.
 
-The empty-address-book check affects feedback only: sorting is still applied so contacts added afterwards follow
-the selected order. An empty search result does not trigger this feedback if the underlying address book has contacts.
-Executing another sort command replaces the previous comparator rather than adding to the previous sorting criteria.
+The empty-address-book check affects feedback only: sorting is still applied so
+contacts added afterwards follow the selected order. The user receives an
+informational message instead of an error. An empty search result does not
+trigger this feedback if the underlying address book contains contacts.
+Executing another sort command replaces the previous comparator rather than
+adding to the previous sorting criteria.
 
 #### Model integration, persistence, and history
 
@@ -379,6 +384,10 @@ Executing another sort command replaces the previous comparator rather than addi
 `sortedPersons` from `filteredPersons`. `updateFilteredPersonList()` changes the predicate on the filtered view;
 `updateSortedPersonList()` changes the comparator on the sorted view. Neither operation rearranges stored contacts.
 With no comparator, the sorted view follows its source order.
+
+`sort clear` calls `updateSortedPersonList(null)`. Since a `SortedList` without
+a comparator follows its source order, this restores the original insertion
+order without rearranging the stored contact list.
 
 ![Partial class diagram of the model's filtered and sorted contact views](images/SortModelClassDiagram.png)
 
@@ -394,9 +403,10 @@ contacts propagate through both views, including repositioning a contact when an
 After successful execution, `LogicManager` saves `model.getAddressBook()`, not the displayed view. The comparator is
 not serialized, so sorting does not change saved contact order and is reset on restart.
 
-Sort does not call `commitAddressBook()`, so it creates no undo snapshot and does not discard redo history.
-Undo and redo restore contact data and clear the filter without replacing the active comparator. Subsequent find
-and list commands also retain the selected sort order.
+Sort and `sort clear` do not call `commitAddressBook()`, so neither creates an
+undo snapshot or discards redo history. Undo and redo restore contact data and
+retain the active sort order unless the user explicitly runs `sort clear`.
+Subsequent find and list commands retain the selected sort order.
 
 #### Design considerations
 
@@ -414,9 +424,13 @@ Filtering remains independent: users can run find afterwards to narrow the sorte
 
 #### Test coverage
 
-* `SortCommandParserTest` covers default sorting, field priority, whitespace, and invalid arguments.
-* `SortCommandTest` covers constructor validation, defensive copying, comparator priority, case handling, empty and
-  single-contact lists, filter clearing, replacement sorting, and sorting contacts added after an empty-book sort.
+* `SortCommandParserTest` covers default sorting, field priority, whitespace,
+  `clear`, invalid arguments, and invalid combinations of `clear` with sorting
+  fields.
+* `SortCommandTest` covers constructor validation, defensive copying, comparator
+  priority, case handling, empty and single-contact lists, filter clearing,
+  replacement sorting, clearing the sort, restoring insertion order, and sorting
+  contacts added after an empty-book sort.
 * `ModelManagerTest` covers displayed ordering, chained comparators, filtering, live add/edit/delete updates through
   an existing list reference, and model equality.
 * `AddressBookParserTest` checks command dispatch to the sort parser.
@@ -813,9 +827,27 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 * 2a. The address book contains no contacts.
 
-  * 2a1. `KeyBossWarriorsPro` informs the user that there are no
-    contacts to sort. The selected sorting criteria remain active
-    for contacts added afterwards.
+  * 2a1. `KeyBossWarriorsPro` displays an informational message instead of an
+    error. The selected sorting criteria remain active for contacts added
+    afterwards.
+
+    Use case ends.
+
+**Use Case: UC7 - Clear Sort Order**
+
+**MSS**
+
+1. User requests to clear the active sort order using `sort clear`.
+2. `KeyBossWarriorsPro` displays all contacts in their original insertion order.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The address book contains no contacts.
+
+  * 1a1. `KeyBossWarriorsPro` displays an empty list and confirms that sorting
+    has been cleared.
 
     Use case ends.
 
@@ -993,8 +1025,13 @@ The roles and phone numbers distinguish the two Alice contacts. Perform each gro
       contacts in role-then-name order, confirming the comparator is unchanged.
 
    1. Test case: `clear`, then `sort n/`.<br>
-      Expected: Empty list and feedback `Error: There are no contacts to sort.`
+      Expected: Empty list and feedback
+      `No contacts are currently available. The selected sort order will apply to contacts added later.`
       Add Zoe and Alice (Supplier) using their setup commands: Alice appears before Zoe.
+
+   1. Test case: `sort r/`, then `sort clear`.<br>
+      Expected: Contacts return to their original insertion order: Zoe, ben, Alice, alice.
+      Feedback: `Sorting cleared. Contacts will be displayed in insertion order.`
 
 ### Saving data
 
