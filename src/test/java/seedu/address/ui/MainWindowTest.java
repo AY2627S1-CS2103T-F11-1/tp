@@ -939,6 +939,7 @@ public class MainWindowTest {
             assertEquals("1. ", ((Label) card.lookup("#id")).getText());
             assertEquals(person.getRole().value, ((Label) card.lookup("#role")).getText());
             assertEquals(person.getPhone().value, ((Label) card.lookup("#phone")).getText());
+            assertFollowUpBadge(person);
             Label email = (Label) card.lookup("#email");
             assertEquals(person.getEmail().value, email.getText());
             assertEquals(person.getEmail().value, email.getTooltip().getText());
@@ -988,7 +989,108 @@ public class MainWindowTest {
             FlowPane tags = (FlowPane) untagged.getGraphic().lookup("#tags");
             assertFalse(tags.isVisible());
             assertFalse(tags.isManaged());
+            assertFollowUpBadge(withoutTags);
         });
+    }
+
+    private void assertFollowUpBadge(Person person) {
+        Region card = (Region) contactCell(person).getGraphic();
+        Label badge = (Label) card.lookup("#followUpBadge");
+        boolean hasFollowUp = person.getFollowUp().isPresent();
+        assertEquals(hasFollowUp, badge.isVisible());
+        assertEquals(hasFollowUp, badge.isManaged());
+        assertEquals("Follow-up", badge.getText());
+        person.getFollowUp().ifPresent(followUp -> {
+            List<String> labels = card.lookupAll(".label").stream()
+                    .map(node -> ((Label) node).getText()).toList();
+            assertFalse(labels.contains(followUp.getDueDate().toString()), "Cards should show only the indicator");
+            assertFalse(labels.contains(followUp.getDescription()), "The description belongs in the details panel");
+        });
+    }
+
+    @Test
+    public void cards_followUpCommandsAndUndoRedo_refreshBadgeWithoutLeavingSpace() throws Exception {
+        double[] originalHeight = new double[1];
+        runOnFxThread(() -> {
+            initializeContactWindow().commitAddressBook();
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertFollowUpBadge(ALICE);
+            originalHeight[0] = contactCell(ALICE).getHeight();
+        });
+
+        String[] commands = {
+            "followup 1 by/2026-11-01 abt/Confirm switches",
+            "followup 1 by/2026-11-02 abt/Confirm delivery",
+            "edit 1 r/Employee",
+            "undo",
+            "redo",
+            "followup 1 clear",
+            "undo",
+            "redo"
+        };
+        boolean[] hasFollowUp = {true, true, true, true, true, false, true, false};
+        for (int i = 0; i < commands.length; i++) {
+            String command = commands[i];
+            boolean expected = hasFollowUp[i];
+            runOnFxThread(() -> submitCommand(command));
+            awaitLayout();
+            runOnFxThread(() -> {
+                Person person = (Person) contactList().getItems().get(0);
+                assertEquals(expected, person.getFollowUp().isPresent());
+                assertFollowUpBadge(person);
+                assertFollowUpBadge((Person) contactList().getItems().get(1));
+                assertSame(stage.getScene().lookup("#commandTextField"), stage.getScene().getFocusOwner());
+                if (!expected) {
+                    assertEquals(originalHeight[0], contactCell(person).getHeight(), 1,
+                            "Clearing the follow-up should restore the card's original height");
+                }
+            });
+        }
+    }
+
+    @Test
+    public void cards_followUpBadgeAndLongRole_fitAtDividerLimits() throws Exception {
+        Person person = new PersonBuilder(ALICE).withRole("Keyboard component supplier ".repeat(8).strip())
+                .withTags().withFollowUp("2026-11-01", "Confirm switch shipment").build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            initializeMainWindow(model);
+        });
+        for (double width : new double[] {800, 1100, 800}) {
+            for (double position : new double[] {0, 1}) {
+                runOnFxThread(() -> {
+                    stage.setWidth(width);
+                    SplitPane split = (SplitPane) stage.getScene().lookup("#contactSplitPane");
+                    split.setDividerPositions(position);
+                });
+                awaitLayout();
+                runOnFxThread(() -> {
+                    assertFollowUpBadge(person);
+                    Region card = (Region) contactCell(person).getGraphic();
+                    Label role = (Label) card.lookup("#role");
+                    Label badge = (Label) card.lookup("#followUpBadge");
+                    assertEquals("Follow-up", ((Text) badge.lookup(".text")).getText(),
+                            "The badge text should remain fully visible");
+                    assertEquals(person.getRole().value, ((Text) role.lookup(".text")).getText(),
+                            "The role should wrap without losing text");
+                    Bounds roleBounds = role.localToScene(role.getLayoutBounds());
+                    Bounds badgeBounds = badge.localToScene(badge.getLayoutBounds());
+                    Bounds cardBounds = card.localToScene(card.getLayoutBounds());
+                    Bounds phoneBounds = card.lookup("#phone").localToScene(card.lookup("#phone").getLayoutBounds());
+                    assertTrue(roleBounds.getMinX() >= cardBounds.getMinX());
+                    assertTrue(roleBounds.getMaxX() <= badgeBounds.getMinX());
+                    assertTrue(badgeBounds.getMaxX() <= cardBounds.getMaxX() + 1);
+                    assertTrue(phoneBounds.getMinY() >= Math.max(roleBounds.getMaxY(), badgeBounds.getMaxY()));
+                    assertFalse(scrollBar(contactList(), Orientation.HORIZONTAL).isVisible());
+                    assertContactPanesFit();
+                });
+            }
+        }
     }
 
     @Test

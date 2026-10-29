@@ -28,8 +28,13 @@
         </Label>
         <Label fx:id="name" styleClass="cell_big_label" minWidth="0" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
       </HBox>
-      <Label fx:id="role" styleClass="cell_small_label" wrapText="true" minWidth="0"
-             minHeight="-Infinity" maxWidth="Infinity" />
+      <HBox spacing="8" alignment="CENTER_LEFT" minWidth="0">
+        <Label fx:id="role" styleClass="cell_small_label" wrapText="true" minWidth="0"
+               minHeight="-Infinity" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
+        <Label fx:id="followUpBadge" text="Follow-up" styleClass="person-follow-up-badge"
+               minWidth="-Infinity" minHeight="-Infinity" maxHeight="-Infinity"
+               accessibleText="Has a follow-up. Select this contact to view details." />
+      </HBox>
       <Label fx:id="phone" styleClass="cell_small_label" wrapText="true" minWidth="0"
              minHeight="-Infinity" maxWidth="Infinity" />
       <Label fx:id="email" styleClass="cell_small_label" wrapText="false" textOverrun="ELLIPSIS"

@@ -356,6 +356,16 @@
     -fx-text-fill: white;
 }
 
+.person-follow-up-badge {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 6;
+    -fx-border-color: #3e7b91;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+}
+
 .person-details-panel .scroll-pane,
 .person-details-panel .viewport {
     -fx-background-color: transparent;

@@ -36,6 +36,8 @@ public class PersonCard extends UiPart<Region> {
     @FXML
     private Label role;
     @FXML
+    private Label followUpBadge;
+    @FXML
     private Label phone;
     @FXML
     private Label email;
@@ -55,6 +57,9 @@ public class PersonCard extends UiPart<Region> {
         nameTooltip.setMaxWidth(400);
         name.setTooltip(nameTooltip);
         role.setText(person.getRole().value);
+        boolean hasFollowUp = person.getFollowUp().isPresent();
+        followUpBadge.setVisible(hasFollowUp);
+        followUpBadge.setManaged(hasFollowUp);
         phone.setText(person.getPhone().value);
         email.setText(person.getEmail().value);
         Tooltip emailTooltip = new Tooltip(person.getEmail().value);

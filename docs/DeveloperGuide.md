@@ -94,6 +94,9 @@ preferences data structure.
 Address and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
 tags are hidden and unmanaged. Long names and emails use a single line with an ellipsis and full-text tooltips;
 tags wrap. Email appears beneath the phone number using the existing summary text style.
+The role row includes a fixed-width `Follow-up` badge when `Person#getFollowUp()` is present. The role wraps into the
+remaining width. `PersonCard` hides and unmanages the badge when absent, so it reserves no space. The badge uses text
+and a border in the existing theme; it represents presence only and does not depend on the current date.
 `PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
 preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
 remain visible when keyboard focus moves to command input.
@@ -143,8 +146,9 @@ from the displayed list; commands without an explicit request retain their exist
 commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
 `LogicManagerTest` additionally verifies replacement identity and reset of command selection information after failures.
 `PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
-`MainWindowTest` also verifies compact card height, empty-tag spacing, long-name tooltips, tag wrapping, selected-card
-styling without list focus, and access to the complete selected contact details.
+`MainWindowTest` also verifies compact card height, empty-tag spacing, long-name/email tooltips, tag wrapping,
+follow-up badge updates through commands and undo/redo, badge/role layout at divider limits, selected-card styling
+without list focus, and access to the complete selected contact details.
 Further UI tests cover Escape from the list, details, and feedback, draft/cursor preservation after focus settles,
 independent mouse-wheel scrolling, access to the bottom of long details, and long content at divider limits after
 resizing between minimum and larger windows.
@@ -448,7 +452,9 @@ Queries do not commit snapshots or alter contact data. An empty result displays 
 #### UI integration
 `PersonDetailsPanel` populates the follow-up date and description defined in `PersonDetailsPanel.fxml` when a contact
 is selected. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
-The compact `PersonCard` does not repeat follow-up information.
+The compact `PersonCard` shows only a `Follow-up` badge beside the role when a follow-up is present, leaving its date
+and description in the details panel. Replacement contacts rebuild the card through the existing list-cell factory,
+so setting, replacing, clearing, undoing, or redoing a follow-up refreshes the badge without new model state.
 
 The command selection handling described under contact details and selection tracks replacement contacts and refreshes
 the details panel after follow-up changes. A contact that no longer matches a follow-up filter clears selection.
@@ -1058,13 +1064,13 @@ Create a contact with a unique name, phone number, and email. Run `find` with th
 
 Action | Expected result
 -------|----------------
-Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The details panel shows the date and description.
-Set another follow-up with a different date and description. | Both values replace the existing follow-up.
+Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | A Follow-up badge appears on the card; the details panel shows the date and description.
+Set another follow-up with a different date and description. | Both values replace the existing follow-up; the badge remains.
 Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is preserved.
 Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
 Run `followups by/DATE` using the follow-up's exact due date. | The contact appears because the cutoff is inclusive.
-Find the test contact and run `followup 1 clear`. | The follow-up disappears; the contact remains.
-Run `undo`, then `redo`. | The follow-up is restored, then removed again.
+Find the test contact and run `followup 1 clear`. | The badge and follow-up details disappear; the contact remains, with no reserved badge space.
+Run `undo`, then `redo`. | The follow-up and badge are restored, then removed again.
 Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
 Restart after setting a follow-up. | The saved follow-up is restored.
 Display a long description and resize the window. | Verify the full text remains accessible through vertical scrolling in the details panel.
