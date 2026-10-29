@@ -221,7 +221,7 @@ Command | Behavior
 * A follow-up due today is not overdue.
 * Today is determined using the computer's local date when the command executes. Rerun the command to refresh date-based results after the date changes.
 * Date cutoffs follow the same date constraints as `followup`. Past cutoffs are accepted.
-* Query modes cannot be combined. Index arguments are not supported.
+* Query modes cannot be combined and extra arguments or keywords (e.g. `followups by/2026-11-01 overdue`) are rejected with an invalid command format error. Index arguments are not supported.
 * Queries do not modify contact details or undo/redo history.
 * If no contacts match, the list is empty and the application displays `No follow-ups found.`
 
