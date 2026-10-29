@@ -1090,8 +1090,8 @@ Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is pr
 Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
 Run `followups by/DATE` using the follow-up's exact due date. | The contact appears because the cutoff is inclusive.
 Run `followups by/DATE overdue` or `followups by/DATE extra`. | An invalid command format error appears without changing the view.
-Find the test contact and run `followup 1 clear`. | The follow-up disappears; the contact remains.
-Run `undo`, then `redo`. | The follow-up is restored, then removed again.
+Find the test contact and run `followup 1 clear`. | The badge and follow-up details disappear; the contact remains, with no reserved badge space.
+Run `undo`, then `redo`. | The follow-up and badge are restored, then removed again.
 Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
 Restart after setting a follow-up. | The saved follow-up is restored.
 Display a long description and resize the window. | Verify the full text remains accessible through vertical scrolling in the details panel.
