@@ -311,6 +311,29 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_storageThrowsIoExceptionOnReadOnlyCommand_preservesModelAndHistory() throws Exception {
+        model.addPerson(AMY);
+        model.commitAddressBook();
+
+        Path prefPath = temporaryFolder.resolve("ExceptionUserPrefsList.json");
+        JsonAddressBookStorage addressBookStorage = new JsonAddressBookStorage(prefPath) {
+            @Override
+            public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                throw DUMMY_IO_EXCEPTION;
+            }
+        };
+        JsonUserPrefsStorage userPrefsStorage =
+                new JsonUserPrefsStorage(temporaryFolder.resolve("ExceptionUserPrefsList.json"));
+        StorageManager storage = new StorageManager(addressBookStorage, userPrefsStorage);
+        logic = new LogicManager(model, storage);
+
+        assertThrows(CommandException.class, () -> logic.execute(ListCommand.COMMAND_WORD));
+        assertTrue(model.hasPerson(AMY));
+        assertTrue(model.canUndoAddressBook());
+        assertFalse(model.canRedoAddressBook());
+    }
+
+    @Test
     public void execute_storageAtomicWriteFails_throwsCommandExceptionAndCleansUpTempFiles() throws Exception {
         Path invalidFilePath = temporaryFolder.resolve("invalidStorageDir");
         Files.createDirectory(invalidFilePath);
@@ -325,8 +348,6 @@ public class LogicManagerTest {
                 + EMAIL_DESC_AMY + ADDRESS_DESC_AMY + ROLE_DESC_AMY;
         Person expectedPerson = new PersonBuilder(AMY).withTags().build();
         ModelManager expectedModel = new ModelManager();
-        expectedModel.addPerson(expectedPerson);
-        expectedModel.commitAddressBook();
 
         CommandException exception = Assertions.assertThrows(CommandException.class, () -> logic.execute(addCommand));
         String fileOpsErrorPrefix = String.format(LogicManager.FILE_OPS_ERROR_FORMAT, "").trim();
@@ -336,6 +357,9 @@ public class LogicManagerTest {
         assertTrue(isExpectedMessage, "Expected file operation error message but got: " + exception.getMessage());
         assertTrue(exception.getCause() instanceof IOException);
         assertEquals(expectedModel, model);
+        assertFalse(model.hasPerson(expectedPerson));
+        assertFalse(model.canUndoAddressBook());
+        assertFalse(model.canRedoAddressBook());
         assertTrue(Files.isDirectory(invalidFilePath));
         assertNoTempFilesRemain(temporaryFolder);
     }
@@ -646,9 +670,10 @@ public class LogicManagerTest {
                 + EMAIL_DESC_AMY + ADDRESS_DESC_AMY + ROLE_DESC_AMY;
         Person expectedPerson = new PersonBuilder(AMY).withTags().build();
         ModelManager expectedModel = new ModelManager();
-        expectedModel.addPerson(expectedPerson);
-        expectedModel.commitAddressBook();
         assertCommandFailure(addCommand, CommandException.class, expectedMessage, expectedModel);
+        assertFalse(model.hasPerson(expectedPerson));
+        assertFalse(model.canUndoAddressBook());
+        assertFalse(model.canRedoAddressBook());
     }
 
     /**
