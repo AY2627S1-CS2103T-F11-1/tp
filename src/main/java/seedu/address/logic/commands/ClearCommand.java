@@ -16,6 +16,8 @@ public class ClearCommand extends Command {
     public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION;
 
     public static final String MESSAGE_SUCCESS = "KeyBossWarriorsPro has been cleared!";
+    public static final String MESSAGE_EMPTY_ADDRESS_BOOK =
+            "KeyBossWarriorsPro is already empty; no contacts were cleared.";
     public static final String MESSAGE_IGNORED_ARGUMENTS =
             "Warning: Additional arguments after clear were ignored.";
 
@@ -32,6 +34,11 @@ public class ClearCommand extends Command {
     @Override
     public CommandResult execute(Model model) {
         requireNonNull(model);
+
+        if (model.getAddressBook().getPersonList().isEmpty()) {
+            return new CommandResult(MESSAGE_EMPTY_ADDRESS_BOOK);
+        }
+
         model.setAddressBook(new AddressBook());
         model.commitAddressBook();
 

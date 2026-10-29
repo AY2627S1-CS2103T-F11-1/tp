@@ -495,6 +495,9 @@ Step 5. The user then decides to execute the command `list`. Commands that do no
 
 Step 6. The user executes `clear`, which calls `Model#commitAddressBook()`. Since the `currentStatePointer` is not pointing at the end of the `addressBookStateList`, all address book states after the `currentStatePointer` will be purged. Reason: It no longer makes sense to redo the `add n/David …​` command. This is the behavior that most modern desktop applications follow.
 
+<div markdown="span" class="alert alert-info">:information_source: **Note:** If the address book is already empty, `clear` does not modify contact data or invoke `Model#commitAddressBook()`, keeping the existing `addressBookStateList` and redo history intact.
+</div>
+
 ![UndoRedoState5](images/UndoRedoState5.png)
 
 The following activity diagram summarizes what happens when a user executes a new command:
