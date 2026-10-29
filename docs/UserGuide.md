@@ -124,11 +124,11 @@ Common errors:
 
 Input or condition | Feedback
 -------------------|---------
-`select` | `Error: INDEX is required. Usage: select INDEX`
-`select 0`, `select -1`, `select abc`, or an integer larger than 2147483647 | `Error: INDEX must be a positive integer`
-`select 1 2` | `Error: SELECT accepts only one INDEX`
-No contacts are displayed | `Error: There are no displayed contacts to select`
-`select 4` when three contacts are displayed | `Error: INDEX 4 is outside the displayed contact list (valid range: 1-3)`
+`select` | `INDEX is required.`
+`select 0`, `select -1`, `select abc`, or an integer larger than 2147483647 | `INDEX must be a whole number between 1 and 2147483647.`
+`select 1 2` | `select accepts only one INDEX.`
+No contacts are displayed | `No contacts are currently displayed.`
+`select 4` when three contacts are displayed | `INDEX 4 is outside the displayed contact list (valid range: 1-3).`
 
 When exactly one contact is displayed, an out-of-range error states that the only valid index is `1`.
 
