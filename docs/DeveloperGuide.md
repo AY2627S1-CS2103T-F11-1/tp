@@ -149,8 +149,12 @@ suppresses native ListView selection notifications during that execution, preven
 from being published. In a `finally` block, `MainWindow` applies the command's selection change and calls
 `PersonListPanel#endCommand(Person)`. The panel searches the current displayed list by object identity and selects the
 resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
-equal but distinct replacement objects. Before scrolling, it resolves pending list styling and layout so newly added
-rows are positioned using current dimensions. This retains visible contacts across filtering, sorting, and unrelated changes;
+equal but distinct replacement objects. It first resolves pending styling/layout and scrolls immediately, then verifies
+visibility after the scene's layout pass. If needed, it retries the scroll for up to three layout passes so newly added
+rows use the native list's updated item count and measured heights. Each request retains the exact contact reference
+and resolves its current index again. A later command, selection change, mouse/key/wheel interaction, scene change,
+or window closure cancels pending scrolling. Scene listeners and window handlers are removed when a request finishes
+or is cancelled, and stale callbacks cannot affect a newer request. This retains visible contacts across filtering, sorting, and unrelated changes;
 it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
 path still conservatively clear selection. Model and Storage data structures remain unchanged.
 `CommandResult` supports an optional exact-contact selection request. `SelectCommand` supplies the contact resolved
@@ -171,6 +175,10 @@ instead of imposing a platform-dependent pixel-height limit. Off-screen selectio
 the requested row to fit in the list for two consecutive frames, retaining full-visibility checks without issuing
 another scroll. Timeouts report the selected index, window/list bounds, and visible rows. Gradle logs full exception
 details on test failure so CI diagnostics include assertion messages and stack traces.
+The newly added-row regression deliberately drops scroll requests made before the first layout pass, reproducing
+the native list's early-request failure without relying on a particular operating system. It requires the app's
+post-layout request to reveal the row. Further checks ensure delayed requests respect later commands, changed
+selection, and manual scrolling without moving keyboard focus or resetting the details panel's reading position.
 `UiDateTrackerTest` covers local midnight, unchanged days, clock corrections, periodic refresh, hidden/shown windows,
 and focus return. `PersonDetailsPanelTest` checks that date refresh cannot revive a cleared follow-up section.
 Further UI tests cover Escape from the list, details, and feedback, draft/cursor preservation after focus settles,
@@ -195,8 +203,9 @@ Each command attempt resets this information before parsing. Selection precedenc
 
 `MainWindow` applies the result through its existing `finally` block and `PersonListPanel#endCommand(Person)`.
 The panel resolves the current index by object identity, updates the highlight, and scrolls to the contact without
-moving focus out of command input. It resolves pending styling and list layout before scrolling so freshly added
-rows are positioned correctly. Repeated selection of the same object retains the details panel's reading position.
+moving focus out of command input. It resolves pending styling/layout and completes any required scroll after the
+scene's layout pass so freshly added rows are positioned correctly. Repeated selection of the same object retains
+the details panel's reading position.
 There are no new Model or Storage fields and no selection data is persisted.
 
 The existing automatic saving flow still runs after selection. Because the explicit request is recorded before

@@ -43,6 +43,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ScrollToEvent;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -749,6 +750,8 @@ public class MainWindowTest {
 
     @Test
     public void selectCommand_offscreenAndRepeated_revealsContactWithoutResettingDetailsScroll() throws Exception {
+        boolean[] newRowLaidOut = {false};
+        int[] earlyScrollRequests = {0};
         Person target = new PersonBuilder().withName("Target Supplier").withPhone("81000999")
                 .withEmail("target@example.com").withTags("X".repeat(50), "switches", "lube")
                 .withAddress("Unit 08 Artisan Keyboard Business Park, ".repeat(16))
@@ -790,6 +793,20 @@ public class MainWindowTest {
             assertSame(stage.getScene().lookup("#commandTextField"), stage.getScene().getFocusOwner());
 
             // A freshly appended row has not yet been measured by the list's virtual layout.
+            // Simulate the native list dropping scroll requests made before that layout completes.
+            stage.getScene().addPostLayoutPulseListener(new Runnable() {
+                @Override
+                public void run() {
+                    newRowLaidOut[0] = true;
+                    stage.getScene().removePostLayoutPulseListener(this);
+                }
+            });
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
+                if (event.getScrollTarget() == 41 && !newRowLaidOut[0]) {
+                    earlyScrollRequests[0]++;
+                    event.consume();
+                }
+            });
             submitCommand("add n/Appended Supplier p/81000998 e/appended@example.com a/Another supplier address "
                     + "r/Supplier t/" + "Y".repeat(50) + " t/lube t/switches");
             assertSelected(target);
@@ -799,9 +816,62 @@ public class MainWindowTest {
         runOnFxThread(() -> {
             Person appended = (Person) contactList().getItems().get(41);
             assertEquals("Appended Supplier", appended.getName().fullName);
+            assertTrue(earlyScrollRequests[0] > 0, "The regression should discard an early scroll request");
             assertSelected(appended);
             assertContactRowVisible(appended);
         });
+    }
+
+    @Test
+    public void deferredScrolling_laterCommandsSelectionAndManualScrolling_cancelOldRequests() throws Exception {
+        Person[] last = new Person[1];
+        int[] scrollRequests = {0};
+        int[] requestsBeforeLayout = {0};
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(ALICE);
+            for (int i = 1; i < 40; i++) {
+                last[0] = new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").build();
+                model.addPerson(last[0]);
+            }
+            initializeMainWindow(model);
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
+                if (event.getScrollTarget() == 39) {
+                    scrollRequests[0]++;
+                    event.consume();
+                }
+            });
+        });
+        awaitContactRowVisible(0, "before checking cancellation of delayed scrolling");
+        for (String action : List.of("command", "selection", "scroll")) {
+            runOnFxThread(() -> {
+                submitCommand("select 40");
+                assertSelected(last[0]);
+                if (action.equals("command")) {
+                    submitCommand("select 1");
+                } else if (action.equals("selection")) {
+                    contactList().getSelectionModel().select(0);
+                } else {
+                    scrollDown(contactList().lookup(".virtual-flow"));
+                }
+                requestsBeforeLayout[0] = scrollRequests[0];
+            });
+            awaitLayout();
+            awaitLayout();
+            runOnFxThread(() -> {
+                assertEquals(requestsBeforeLayout[0], scrollRequests[0],
+                        "An old delayed scroll should not run after a later " + action);
+                if (action.equals("scroll")) {
+                    assertSelected(last[0]);
+                    assertTrue(scrollBar(contactList(), Orientation.VERTICAL).getValue() > 0,
+                            "Manual scrolling should be preserved");
+                } else {
+                    assertSelected(ALICE);
+                    assertContactRowVisible(ALICE);
+                }
+            });
+        }
     }
 
     private void assertContactRowVisible(Person person) {
