@@ -158,6 +158,26 @@ public class JsonAddressBookStorageTest {
     }
 
     @Test
+    public void readAddressBook_blankUnicodeFollowUpDescription_throwsDataLoadingException() throws Exception {
+        Path filePath = testFolder.resolve("blankFollowUpDescription.json");
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(filePath);
+        AddressBook addressBook = new AddressBook();
+        addressBook.addPerson(new PersonBuilder()
+                .withFollowUp(VALID_FOLLOW_UP_DATE, VALID_FOLLOW_UP_DESCRIPTION)
+                .build());
+        String json = JsonUtil.toJsonString(new JsonSerializableAddressBook(addressBook));
+        String[] descriptions = {
+            "", "   ", "\u2003", "\u200B", "\u00A0", "\u2060",
+            "\u200B\u00A0\u2060", " \u200B \u00A0\u2003\u2060 "
+        };
+
+        for (String description : descriptions) {
+            Files.writeString(filePath, json.replace(VALID_FOLLOW_UP_DESCRIPTION, description));
+            assertThrows(DataLoadingException.class, storage::readAddressBook);
+        }
+    }
+
+    @Test
     public void saveAddressBook_nullAddressBook_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> saveAddressBook(null, "SomeFile.json"));
     }
