@@ -2,6 +2,8 @@ package seedu.address.ui;
 
 import java.util.logging.Logger;
 
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.ListCell;
@@ -27,6 +29,17 @@ public class PersonListPanel extends UiPart<Region> {
         super(FXML);
         personListView.setItems(personList);
         personListView.setCellFactory(listView -> new PersonListViewCell());
+        // A list change can replace the selected contact or automatically select a neighbour.
+        personList.addListener((ListChangeListener<Person>) change -> {
+            personListView.getSelectionModel().clearSelection();
+        });
+    }
+
+    /**
+     * Returns the read-only selected-contact property. Its value is null when no contact is selected.
+     */
+    public ReadOnlyObjectProperty<Person> selectedPersonProperty() {
+        return personListView.getSelectionModel().selectedItemProperty();
     }
 
     /**

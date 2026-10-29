@@ -2,12 +2,16 @@ package seedu.address.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.abort;
 import static seedu.address.logic.commands.ExitCommand.MESSAGE_EXIT_ACKNOWLEDGEMENT;
 import static seedu.address.testutil.TypicalPersons.ALICE;
+import static seedu.address.testutil.TypicalPersons.BENSON;
 
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
@@ -24,10 +28,14 @@ import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
@@ -38,10 +46,12 @@ import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.Logic;
 import seedu.address.logic.LogicManager;
 import seedu.address.logic.commands.ListCommand;
+import seedu.address.model.AddressBook;
 import seedu.address.model.ModelManager;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.PersonBuilder;
 
 public class MainWindowTest {
 
@@ -49,6 +59,7 @@ public class MainWindowTest {
     public Path testFolder;
 
     private Stage stage;
+    private MainWindow mainWindow;
 
     @BeforeAll
     public static void initializeJavaFx() throws Exception {
@@ -110,7 +121,7 @@ public class MainWindowTest {
         Logic logic = new LogicManager(model, storage);
 
         stage = new Stage();
-        MainWindow mainWindow = new MainWindow(stage, logic, addressBookPath);
+        mainWindow = new MainWindow(stage, logic, addressBookPath);
         mainWindow.fillInnerParts();
         mainWindow.show();
     }
@@ -269,6 +280,129 @@ public class MainWindowTest {
             assertEquals(List.of(ALICE), list.getItems());
             TextArea feedback = (TextArea) stage.getScene().lookup("#resultDisplay");
             assertEquals(ListCommand.MESSAGE_SUCCESS, feedback.getText());
+        });
+    }
+
+    /**
+     * Creates a window with two distinct contacts and returns its model for list-change tests.
+     */
+    private ModelManager initializeContactWindow() {
+        ModelManager model = new ModelManager();
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        initializeMainWindow(model);
+        return model;
+    }
+
+    private ListView<?> contactList() {
+        return (ListView<?>) stage.getScene().lookup("#personListView");
+    }
+
+    private void assertDetailsName(String expected) {
+        ScrollPane scroll = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+        Label name = (Label) scroll.getContent().lookup("#name");
+        assertEquals(expected, name.getText());
+        assertTrue(scroll.isVisible());
+        assertFalse(stage.getScene().lookup("#emptyState").isVisible());
+    }
+
+    private void assertSelectionCleared() {
+        assertNull(mainWindow.getPersonListPanel().selectedPersonProperty().get());
+        assertNull(contactList().getSelectionModel().getSelectedItem());
+        assertTrue(stage.getScene().lookup("#emptyState").isVisible());
+        ScrollPane scroll = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+        assertFalse(scroll.isVisible());
+        assertEquals("", ((Label) scroll.getContent().lookup("#name")).getText());
+    }
+
+    @Test
+    public void selection_mouseAndArrowKeys_updateDetailsWithoutMovingFocus() throws Exception {
+        runOnFxThread(this::initializeContactWindow);
+        awaitLayout();
+        runOnFxThread(() -> {
+            ListView<?> list = contactList();
+            ListCell<?> cell = (ListCell<?>) list.lookupAll(".list-cell").stream()
+                    .filter(node -> node instanceof ListCell<?> item && item.getItem() == ALICE)
+                    .findFirst().orElseThrow();
+            Bounds bounds = cell.localToScene(cell.getLayoutBounds());
+            double x = bounds.getCenterX();
+            double y = bounds.getCenterY();
+            cell.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, x, y, x, y, MouseButton.PRIMARY, 1,
+                    false, false, false, false, true, false, false, false, false, false,
+                    new PickResult(cell, x, y)));
+            cell.fireEvent(new MouseEvent(MouseEvent.MOUSE_RELEASED, x, y, x, y, MouseButton.PRIMARY, 1,
+                    false, false, false, false, false, false, false, false, false, false,
+                    new PickResult(cell, x, y)));
+            assertSame(ALICE, mainWindow.getPersonListPanel().selectedPersonProperty().get());
+            assertDetailsName(ALICE.getName().fullName);
+
+            list.requestFocus();
+            list.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.DOWN, false, false, false, false));
+            assertSame(BENSON, mainWindow.getPersonListPanel().selectedPersonProperty().get());
+            assertDetailsName(BENSON.getName().fullName);
+            assertSame(list, stage.getScene().getFocusOwner());
+
+            list.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.UP, false, false, false, false));
+            assertSame(ALICE, mainWindow.getPersonListPanel().selectedPersonProperty().get());
+            assertDetailsName(ALICE.getName().fullName);
+        });
+    }
+
+    @Test
+    public void selection_startupAndNullSelection_showEmptyState() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow();
+            assertSelectionCleared();
+            contactList().getSelectionModel().select(0);
+            assertDetailsName(ALICE.getName().fullName);
+            contactList().getSelectionModel().clearSelection();
+            assertSelectionCleared();
+        });
+    }
+
+    @Test
+    public void selection_deleteFilterAndClear_removeStaleDetails() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = initializeContactWindow();
+            contactList().getSelectionModel().select(0);
+            model.deletePerson(ALICE);
+            assertSelectionCleared();
+
+            contactList().getSelectionModel().select(0);
+            assertDetailsName(BENSON.getName().fullName);
+            model.updateFilteredPersonList(_ -> false);
+            assertSelectionCleared();
+
+            model.updateFilteredPersonList(_ -> true);
+            contactList().getSelectionModel().select(0);
+            assertDetailsName(BENSON.getName().fullName);
+            model.setAddressBook(new AddressBook());
+            assertSelectionCleared();
+        });
+    }
+
+    @Test
+    public void selection_replacementAndSorting_clearDetailsUntilUserSelectsAgain() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = initializeContactWindow();
+            model.updateSortedPersonList(Comparator.comparing(person -> person.getName().fullName));
+            contactList().getSelectionModel().select(0);
+            model.setPerson(ALICE, new PersonBuilder(ALICE).withName("Zed Supplier")
+                    .withPhone("81000000").withEmail("zed@example.com").build());
+            assertSelectionCleared();
+
+            contactList().getSelectionModel().select(0);
+            assertDetailsName(BENSON.getName().fullName);
+            model.setPerson(BENSON, new PersonBuilder(BENSON).build());
+            assertSelectionCleared();
+
+            contactList().getSelectionModel().select(0);
+            assertDetailsName(BENSON.getName().fullName);
+            model.updateSortedPersonList(Comparator.comparing(person -> person.getName().fullName,
+                    Comparator.reverseOrder()));
+            assertSelectionCleared();
+            contactList().getSelectionModel().select(0);
+            assertDetailsName("Zed Supplier");
         });
     }
 

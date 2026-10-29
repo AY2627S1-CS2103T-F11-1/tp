@@ -72,7 +72,7 @@ The **API** of this component is specified in [`Ui.java`](https://github.com/AY2
 
 ![Structure of the UI Component](images/UiClassDiagram.png)
 
-The UI consists of a `MainWindow` and its parts, such as `CommandBox`, `ResultDisplay`, `PersonListPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
+The UI consists of a `MainWindow` and its parts, such as `CommandBox`, `ResultDisplay`, `PersonListPanel`, `PersonDetailsPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
 
 The `UI` component uses the JavaFX UI framework. The layouts of these UI parts are defined in matching `.fxml` files in `src/main/resources/view`. For example, [`MainWindow.fxml`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/resources/view/MainWindow.fxml) specifies the layout of [`MainWindow`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/ui/MainWindow.java).
 
@@ -82,6 +82,33 @@ The `UI` component,
 * listens for changes to `Model` data so that the UI can be updated with the modified data.
 * keeps a reference to the `Logic` component, because the `UI` relies on the `Logic` to execute commands.
 * depends on some classes in the `Model` component because it displays `Person` objects from the model.
+
+#### Contact details and selection
+
+`MainWindow.fxml` places the contact list and details placeholder in a horizontal `SplitPane`, initially around
+45% list and 55% details. The minimum window width is 800 pixels, with minimum pane widths of 340 and 400 pixels.
+`MainWindow` clamps smaller restored window widths in the UI without changing the preferences data structure.
+
+`MainWindow#fillInnerParts()` mounts `PersonDetailsPanel` in the right placeholder. The panel extends `UiPart<Region>`
+and exposes `showPerson(Person)` and `clear()`. A fit-to-width `ScrollPane`, viewport-based label width bindings,
+and a wrapping tag `FlowPane` keep long details accessible through vertical scrolling. Empty tags and absent follow-ups
+are hidden and unmanaged. The panel uses a clock to mark follow-ups strictly before the local date as overdue;
+the package-private clock constructor supports deterministic tests.
+
+`PersonListPanel#selectedPersonProperty()` exposes the ListView selection model's read-only selected-item property.
+`MainWindow` observes this property and calls `showPerson()` for a selected contact or `clear()` for null selection.
+Mouse selection and arrow-key navigation use the existing JavaFX ListView behaviour, and displaying details does not
+request keyboard focus.
+
+The displayed list is the model's `SortedList` over a `FilteredList`. A listener in `PersonListPanel` clears selection
+when that displayed list changes, including replacements and permutations. This conservative policy avoids retaining
+an outdated immutable `Person` or keeping a neighbour automatically selected after deletion. It also clears selection
+for unrelated displayed-list changes; it does not track contacts across edits. No Model, Storage, or `CommandResult`
+changes are needed for this milestone.
+
+`MainWindowTest` covers selection through mouse and arrow-key events, startup and null selection, and clearing details
+after deletion, filtering, clearing, replacement, and sorting through the real model list pipeline.
+`PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
 
 ### Logic component
 

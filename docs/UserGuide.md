@@ -66,6 +66,22 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </div>
 
+### Viewing contact details
+
+Click a contact in the list to display its full details in the panel on the right.
+While the contact list has keyboard focus, use the Up and Down arrow keys to move between contacts.
+The details panel updates immediately without moving keyboard focus.
+
+* Details include the contact's name, role, tags, phone number, email address, address, and follow-up when present.
+* Empty tags and absent follow-ups do not leave blank sections.
+* A follow-up due before today is marked **Overdue**. A follow-up due today is not overdue.
+  The overdue state is checked when the contact is displayed, using your computer's local date.
+* Scroll the details panel independently to read long content. Drag the divider to adjust the two panel widths.
+  The window has a minimum width of 800 pixels.
+* On startup or when no contact is selected, the panel shows `Select a contact to view details.`
+* A change to the displayed contact list clears the selection and details. Select a contact again to view its
+  current information after such a change.
+
 ### Adding a contact: `add`
 
 Adds a contact to KeyBossWarriorsPro.

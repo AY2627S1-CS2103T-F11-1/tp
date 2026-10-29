@@ -136,6 +136,13 @@ public class MainWindow extends UiPart<Stage> {
 
         personDetailsPanel = new PersonDetailsPanel();
         personDetailsPanelPlaceholder.getChildren().add(personDetailsPanel.getRoot());
+        personListPanel.selectedPersonProperty().addListener((observable, previous, selected) -> {
+            if (selected == null) {
+                personDetailsPanel.clear();
+            } else {
+                personDetailsPanel.showPerson(selected);
+            }
+        });
 
         resultDisplay = new ResultDisplay();
         resultDisplayPlaceholder.getChildren().add(resultDisplay.getRoot());
