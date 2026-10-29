@@ -143,7 +143,10 @@ During command execution, `LogicManager` temporarily listens to the underlying a
 replacement supplies the exact old and new `Person` references. The listener is removed in a `finally` block, and an
 immutable `CommandSelectionChange` copies these relationships into an identity-based map. Successful undo and redo
 request a selection reset, including when snapshots contain equal contact data. The information is available through
-`Logic#getSelectionChange()` before saving, so a later storage exception does not lose the replacement relationship.
+`Logic#getSelectionChange()` before saving. If a storage failure rolls back a committed change, `LogicManager`
+discards the failed command's replacement and selection requests. The panel then reconciles the original selected
+contact against the restored list by identity, retaining it when present or clearing it otherwise. A save failure
+without a rollback, including after `select`, retains the command's selection information.
 Each command attempt resets this information before parsing; failed parsing or validation therefore preserves selection.
 
 `MainWindow` snapshots selection and calls `PersonListPanel#beginCommand()` before executing a command. The panel
@@ -169,6 +172,8 @@ from the displayed list; commands without an explicit request retain their exist
 `MainWindowTest` covers mouse and arrow-key events, null selection, actual edit/delete/filter/list/sort/clear/follow-up
 commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
 `LogicManagerTest` additionally verifies replacement identity and reset of command selection information after failures.
+Saving-failure fixtures commit their starting contacts to model history. Regression tests verify restored data, filters,
+selection, and history after edit/delete failures, including both I/O and access-denied errors.
 `PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
 `MainWindowTest` also verifies compact card height, empty-tag spacing, long-name/email tooltips, tag wrapping,
 follow-up badge updates through commands and undo/redo, badge/role layout at divider limits, selected-card styling
@@ -684,6 +689,11 @@ The following activity diagram summarizes what happens when a user executes a ne
 After successful command execution, `LogicManager` saves the current contact
 data through `Storage`. Only contact data is serialized; snapshots and the
 history pointer remain in memory.
+
+If saving a modifying command fails after it commits a new state, `LogicManager` uses `Model#rollbackAddressBook()`
+to discard that state and restore the previous committed snapshot. The displayed filter resets to show all contacts.
+Selection metadata from the discarded change is reset before the UI reconciles the restored list. Failed saves for
+commands that do not advance the history pointer do not roll back an earlier successful change.
 
 If saving after undo or redo throws `IOException`, `LogicManager` reports a
 `CommandException`. The restored contact data and moved history pointer remain

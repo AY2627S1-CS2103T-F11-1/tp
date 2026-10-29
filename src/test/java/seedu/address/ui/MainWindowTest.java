@@ -1244,18 +1244,25 @@ public class MainWindowTest {
             ModelManager model = new ModelManager();
             model.addPerson(ALICE);
             model.addPerson(BENSON);
+            model.commitAddressBook();
             initializeFailingStorageWindow(model);
             contactList().getSelectionModel().select(0);
             submitCommand("edit 1 n/Zed Supplier p/81000000 e/zed@example.com", false);
-            assertSelected(model.getFilteredPersonList().get(0));
-            assertDetailsName("Zed Supplier");
+            assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
+            assertEquals(List.of(ALICE, BENSON), model.getFilteredPersonList());
+            assertSelected(ALICE);
+            assertFalse(model.canRedoAddressBook());
             submitCommand("find Benson", false);
             assertSelectionCleared();
+            assertEquals(List.of(BENSON), model.getFilteredPersonList());
             contactList().getSelectionModel().select(0);
             assertSelected(BENSON);
             submitCommand("delete 1", false);
-            assertSelectionCleared();
-            assertTrue(model.getFilteredPersonList().isEmpty());
+            assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
+            assertEquals(List.of(ALICE, BENSON), model.getFilteredPersonList());
+            assertSelected(BENSON);
+            assertTrue(model.canUndoAddressBook());
+            assertFalse(model.canRedoAddressBook());
         });
     }
 
