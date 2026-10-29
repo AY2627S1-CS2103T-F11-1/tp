@@ -1,6 +1,8 @@
 package seedu.address.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_ADDRESS;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_EMAIL;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_NAME;
@@ -11,6 +13,8 @@ import static seedu.address.testutil.Assert.assertThrows;
 import org.junit.jupiter.api.Test;
 
 import seedu.address.logic.parser.Prefix;
+import seedu.address.model.person.Person;
+import seedu.address.testutil.PersonBuilder;
 
 public class MessagesTest {
 
@@ -63,5 +67,20 @@ public class MessagesTest {
     @Test
     public void getErrorMessageForUnrecognizedPrefixes_emptyPrefixes_throwsAssertionError() {
         assertThrows(AssertionError.class, () -> Messages.getErrorMessageForUnrecognizedPrefixes());
+    }
+
+    @Test
+    public void format_personWithoutFollowUp_omitsFollowUp() {
+        Person person = new PersonBuilder().withName("Alice Pauline").withoutFollowUp().build();
+        String formatted = Messages.format(person);
+        assertFalse(formatted.contains("Follow-up:"));
+    }
+
+    @Test
+    public void format_personWithFollowUp_includesFollowUp() {
+        Person person = new PersonBuilder().withName("Alice Pauline")
+                .withFollowUp("2026-11-01", "Confirm PCB quotation").build();
+        String formatted = Messages.format(person);
+        assertTrue(formatted.contains("; Follow-up: 2026-11-01 (Confirm PCB quotation)"));
     }
 }

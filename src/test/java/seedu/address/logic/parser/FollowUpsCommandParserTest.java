@@ -68,7 +68,7 @@ public class FollowUpsCommandParserTest {
         String[] dates = {
             "", " ", "not-a-date", "2026-1-01",
             "+02026-11-01", "10000-01-01",
-            "2026-02-30", "2026-11-01 extra"
+            "2026-02-30"
         };
 
         for (String date : dates) {
@@ -107,7 +107,13 @@ public class FollowUpsCommandParserTest {
 
     @Test
     public void parse_keywordAfterDate_failure() {
-        assertParseFailure(parser, DATE_ARGUMENT + " overdue",
-                ParserUtil.MESSAGE_INVALID_FOLLOW_UP_DATE);
+        assertParseFailure(parser, DATE_ARGUMENT + " overdue", INVALID_FORMAT_MESSAGE);
+    }
+
+    @Test
+    public void parse_extraArgumentsAfterDate_failure() {
+        assertParseFailure(parser, DATE_ARGUMENT + " extra", INVALID_FORMAT_MESSAGE);
+        assertParseFailure(parser, DATE_ARGUMENT + " 1", INVALID_FORMAT_MESSAGE);
+        assertParseFailure(parser, DATE_ARGUMENT + " overdue extra", INVALID_FORMAT_MESSAGE);
     }
 }

@@ -63,6 +63,8 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 * The optional argument to `help` is treated as a command name. For example, `help add` displays the `add` command's usage; an unsupported target such as `help 123` displays guidance instead of opening the full help window.
 * For `list`, additional arguments are ignored and a warning is displayed.
   For example, `list 3` lists all contacts and does not navigate to contact 3.
+* For `clear`, additional arguments are ignored and a warning is displayed.
+  For example, `clear 1` clears all entries and does not delete only contact 1.
 * For `exit`, a message explains that any extra text is ignored before the application closes.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
@@ -181,6 +183,10 @@ Clears all entries from KeyBossWarriorsPro.
 
 **Format:** `clear`
 
+* If KeyBossWarriorsPro is already empty (contains 0 contacts), no entries are cleared, the undo/redo history is preserved, and the message `KeyBossWarriorsPro is already empty; no contacts were cleared.` is shown.
+* Additional arguments are ignored and a warning is displayed. For example, `clear 1` or `clear all` clears all contacts and warns that the additional arguments were ignored.
+
+
 
 ### Deleting a contact: `delete`
 
@@ -191,6 +197,7 @@ Deletes the contact at the specified position in the currently displayed contact
 * `INDEX` **must be a positive integer** 1, 2, 3, …​
 * `INDEX` refers to the contact's position in the contact list currently displayed to the user.
 * The index is temporary and may change when commands such as `list`, `find`, `add`, `edit`, or `delete` change the displayed list.
+* The confirmation message summarizes all details of the deleted contact, including any active follow-up due date and description.
 
 Examples:
 * `list` followed by `delete 2` deletes the second contact in the currently displayed list.
@@ -295,7 +302,7 @@ Command | Behavior
 * A follow-up due today is not overdue.
 * Today is determined using the computer's local date when the command executes. Rerun the command to refresh date-based results after the date changes.
 * Date cutoffs follow the same date constraints as `followup`. Past cutoffs are accepted.
-* Query modes cannot be combined. Index arguments are not supported.
+* Query modes cannot be combined and extra arguments or keywords (e.g. `followups by/2026-11-01 overdue`) are rejected with an invalid command format error. Index arguments are not supported.
 * Queries do not modify contact details or undo/redo history.
 * If no contacts match, the list is empty and the application displays `No follow-ups found.`
 
@@ -506,13 +513,13 @@ Displays all contacts in KeyBossWarriorsPro and resets any active search filter.
 
 **Format:** `list`
 
+* Additional arguments are ignored and a warning is displayed. For example, `list 3` or `list abc xyz` displays all contacts and warns that additional arguments were ignored.
+* Whitespace-only arguments are treated as empty input.
+
 Examples:
 
 * `list` displays all contacts.
-* `list 3` displays all contacts and warns that `3` was ignored.
-* `list abc xyz` displays all contacts and warns that the arguments were ignored.
-
-Whitespace-only arguments are treated as empty input.
+* `list 3` displays all contacts and warns that additional arguments were ignored.
 
 If there are no contacts, the application displays:
 
