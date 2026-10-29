@@ -66,6 +66,34 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
 </div>
 
+### Viewing contact details
+
+Click a contact in the list to display its full details in the panel on the right.
+List cards show the name, role, phone number, and tags. Long names use an ellipsis; hover over a name to read it in full.
+While the contact list has keyboard focus, use the Up and Down arrow keys to move between contacts.
+The details panel updates immediately without moving keyboard focus.
+
+Press **Esc** from the contact list, details panel, or command feedback to return to command input.
+Your draft command, its cursor position and text selection, and the selected contact are preserved.
+
+![Selected contact and full details in the two-panel interface](images/contact-details.png)
+
+* Details include the contact's name, role, tags, phone number, email address, address, and follow-up when present.
+* Empty tags and absent follow-ups do not leave blank sections.
+* A follow-up due before today is marked **Overdue**. A follow-up due today is not overdue.
+  The overdue state is checked when the contact is displayed, using your computer's local date.
+* Scroll the details panel independently to read long content. Drag the divider to adjust the two panel widths.
+  The window has a minimum size of 800 by 600 pixels. Each panel scrolls independently.
+* On startup or when no contact is selected, the panel shows `Select a contact to view details.`
+* Commands keep the selected contact when it remains visible, even if its list position changes. Editing that
+  contact or changing its follow-up refreshes its details. Changing another contact keeps your current selection.
+* If the selected contact is deleted or filtered out, or all contacts are cleared, the panel returns to the
+  selection prompt. Deleting a selected contact does not automatically select its neighbour.
+* Successful `undo` and `redo` commands clear selection. Commands rejected because of invalid input keep selection.
+* If saving an edit, addition, deletion, clear, or follow-up change fails, those contact changes are rolled back.
+  The original selection is retained when the contact remains in the restored list; otherwise the panel returns to
+  the selection prompt. Command feedback shows the saving error.
+
 ### Adding a contact: `add`
 
 Adds a contact to KeyBossWarriorsPro.
@@ -195,7 +223,8 @@ Creates, replaces, or removes a contact's pending follow-up. Each contact can ha
 * Description casing and internal spacing are preserved. Internal control characters, such as tabs and newlines, and Unicode line or paragraph separators are not permitted.
 * Prefix-like text preceded by a space is interpreted as command syntax. Avoid text such as ` by/`, ` abt/`, or ` date/` inside descriptions; these can produce duplicate-prefix, unknown-prefix, or invalid-value errors.
 * Successful changes preserve other contact details and the current filter. A contact may disappear from the results if it no longer matches that filter.
-* Follow-ups are displayed on contact cards and saved automatically. Changes support `undo` and `redo`.
+* Follow-ups are displayed in the selected contact's details panel and saved automatically.
+  Changes support `undo` and `redo`.
 * Editing other contact details preserves the follow-up. Deleting the contact removes its follow-up.
 
 Examples:

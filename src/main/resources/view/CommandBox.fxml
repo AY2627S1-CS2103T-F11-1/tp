@@ -12,6 +12,6 @@
   </padding>
   <Label text="&gt;_" styleClass="command-prompt-glyph" />
   <TextField fx:id="commandTextField" onAction="#handleCommandEntered"
-             promptText="Enter command here..."
+             promptText="Enter command here... (Esc to focus)"
              HBox.hgrow="ALWAYS" />
 </HBox>

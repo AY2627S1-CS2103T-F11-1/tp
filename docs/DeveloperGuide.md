@@ -72,7 +72,7 @@ The **API** of this component is specified in [`Ui.java`](https://github.com/AY2
 
 ![Structure of the UI Component](images/UiClassDiagram.png)
 
-The UI consists of a `MainWindow` and its parts, such as `CommandBox`, `ResultDisplay`, `PersonListPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
+The UI consists of a `MainWindow` and its parts, such as `CommandBox`, `ResultDisplay`, `PersonListPanel`, `PersonDetailsPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
 
 The `UI` component uses the JavaFX UI framework. The layouts of these UI parts are defined in matching `.fxml` files in `src/main/resources/view`. For example, [`MainWindow.fxml`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/resources/view/MainWindow.fxml) specifies the layout of [`MainWindow`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/ui/MainWindow.java).
 
@@ -82,6 +82,119 @@ The `UI` component,
 * listens for changes to `Model` data so that the UI can be updated with the modified data.
 * keeps a reference to the `Logic` component, because the `UI` relies on the `Logic` to execute commands.
 * depends on some classes in the `Model` component because it displays `Person` objects from the model.
+
+#### Contact details and selection
+
+`MainWindow.fxml` places the contact list and details placeholder in a horizontal `SplitPane`, initially around
+45% list and 55% details. The minimum window width is 800 pixels, with minimum pane widths of 340 and 400 pixels.
+The minimum height is 600 pixels. `MainWindow` clamps smaller restored dimensions in the UI without changing the
+preferences data structure.
+
+`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, and sorted tags.
+Email, address, and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
+tags are hidden and unmanaged. Long names use a single line with an ellipsis and a full-name tooltip; tags wrap.
+The name and role badge share the header row, retaining the merged theme's role-colour styling.
+`PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
+preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
+remain visible when keyboard focus moves to command input. Selected and unselected cards reserve the same border
+width so selection does not change measured row dimensions or tag wrapping.
+
+`MainWindow#fillInnerParts()` mounts `PersonDetailsPanel` in the right placeholder. The panel extends `UiPart<Region>`
+and exposes `showPerson(Person)` and `clear()`. A fit-to-width `ScrollPane`, viewport-based label width bindings,
+and a wrapping tag `FlowPane` keep long details accessible through vertical scrolling. Empty tags and absent follow-ups
+are hidden and unmanaged. The panel uses a clock to mark follow-ups strictly before the local date as overdue;
+the package-private clock constructor supports deterministic tests.
+
+`PersonListPanel#selectedPersonProperty()` exposes a read-only property for the displayed contact selection.
+`MainWindow` observes it and calls `showPerson()` for a selected contact or `clear()` for null selection.
+Mouse selection and arrow-key navigation use the existing JavaFX ListView behaviour, and displaying details does not
+request keyboard focus.
+
+An unmodified Escape key press in the main window returns focus to `CommandBox`, retaining its draft, anchor, and
+caret position. A Stage event filter handles Escape before a text control can consume it; disabled command input
+during exit is excluded. `CommandBox` remembers caret and anchor changes while command input owns focus, ignoring
+JavaFX's selection reset on focus loss and select-all during explicit focus restoration. Arrow keys in the list continue to
+navigate contacts without automatically focusing input. The list and details ScrollPane handle scrolling separately.
+
+The displayed list is the model's `SortedList` over a `FilteredList`. Its events alone cannot reliably associate
+contacts across edits: replacing a contact that no longer matches a filter can emit only a removal, followed by an
+addition of several contacts when the edit resets the filter. Matching by index, name, phone/email, or Person equality
+would also be unreliable because all identifying fields can be edited.
+
+During command execution, `LogicManager` temporarily listens to the underlying address book list. A one-for-one
+replacement supplies the exact old and new `Person` references. The listener is removed in a `finally` block, and an
+immutable `CommandSelectionChange` copies these relationships into an identity-based map. Successful undo and redo
+request a selection reset, including when snapshots contain equal contact data. The information is available through
+`Logic#getSelectionChange()` before saving. If a save failure rolls back a committed change, the failed command's
+replacement mappings are discarded. The original selected contact is then retained when it exists in the restored
+list, or cleared otherwise. Save failures after undo/redo still clear selection while retaining the restored snapshot.
+Each command attempt resets this information before parsing; failed parsing or validation therefore preserves selection.
+
+`MainWindow` snapshots selection and calls `PersonListPanel#beginCommand()` before executing a command. The panel
+suppresses native ListView selection notifications during that execution, preventing automatic neighbour selection
+from being published. In a `finally` block, `MainWindow` applies the command's selection change and calls
+`PersonListPanel#endCommand(Person)`. The panel searches the current displayed list by object identity and selects the
+resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
+equal but distinct replacement objects. This retains visible contacts across filtering, sorting, and unrelated changes;
+it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
+path still conservatively clear selection. Model, Storage, and `CommandResult` data structures remain unchanged.
+
+`MainWindowTest` covers mouse and arrow-key events, null selection, actual edit/delete/filter/list/sort/clear/follow-up
+commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
+`LogicManagerTest` additionally verifies replacement identity and reset of command selection information after failures.
+Save-failure fixtures commit their initial contacts to model history and verify restored selection for both I/O and
+access-denied errors. Compact-card tests compare tag-row spacing and the last visible field's bottom gap across font
+sizes, and verify that focus changes preserve the actual themed selection border rather than assuming a pixel width.
+`PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
+`MainWindowTest` also verifies compact card height, empty-tag spacing, long-name tooltips, tag wrapping, selected-card
+styling without list focus, and access to the complete selected contact details.
+Further UI tests cover Escape from the list, details, and feedback, draft/cursor preservation after focus settles,
+independent mouse-wheel scrolling, access to the bottom of long details, and long content at divider limits after
+resizing between minimum and larger windows.
+
+#### Proposed `select INDEX` command (not implemented)
+
+This proposal would let users select a contact entirely through command input. `INDEX` would be a positive,
+one-based index into the currently displayed filtered and sorted list. Missing, zero, negative, extra, non-numeric,
+and out-of-range arguments would be rejected without changing selection. A valid selection would scroll the list
+to the contact and display its details while keeping focus in command input. It would not change contact data,
+filters, sorting, or undo/redo history, and would not persist selection across restarts.
+
+`SelectCommand` would resolve the current `Person` reference during execution and return it as an optional selection
+request in `CommandResult`. Existing constructors would default to no request. `LogicManager` would copy this request
+into `CommandSelectionChange` before saving. An explicit request would take precedence over retaining the previous
+selection; undo/redo would continue to clear it. This uses the existing `MainWindow` finally block and
+`PersonListPanel#endCommand(Person)`, including reconciliation after saving errors, without Model or Storage changes.
+
+The complete proposed file list is below; these changes are not part of the current implementation.
+Paths are relative to the repository root.
+
+File | Proposed change
+-----|----------------
+`src/main/java/seedu/address/logic/commands/SelectCommand.java` (new) | Validate the displayed index and return selection feedback and the exact contact reference; do not commit history.
+`src/main/java/seedu/address/logic/parser/SelectCommandParser.java` (new) | Parse exactly one positive index using the existing index validation.
+`src/main/java/seedu/address/logic/parser/AddressBookParser.java` | Dispatch `select` to its parser.
+`src/main/java/seedu/address/logic/commands/CommandResult.java` | Add an optional selected-contact request, preserving existing constructor defaults and updating equality, hashing, and string representation.
+`src/main/java/seedu/address/logic/CommandSelectionChange.java` | Apply an explicit selection request, including when there was no previous selection.
+`src/main/java/seedu/address/logic/LogicManager.java` | Forward the result's selection request into the reconciliation information before saving.
+`src/main/java/seedu/address/logic/commands/HelpCommand.java` | Register targeted `help select` usage.
+`src/main/java/seedu/address/ui/HelpWindow.java` | Include the command in the browse-contacts help section.
+`src/test/java/seedu/address/logic/commands/SelectCommandTest.java` (new) | Cover valid/invalid displayed indexes, exact target references, unchanged data/filter/sort/history, and filtered/sorted views.
+`src/test/java/seedu/address/logic/parser/SelectCommandParserTest.java` (new) | Cover missing, malformed, extra, zero, negative, and valid arguments.
+`src/test/java/seedu/address/logic/parser/AddressBookParserTest.java` | Verify command dispatch.
+`src/test/java/seedu/address/logic/commands/CommandResultTest.java` | Test selection-request defaults and value methods.
+`src/test/java/seedu/address/logic/LogicManagerTest.java` | Verify request forwarding, resetting between attempts, and behaviour when saving fails.
+`src/test/java/seedu/address/ui/MainWindowTest.java` | Cover selection from the empty state, scrolling, repeated selection, filtered/sorted indexes, invalid requests, focus, and saving failures.
+`src/test/java/seedu/address/logic/commands/HelpCommandTest.java` | Cover targeted help and the supported-command list.
+`src/test/java/seedu/address/ui/HelpWindowTest.java` | Verify that browse help includes `select`.
+`docs/UserGuide.md` | Document syntax, displayed-index rules, examples, errors, and command-summary entry after implementation.
+`docs/DeveloperGuide.md` | Replace this proposal with the implemented request flow and its tests.
+`docs/images/help.png` | Refresh the help screenshot to include the new browse command.
+`docs/images/help-continued.png` | Refresh the continuation screenshot after the additional help text changes scrolling positions.
+
+No `Logic` API, FXML, `MainWindow`, `PersonListPanel`, `PersonDetailsPanel`, Model, or Storage changes are required by
+this proposed approach. The existing generic command/parser diagrams already cover an additional command; their
+class structure would not change.
 
 ### Logic component
 
@@ -376,9 +489,12 @@ The overdue query uses an injectable `Clock`. Today's date is captured when the 
 Queries do not commit snapshots or alter contact data. An empty result displays `No follow-ups found.`
 
 #### UI integration
-`PersonCard` populates the follow-up date and description defined in `PersonListCard.fxml`. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
+`PersonDetailsPanel` populates the follow-up date and description defined in `PersonDetailsPanel.fxml` when a contact
+is selected. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
+The compact `PersonCard` does not repeat follow-up information.
 
-The existing observable-list and cell-update mechanism refreshes cards when contacts are replaced. No separate follow-up listener is required.
+The command selection handling described under contact details and selection tracks replacement contacts and refreshes
+the details panel after follow-up changes. A contact that no longer matches a follow-up filter clears selection.
 
 #### Test coverage
 
@@ -1021,11 +1137,11 @@ Command | Expected result
 
 ### Managing and viewing follow-ups
 
-Create a contact with a unique name, phone number, and email. Run `find` with that name so only the test contact is displayed. Use valid dates relative to the computer's current local date.
+Create a contact with a unique name, phone number, and email. Run `find` with that name so only the test contact is displayed. Use valid dates relative to the computer's current local date. Select the contact to inspect its follow-up in the right details panel; select it again after undo, redo, or restarting the application.
 
 Action | Expected result
 -------|----------------
-Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The card shows the date and description.
+Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The details panel shows the date and description.
 Set another follow-up with a different date and description. | Both values replace the existing follow-up.
 Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is preserved.
 Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
@@ -1035,7 +1151,7 @@ Find the test contact and run `followup 1 clear`. | The follow-up disappears; th
 Run `undo`, then `redo`. | The follow-up is restored, then removed again.
 Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
 Restart after setting a follow-up. | The saved follow-up is restored.
-Display a long description and resize the window. | Verify the full text remains accessible and record any horizontal-scrolling limitation.
+Display a long description and resize the window. | Verify the full text remains accessible through vertical scrolling in the details panel.
 
 ### Sorting contacts
 

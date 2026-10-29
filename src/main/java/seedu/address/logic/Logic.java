@@ -24,6 +24,11 @@ public interface Logic {
     ObservableList<Person> getFilteredPersonList();
 
     /**
+     * Returns selection changes from the most recent command attempt, including changes before a saving failure.
+     */
+    CommandSelectionChange getSelectionChange();
+
+    /**
      * Returns the user prefs' GUI settings.
      */
     GuiSettings getGuiSettings();

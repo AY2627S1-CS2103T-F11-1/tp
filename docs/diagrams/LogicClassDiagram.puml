@@ -10,6 +10,7 @@ package "Parser Classes" as ParserClasses{
 }
 Class XYZCommand
 Class CommandResult
+Class CommandSelectionChange
 Class "{abstract}\nCommand" as Command
 
 
@@ -43,5 +44,8 @@ note right of XYZCommand: XYZCommand = AddCommand, \nFindCommand, etc
 
 Logic ..> CommandResult
 LogicManager .down.> CommandResult
+Logic ..> CommandSelectionChange
+LogicManager --> "1" CommandSelectionChange
+CommandSelectionChange ..> Model
 Command .up.> CommandResult : <<create>>
 @enduml

@@ -4,15 +4,14 @@ import java.util.Comparator;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
-import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 
 /**
- * A UI component that displays information of a {@code Person}.
+ * A compact summary of a {@code Person}; complete contact information is shown in the details panel.
  */
 public class PersonCard extends UiPart<Region> {
 
@@ -40,17 +39,7 @@ public class PersonCard extends UiPart<Region> {
     @FXML
     private Label phone;
     @FXML
-    private Label address;
-    @FXML
-    private Label email;
-    @FXML
     private FlowPane tags;
-    @FXML
-    private VBox followUpSection;
-    @FXML
-    private Label followUpDueDate;
-    @FXML
-    private Label followUpDescription;
 
     /**
      * Creates a {@code PersonCard} with the given {@code Person} and index to display.
@@ -60,33 +49,25 @@ public class PersonCard extends UiPart<Region> {
         this.person = person;
         id.setText(displayedIndex + ". ");
         name.setText(person.getName().fullName);
+        Tooltip nameTooltip = new Tooltip(person.getName().fullName);
+        nameTooltip.setWrapText(true);
+        nameTooltip.setMaxWidth(400);
+        name.setTooltip(nameTooltip);
         role.setText(person.getRole().value);
         role.getStyleClass().add("role-badge");
         int colorIndex = Math.abs(person.getRole().value.toLowerCase().hashCode()) % NUM_ROLE_COLORS;
         role.getStyleClass().add("role-color-" + colorIndex);
         phone.setText(person.getPhone().value);
-        address.setText(person.getAddress().value);
-        email.setText(person.getEmail().value);
         person.getTags().stream()
                 .sorted(Comparator.comparing(tag -> tag.tagName))
-                .forEach(tag -> tags.getChildren().add(new Label(tag.tagName)));
-        initializeFollowUp();
-    }
-
-    /**
-     * Displays the contact's follow-up when present.
-     * Otherwise, hides the section and excludes it from layout calculations.
-     */
-    private void initializeFollowUp() {
-        boolean hasFollowUp = person.getFollowUp().isPresent();
-
-        followUpSection.setVisible(hasFollowUp);
-        followUpSection.setManaged(hasFollowUp);
-
-        if (hasFollowUp) {
-            FollowUp followUp = person.getFollowUp().orElseThrow();
-            followUpDueDate.setText("Follow-up due: " + followUp.getDueDate());
-            followUpDescription.setText(followUp.getDescription());
-        }
+                .forEach(tag -> {
+                    Label label = new Label(tag.tagName);
+                    label.setWrapText(true);
+                    label.setMinWidth(0);
+                    label.setMinHeight(Region.USE_PREF_SIZE);
+                    tags.getChildren().add(label);
+                });
+        tags.setVisible(!person.getTags().isEmpty());
+        tags.setManaged(!person.getTags().isEmpty());
     }
 }

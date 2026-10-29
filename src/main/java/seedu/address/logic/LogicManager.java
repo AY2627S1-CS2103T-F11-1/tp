@@ -2,8 +2,11 @@ package seedu.address.logic;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
@@ -32,6 +35,7 @@ public class LogicManager implements Logic {
     private final Model model;
     private final Storage storage;
     private final AddressBookParser addressBookParser;
+    private CommandSelectionChange selectionChange = new CommandSelectionChange(Map.of(), false);
 
     /**
      * Constructs a {@code LogicManager} with the given {@code Model} and {@code Storage}.
@@ -44,12 +48,31 @@ public class LogicManager implements Logic {
 
     @Override
     public CommandResult execute(String commandText) throws CommandException, ParseException {
+        selectionChange = new CommandSelectionChange(Map.of(), false);
         logger.info("----------------[USER COMMAND][" + commandText + "]");
 
         int pointerBefore = model.getAddressBookStatePointer();
         CommandResult commandResult;
         Command command = addressBookParser.parseCommand(commandText);
-        commandResult = command.execute(model);
+        Map<Person, Person> replacements = new IdentityHashMap<>();
+        ListChangeListener<Person> replacementListener = change -> {
+            while (change.next()) {
+                if (change.wasReplaced() && change.getRemovedSize() == 1 && change.getAddedSize() == 1) {
+                    replacements.put(change.getRemoved().get(0), change.getAddedSubList().get(0));
+                }
+            }
+        };
+        ObservableList<Person> persons = model.getAddressBook().getPersonList();
+        persons.addListener(replacementListener);
+        boolean executed = false;
+        try {
+            commandResult = command.execute(model);
+            executed = true;
+        } finally {
+            persons.removeListener(replacementListener);
+            selectionChange = new CommandSelectionChange(replacements,
+                    executed && (command instanceof UndoCommand || command instanceof RedoCommand));
+        }
 
         try {
             storage.saveAddressBook(model.getAddressBook());
@@ -74,12 +97,19 @@ public class LogicManager implements Logic {
         int pointerAfter = model.getAddressBookStatePointer();
         if (pointerAfter > pointerBefore) {
             model.rollbackAddressBook();
+            // Reconcile the original contact after discarding the failed edit's replacement.
+            selectionChange = new CommandSelectionChange(Map.of(), false);
         }
     }
 
     @Override
     public ObservableList<Person> getFilteredPersonList() {
         return model.getFilteredPersonList();
+    }
+
+    @Override
+    public CommandSelectionChange getSelectionChange() {
+        return selectionChange;
     }
 
     @Override

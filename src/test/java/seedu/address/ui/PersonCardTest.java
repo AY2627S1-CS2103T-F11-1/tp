@@ -2,9 +2,13 @@ package seedu.address.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
@@ -16,12 +20,15 @@ import org.junit.jupiter.api.Test;
 
 import javafx.application.Platform;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.PersonBuilder;
 
 public class PersonCardTest {
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-28T16:30:00Z"),
+            ZoneId.of("Asia/Singapore"));
 
     @BeforeAll
     public static void initializeJavaFx() throws Exception {
@@ -47,7 +54,7 @@ public class PersonCardTest {
     }
 
     @Test
-    public void displaysPersonDetailsCorrectly() throws Exception {
+    public void displaysCompactSummaryAndLeavesFullDetailsToPanel() throws Exception {
         runOnFxThread(() -> {
             PersonCard card = new PersonCard(ALICE, 1);
 
@@ -55,16 +62,23 @@ public class PersonCardTest {
             Label nameLabel = (Label) card.getRoot().lookup("#name");
             Label roleLabel = (Label) card.getRoot().lookup("#role");
             Label phoneLabel = (Label) card.getRoot().lookup("#phone");
-            Label addressLabel = (Label) card.getRoot().lookup("#address");
-            Label emailLabel = (Label) card.getRoot().lookup("#email");
             FlowPane tagsPane = (FlowPane) card.getRoot().lookup("#tags");
 
             assertEquals("1. ", idLabel.getText());
             assertEquals(ALICE.getName().fullName, nameLabel.getText());
             assertEquals(ALICE.getRole().value, roleLabel.getText());
             assertEquals(ALICE.getPhone().value, phoneLabel.getText());
-            assertEquals(ALICE.getAddress().value, addressLabel.getText());
-            assertEquals(ALICE.getEmail().value, emailLabel.getText());
+            assertNull(card.getRoot().lookup("#address"));
+            assertNull(card.getRoot().lookup("#email"));
+            for (String id : List.of("id", "name", "role", "phone", "tags")) {
+                assertEquals(1, card.getRoot().lookupAll("#" + id).size(), "Each summary field should appear once");
+            }
+
+            PersonDetailsPanel details = new PersonDetailsPanel(CLOCK);
+            details.showPerson(ALICE);
+            ScrollPane scroll = (ScrollPane) details.getRoot().lookup("#detailsScrollPane");
+            assertEquals(ALICE.getEmail().value, ((Label) scroll.getContent().lookup("#email")).getText());
+            assertEquals(ALICE.getAddress().value, ((Label) scroll.getContent().lookup("#address")).getText());
 
             assertTrue(roleLabel.getStyleClass().contains("role-badge"));
             int expectedColorIndex = Math.abs(ALICE.getRole().value.toLowerCase().hashCode())
@@ -140,7 +154,7 @@ public class PersonCardTest {
     }
 
     @Test
-    public void displaysFollowUpSection_whenPresent() throws Exception {
+    public void followUpContent_appearsInDetailsPanelInsteadOfSummary() throws Exception {
         runOnFxThread(() -> {
             String dueDate = "2026-12-31";
             String description = "Confirm shipment delivery";
@@ -150,27 +164,33 @@ public class PersonCardTest {
 
             PersonCard card = new PersonCard(personWithFollowUp, 1);
 
-            VBox followUpSection = (VBox) card.getRoot().lookup("#followUpSection");
-            Label followUpDueDate = (Label) card.getRoot().lookup("#followUpDueDate");
-            Label followUpDescription = (Label) card.getRoot().lookup("#followUpDescription");
+            assertNull(card.getRoot().lookup("#followUpSection"));
+            assertNull(card.getRoot().lookup("#followUpDueDate"));
+            assertNull(card.getRoot().lookup("#followUpDescription"));
+            PersonDetailsPanel details = new PersonDetailsPanel(CLOCK);
+            details.showPerson(personWithFollowUp);
+            ScrollPane scroll = (ScrollPane) details.getRoot().lookup("#detailsScrollPane");
+            VBox followUpSection = (VBox) scroll.getContent().lookup("#followUpSection");
+            Label followUpDueDate = (Label) scroll.getContent().lookup("#followUpDueDate");
+            Label followUpDescription = (Label) scroll.getContent().lookup("#followUpDescription");
 
             assertTrue(followUpSection.isVisible());
             assertTrue(followUpSection.isManaged());
-            assertEquals("Follow-up due: " + dueDate, followUpDueDate.getText());
+            assertEquals("Due: " + dueDate, followUpDueDate.getText());
             assertEquals(description, followUpDescription.getText());
         });
     }
 
     @Test
-    public void hidesFollowUpSection_whenNotPresent() throws Exception {
+    public void emptyTagsAndAbsentFollowUp_leaveNoSummarySections() throws Exception {
         runOnFxThread(() -> {
-            Person personWithoutFollowUp = new PersonBuilder(ALICE).build();
+            Person personWithoutFollowUp = new PersonBuilder(ALICE).withTags().build();
             PersonCard card = new PersonCard(personWithoutFollowUp, 1);
 
-            VBox followUpSection = (VBox) card.getRoot().lookup("#followUpSection");
-
-            assertFalse(followUpSection.isVisible());
-            assertFalse(followUpSection.isManaged());
+            assertNull(card.getRoot().lookup("#followUpSection"));
+            FlowPane tags = (FlowPane) card.getRoot().lookup("#tags");
+            assertFalse(tags.isVisible());
+            assertFalse(tags.isManaged());
         });
     }
 }

@@ -19,6 +19,7 @@ import seedu.address.logic.Logic;
 import seedu.address.logic.commands.CommandResult;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.exceptions.ParseException;
+import seedu.address.model.person.Person;
 
 /**
  * The Main Window. Provides the basic application layout containing
@@ -27,6 +28,7 @@ import seedu.address.logic.parser.exceptions.ParseException;
 public class MainWindow extends UiPart<Stage> {
 
     private static final String FXML = "MainWindow.fxml";
+    private static final KeyCombination FOCUS_COMMAND_BOX = KeyCombination.valueOf("ESC");
 
     private final Logger logger = LogsCenter.getLogger(getClass());
 
@@ -36,6 +38,7 @@ public class MainWindow extends UiPart<Stage> {
 
     // Independent Ui parts residing in this Ui container
     private PersonListPanel personListPanel;
+    private PersonDetailsPanel personDetailsPanel;
     private ResultDisplay resultDisplay;
     private HelpWindow helpWindow;
 
@@ -47,6 +50,9 @@ public class MainWindow extends UiPart<Stage> {
 
     @FXML
     private StackPane personListPanelPlaceholder;
+
+    @FXML
+    private StackPane personDetailsPanelPlaceholder;
 
     @FXML
     private StackPane resultDisplayPlaceholder;
@@ -130,6 +136,16 @@ public class MainWindow extends UiPart<Stage> {
         personListPanel = new PersonListPanel(logic.getFilteredPersonList());
         personListPanelPlaceholder.getChildren().add(personListPanel.getRoot());
 
+        personDetailsPanel = new PersonDetailsPanel();
+        personDetailsPanelPlaceholder.getChildren().add(personDetailsPanel.getRoot());
+        personListPanel.selectedPersonProperty().addListener((observable, previous, selected) -> {
+            if (selected == null) {
+                personDetailsPanel.clear();
+            } else {
+                personDetailsPanel.showPerson(selected);
+            }
+        });
+
         resultDisplay = new ResultDisplay();
         resultDisplayPlaceholder.getChildren().add(resultDisplay.getRoot());
         if (initialStatusMessage != null && !initialStatusMessage.isBlank()) {
@@ -141,14 +157,21 @@ public class MainWindow extends UiPart<Stage> {
 
         CommandBox commandBox = new CommandBox(this::executeCommand);
         commandBoxPlaceholder.getChildren().add(commandBox.getRoot());
+        getRoot().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (FOCUS_COMMAND_BOX.match(event) && !commandBox.getRoot().isDisabled()) {
+                commandBox.focus();
+                event.consume();
+            }
+        });
     }
 
     /**
      * Sets the default size based on {@code guiSettings}.
      */
     private void setWindowDefaultSize(GuiSettings guiSettings) {
-        primaryStage.setHeight(guiSettings.getWindowHeight());
-        primaryStage.setWidth(guiSettings.getWindowWidth());
+        // Older preferences may contain dimensions that cannot fit both contact panes.
+        primaryStage.setHeight(Math.max(guiSettings.getWindowHeight(), primaryStage.getMinHeight()));
+        primaryStage.setWidth(Math.max(guiSettings.getWindowWidth(), primaryStage.getMinWidth()));
         if (guiSettings.getWindowCoordinates() != null) {
             primaryStage.setX(guiSettings.getWindowCoordinates().getX());
             primaryStage.setY(guiSettings.getWindowCoordinates().getY());
@@ -204,6 +227,8 @@ public class MainWindow extends UiPart<Stage> {
      * @see seedu.address.logic.Logic#execute(String)
      */
     private CommandResult executeCommand(String commandText) throws CommandException, ParseException {
+        Person selectedBeforeCommand = personListPanel.selectedPersonProperty().get();
+        personListPanel.beginCommand();
         try {
             CommandResult commandResult = logic.execute(commandText);
             logger.info("Result: " + commandResult.getFeedbackToUser());
@@ -222,6 +247,8 @@ public class MainWindow extends UiPart<Stage> {
             logger.info("An error occurred while executing command: " + commandText);
             resultDisplay.setFeedbackToUser(e.getMessage());
             throw e;
+        } finally {
+            personListPanel.endCommand(logic.getSelectionChange().applyTo(selectedBeforeCommand));
         }
     }
 }
