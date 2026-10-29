@@ -49,6 +49,21 @@ public class JsonAdaptedPersonTest {
     }
 
     @Test
+    public void toModelType_multipleSpaces_returnsNormalisedPerson() throws Exception {
+        JsonAdaptedPerson person = new JsonAdaptedPerson("Anne-Marie   O'Connor", VALID_PHONE, VALID_EMAIL,
+                VALID_ADDRESS, "R&D   Partner", List.of(new JsonAdaptedTag("lubed/filmed   switches")));
+        Person expectedPerson = new PersonBuilder(BENSON)
+                .withName("Anne-Marie O'Connor")
+                .withRole("R&D Partner")
+                .withTags("lubed/filmed switches")
+                .build();
+
+        Person normalisedPerson = person.toModelType();
+        assertEquals(expectedPerson, normalisedPerson);
+        assertEquals(expectedPerson, new JsonAdaptedPerson(normalisedPerson).toModelType());
+    }
+
+    @Test
     public void toModelType_invalidName_throwsIllegalValueException() {
         JsonAdaptedPerson person =
                 new JsonAdaptedPerson(INVALID_NAME, VALID_PHONE, VALID_EMAIL, VALID_ADDRESS, VALID_ROLE, VALID_TAGS);

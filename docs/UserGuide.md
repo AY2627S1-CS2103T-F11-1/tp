@@ -73,18 +73,39 @@ Adds a contact to KeyBossWarriorsPro.
 **Format:** `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…​`
 * `ROLE` represents the contact's role or affiliation in your keyboard shop (e.g., `Supplier`, `Employee`, `Partner`, `Customer`). It cannot be empty. Multiple consecutive spaces are collapsed into a single space, and role comparisons are case-insensitive.
 * Contacts are identified as duplicates by phone number or email address (email comparisons are case-insensitive). You cannot add a contact who shares a phone number or email address with an existing contact, but contacts may share the same name.
-* Unrecognized prefixes and extraneous arguments are not permitted and will be rejected with an error message indicating the unrecognized prefix(es).
+* Unrecognized prefixes are rejected with an error message identifying them. Text after a valid prefix belongs to that field until the next prefix.
 
 **Field Constraints**
 
 Field | Constraint
 --------|------------------
-`NAME` | May contain alphanumeric characters and spaces.
+`NAME` | May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character. Multiple consecutive spaces are collapsed into a single space.
 `PHONE_NUMBER` | Must contain at least 3 digits. Only digits are accepted.
 `EMAIL` | Must follow a valid email format, such as `john@example.com`.
 `ADDRESS` | May contain spaces and special characters.
 `ROLE` | May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character. Multiple consecutive spaces are collapsed into a single space.
 `TAG` | Optional. May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character, and cannot exceed 50 characters. Multiple consecutive spaces are collapsed into a single space. Tag comparisons and deduplication are case-insensitive.
+
+Names, roles, and tags follow the same character and spacing rules. Leading and trailing
+spaces around command values are ignored, repeated internal spaces become one space,
+and capitalisation and punctuation are preserved. For example, `n/Anne-Marie   O'Connor`
+is stored as `Anne-Marie O'Connor`. Only tags have a 50-character limit, checked before
+repeated spaces are collapsed. Alphanumeric characters here mean `A`–`Z`, `a`–`z`,
+and `0`–`9`; internal tabs and line breaks are not accepted.
+
+<div markdown="block" class="alert alert-warning">
+
+**:warning: Slash-containing values**
+
+A slash is supported, but some values conflict with the command's prefix syntax:
+
+* `t/key/board` is accepted.
+* `t/ key/board` and `n/David s/o Me` are rejected because `key/` and `s/` are interpreted as unknown prefixes.
+* A recognised prefix such as `p/` after a space starts another field instead of remaining part of the current value.
+
+This limitation applies to names, roles, and tags.
+
+</div>
 
 
 <div markdown="span" class="alert alert-primary">:bulb: **Tip:**
@@ -128,6 +149,7 @@ Edits an existing contact in KeyBossWarriorsPro.
 * At least one field or tag operation must be provided.
 * Supplied name, phone number, email address, address, and role values replace the corresponding existing values. Omitted fields keep their existing values.
 * Field constraints described under `add` apply to every field supplied with `edit`.
+* Unrecognized prefixes are rejected. For example, `edit 1 xx/value` is invalid. Text after a valid prefix belongs to that field until the next prefix.
 * You cannot edit a contact's phone number or email address to match another existing contact in KeyBossWarriorsPro (email comparisons are case-insensitive).
 * `t/TAG_TO_ADD` adds the named tag while preserving the contact's existing tags. Adding a tag the contact already has succeeds without creating a duplicate.
 * `dt/TAG_TO_DELETE` removes the named tag while preserving all other tags. Every tag requested for deletion must already belong to the selected contact.
@@ -296,8 +318,9 @@ Finds contacts matching one or more name, role, or tag criteria. All searches ar
 * At least one `n/`, `r/`, or `t/` prefix must be provided.
 * `n/` specifies a name search phrase.
 * `r/` specifies a role search phrase.
-* `t/` specifies a tag search phrase. Note that since tags cannot contain spaces, multi-word tag phrases (e.g. `t/good friend`) will return no results.
+* `t/` specifies a tag search phrase. Tags can contain spaces: `find t/good friend` matches a tag containing the phrase `good friend`.
 * Each value after a prefix is treated as a continuous search phrase until the next prefix or the end of the command.
+* Repeated spaces in `n/`, `r/`, and `t/` search phrases are collapsed into a single space before matching, just as when adding or editing these fields. For example, `find r/Regional   Supplier` and `find r/Regional Supplier` return the same results.
 * **Partial & Case-Insensitive Matching**: Matches if the term appears anywhere within the field, regardless of upper or lower case (e.g., `n/alex` matches `Alexander`, `r/distrib` matches `Distributor`).
 * **Search Logic:**
     * **Same prefix → `OR` logic**: A contact matches if it satisfies *at least one* of the values given for that prefix type (e.g. `n/alice n/bob` returns contacts whose name contains "alice" *or* "bob", case-insensitively).
@@ -370,19 +393,40 @@ Displays all contacts sorted by name, role, or both, making it easier to browse 
 
 **Using the sorted list**
 
-* Contact indices follow the sorted displayed order. After sorting,
-  check the displayed index before using `edit` or `delete`.
-* Subsequent `find` results remain sorted. Running `list` shows all
-  contacts while retaining the selected sort order.
-* Adding, editing, or deleting contacts automatically updates the sorted
-  view. Changing a contact's name or role may change its displayed index.
-* Sorting does not modify contact details or the contact order saved
-  to the data file.
-* Sorting cannot be undone. Undo and redo apply to contact-data changes
-  while retaining the selected sort order. Sorting does not discard
-  available redo history.
-* The selected sort order lasts until the application closes. After
-  restarting, contacts appear in their saved order until sorted again.
+* Contact indices follow the displayed order. After sorting, check the displayed index before using `edit`, `delete`, or other index-based commands.
+* `find`, `list` and `followups` retain the selected sort order.
+* Adding, editing, or deleting contacts automatically updates the displayed order. Editing a contact's name or role may change its displayed index.
+* Sorting changes only the displayed order. It does not modify contact details or the order saved to the data file.
+* Running another `sort` command replaces the current ordering.
+* Sorting is not an undoable contact-data change. Use `sort clear` to restore the original insertion order.
+* Sorting is reset when the application restarts.
+
+If the address book is empty, the selected sort order is still applied and will affect contacts added later. The application displays:
+
+```text
+No contacts are currently available. The selected sort order will apply to contacts added later.
+```
+
+Example:
+
+```text
+sort r/ n/
+```
+
+This displays contacts by role first, then by name for contacts with the same role.
+
+To restore the original insertion order:
+
+```text
+sort clear
+```
+
+The application displays:
+
+```text
+Sorting cleared. Contacts will be displayed in insertion order.
+```
+
 
 ### Viewing help: `help [COMMAND]`
 

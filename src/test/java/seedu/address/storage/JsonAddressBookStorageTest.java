@@ -82,6 +82,8 @@ public class JsonAddressBookStorageTest {
             Files.writeString(filePath, json.replace(ALICE.getAddress().value, address));
             assertThrows(DataLoadingException.class, storage::readAddressBook);
         }
+    public void readAddressBook_nullPersonAddressBook_throwDataLoadingException() {
+        assertThrows(DataLoadingException.class, () -> readAddressBook("nullPersonAddressBook.json"));
     }
 
     @Test
