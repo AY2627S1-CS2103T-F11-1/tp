@@ -1088,6 +1088,9 @@ The roles and phone numbers distinguish the two Alice contacts. Perform each gro
 
    1. Test cases: `sort n/ n/`, `sort n/Alice`, and `sort t/` (separately).<br>
       Expected: Duplicate-field, unexpected-value, and unexpected-token errors respectively.
+      Feedback: `sort accepts each field only once: n/.`,
+      `sort does not accept values after n/.`, and
+      `sort expects clear, n/, or r/, but received: t/.` respectively.
       The two displayed Suppliers and their details remain unchanged. Afterwards, `list` restores all four
       contacts in role-then-name order, confirming the comparator is unchanged.
 

@@ -1,6 +1,7 @@
 package seedu.address.logic.parser;
 
 import static java.util.Objects.requireNonNull;
+import static seedu.address.logic.Messages.MESSAGE_INDEX_REQUIRED;
 import static seedu.address.logic.Messages.MESSAGE_INVALID_COMMAND_FORMAT;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_FOLLOW_UP_DATE;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_FOLLOW_UP_DESCRIPTION;
@@ -40,6 +41,14 @@ public class FollowUpCommandParser implements Parser<FollowUpCommand> {
         String[] preamble = arguments.getPreamble().split("\\s+");
         boolean hasDate = arguments.getValue(PREFIX_FOLLOW_UP_DATE).isPresent();
         boolean hasDescription = arguments.getValue(PREFIX_FOLLOW_UP_DESCRIPTION).isPresent();
+
+        if (arguments.getPreamble().isBlank()) {
+            throw new ParseException(MESSAGE_INDEX_REQUIRED);
+        }
+
+        if (CLEAR_KEYWORD.equals(arguments.getPreamble().trim())) {
+            throw new ParseException(MESSAGE_INDEX_REQUIRED);
+        }
 
         if (preamble.length == 2 && CLEAR_KEYWORD.equals(preamble[1]) && !hasDate && !hasDescription) {
             return new ClearFollowUpCommand(ParserUtil.parseIndex(preamble[0]));

@@ -10,7 +10,7 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
 public class Address {
 
     public static final String MESSAGE_CONSTRAINTS =
-            "Addresses should not be blank or contain only whitespace or invisible formatting characters";
+            "Addresses should not be blank or contain only whitespace or invisible formatting characters.";
 
     /*
      * The first character of the address must not be a whitespace,

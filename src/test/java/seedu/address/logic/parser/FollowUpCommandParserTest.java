@@ -88,10 +88,10 @@ public class FollowUpCommandParserTest {
 
     @Test
     public void parse_missingIndex_failure() {
-        String[] inputs = {"", " ", DATE_ARGUMENT + DESCRIPTION_ARGUMENT};
+        String[] inputs = {"", " ", "clear", DATE_ARGUMENT + DESCRIPTION_ARGUMENT};
 
         for (String input : inputs) {
-            assertParseFailure(parser, input, INVALID_FORMAT_MESSAGE);
+            assertParseFailure(parser, input, Messages.MESSAGE_INDEX_REQUIRED);
         }
     }
 

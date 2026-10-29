@@ -13,7 +13,7 @@ public class Tag {
 
     public static final String MESSAGE_CONSTRAINTS =
             "Tag names should only contain alphanumeric characters, spaces, and punctuation (- / & '), "
-            + "must start and end with an alphanumeric character, and cannot exceed 50 characters";
+            + "must start and end with an alphanumeric character, and cannot exceed 50 characters.";
 
     /*
      * The tag name must start and end with an alphanumeric character.
