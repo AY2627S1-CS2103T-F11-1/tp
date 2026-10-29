@@ -140,7 +140,15 @@ public class MainWindowTest {
      * Creates a window with injectable address book storage for saving-failure tests.
      */
     private void initializeMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage) {
-        createMainWindow(model, addressBookStorage);
+        initializeMainWindow(model, addressBookStorage, new UiDateTracker(CLOCK));
+    }
+
+    /**
+     * Creates and shows a window with an injectable date tracker for date-transition tests.
+     */
+    private void initializeMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage,
+            UiDateTracker uiDate) {
+        createMainWindow(model, addressBookStorage, uiDate);
         mainWindow.show();
     }
 
@@ -148,6 +156,13 @@ public class MainWindowTest {
      * Creates a window without showing it, allowing requested sizes to be checked before the OS adjusts them.
      */
     private void createMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage) {
+        createMainWindow(model, addressBookStorage, new UiDateTracker(CLOCK));
+    }
+
+    /**
+     * Creates an unshown window with the given date tracker, retaining deterministic date checks.
+     */
+    private void createMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage, UiDateTracker uiDate) {
         Path addressBookPath = addressBookStorage.getAddressBookFilePath();
         StorageManager storage = new StorageManager(
                 addressBookStorage,
@@ -158,7 +173,6 @@ public class MainWindowTest {
         stage = new Stage();
         mainWindow = new MainWindow(stage, logic, addressBookPath, null, uiDate);
         mainWindow.fillInnerParts();
-        mainWindow.show();
     }
 
     /**
