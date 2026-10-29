@@ -40,6 +40,11 @@ public class ParserUtilTest {
     private static final String WHITESPACE = " \t\r\n";
 
     @Test
+    public void parseIndex_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseIndex(null));
+    }
+
+    @Test
     public void parseIndex_invalidInput_throwsParseException() {
         assertThrows(ParseException.class, MESSAGE_INVALID_INDEX, () -> ParserUtil.parseIndex("abc"));
     }
@@ -52,6 +57,12 @@ public class ParserUtilTest {
     @Test
     public void parseIndex_negativeInput_throwsParseException() {
         assertThrows(ParseException.class, MESSAGE_INVALID_INDEX, () -> ParserUtil.parseIndex("-1"));
+    }
+
+    @Test
+    public void parseIndex_maximumValue_success() throws Exception {
+        assertEquals(Integer.MAX_VALUE,
+                ParserUtil.parseIndex(Integer.toString(Integer.MAX_VALUE)).getOneBased());
     }
 
     @Test
@@ -68,6 +79,15 @@ public class ParserUtilTest {
 
         // Leading and trailing whitespaces
         assertEquals(INDEX_FIRST_PERSON, ParserUtil.parseIndex("  1  "));
+    }
+
+    @Test
+    public void parseIndex_invalidFormats_throwsParseException() {
+        String[] inputs = {"", WHITESPACE, "+1", "1.5", "1 2"};
+
+        for (String input : inputs) {
+            assertThrows(ParseException.class, MESSAGE_INVALID_INDEX, () -> ParserUtil.parseIndex(input));
+        }
     }
 
     @Test

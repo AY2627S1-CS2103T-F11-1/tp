@@ -39,9 +39,9 @@ public class FindCommandParser implements Parser<FindCommand> {
 
         ArgumentMultimap argMultimap = ArgumentTokenizer.tokenize(args, PREFIX_NAME, PREFIX_ROLE, PREFIX_TAG);
 
-        List<String> prefixedNames = argMultimap.getAllValues(PREFIX_NAME);
-        List<String> prefixedRoles = argMultimap.getAllValues(PREFIX_ROLE);
-        List<String> prefixedTags = argMultimap.getAllValues(PREFIX_TAG);
+        List<String> prefixedNames = normaliseSearchPhrases(argMultimap.getAllValues(PREFIX_NAME));
+        List<String> prefixedRoles = normaliseSearchPhrases(argMultimap.getAllValues(PREFIX_ROLE));
+        List<String> prefixedTags = normaliseSearchPhrases(argMultimap.getAllValues(PREFIX_TAG));
 
         boolean hasPrefixedNames = !prefixedNames.isEmpty();
         boolean hasPrefixedRoles = !prefixedRoles.isEmpty();
@@ -83,5 +83,14 @@ public class FindCommandParser implements Parser<FindCommand> {
         String[] legacyKeywords = trimmedArgs.split("\\s+");
 
         return new FindCommand(new NameContainsKeywordsPredicate(List.of(legacyKeywords)));
+    }
+
+    /**
+     * Collapses repeated ordinary spaces in each phrase without splitting it into separate keywords.
+     */
+    private List<String> normaliseSearchPhrases(List<String> phrases) {
+        return phrases.stream()
+                .map(phrase -> phrase.replaceAll(" +", " "))
+                .toList();
     }
 }

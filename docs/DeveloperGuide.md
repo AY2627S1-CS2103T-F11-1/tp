@@ -362,6 +362,46 @@ How the command parsing and execution works:
 7. If uniqueness validation passes, `Model#addPerson(toAdd)` inserts the contact into `UniquePersonList`, and `Model#commitAddressBook()` saves the state snapshot into `VersionedAddressBook` to support undo/redo.
 8. A `CommandResult` containing success feedback (labeled `result`) is returned to `LogicManager`.
 
+#### Name, role, and tag formatting
+
+`Name`, `Role`, and `Tag` share the same character rules: ASCII letters and digits,
+internal spaces, and punctuation (`-`, `/`, `&`, and `'`). Values must start and end
+with a letter or digit. Internal tabs and line breaks are rejected. `ParserUtil`
+trims leading and trailing whitespace before validation; each value object's
+constructor validates its input before collapsing consecutive internal spaces.
+Capitalisation and punctuation are preserved. For example, `Anne-Marie   O'Connor`
+becomes `Anne-Marie O'Connor` when constructed as a `Name`.
+
+The formatting rules apply to both `add` and `edit`, and also when stored JSON is
+loaded through the value-object constructors. Existing names containing repeated
+internal spaces are therefore normalised on load and saved in that form on the
+next successful save. `NameTest`, `AddCommandParserTest`, `EditCommandParserTest`,
+and `JsonAdaptedPersonTest` cover these paths.
+
+Two field-specific behaviours remain: only `Tag` has a 50-character limit, checked
+before normalisation, and `Name.equals()` compares case-sensitively while `Role`
+and `Tag` compare case-insensitively. Search predicates for all three fields ignore
+case. Before constructing predicates, `FindCommandParser` collapses repeated
+ordinary spaces in each `n/`, `r/`, and `t/` search phrase using
+`normaliseSearchPhrases()`. Each phrase remains a single substring criterion;
+repeated prefixes retain OR matching, and different prefix types retain AND
+matching. Search phrases do not pass through whole-field validation, so partial
+phrases remain valid. Legacy name search continues to split keywords on whitespace.
+
+`FindCommandParserTest` covers normalisation for all three fields, repeated prefix
+groups, and partial phrases. `LogicManagerTest` reproduces adding and searching
+with the same repeated spaces, checks single-space equivalence, and verifies
+case-insensitive substring matching together with OR/AND behaviour.
+
+Prefix recognition runs before field validation. Slash-containing values such as
+`n/David s/o Me` remain rejected because `s/` is recognised as an unknown prefix;
+a supported prefix after a space starts another field. This also affects leading
+spaces before a slash-containing value: `t/key/board` works, but `t/ key/board`
+is rejected as an unknown `key/` prefix. Changing this command syntax remains
+deferred.
+
+#### Execution flow
+
 The activity diagram below illustrates the duplicate resolution and defensive error-handling branching during `AddCommand#execute()`. Each decision node specifies explicit, mutually exclusive guard conditions on all outgoing branches, and all execution paths converge cleanly to a single final node:
 
 ![AddCommandActivityDiagram](images/AddCommandActivityDiagram.png)
@@ -432,6 +472,11 @@ The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_
 
 `EditCommand.EditPersonDescriptor` stores `tagsToAdd` and `tagsToDelete` separately. Each setter makes a defensive copy, and each getter returns an `Optional<Set<Tag>>` containing an unmodifiable set. An absent optional means that operation was not supplied. Both sets participate in the copy constructor, `isAnyFieldEdited()`, `equals()`, and `toString()`.
 
+Before tokenizing the arguments, `EditCommandParser` calls
+`ArgumentTokenizer#verifyNoUnrecognizedPrefixes()` with all supported edit
+prefixes (`n/`, `p/`, `e/`, `a/`, `r/`, `t/`, and `dt/`). This prevents unknown
+prefixes from being silently ignored.
+
 After parsing the index and other contact fields, `EditCommandParser`:
 
 1. Parses additions, then deletions, using `parseTagsForEdit()`. An absent prefix produces an empty optional. A supplied blank tag is rejected, including bare `t/` and `dt/`; neither clears all tags.
@@ -459,7 +504,7 @@ Requested deletion absent from the selected contact | `EditCommand.MESSAGE_TAG_N
 #### Test coverage
 
 * `EditPersonDescriptorTest` covers independent tag operations, defensive copying, unmodifiable getters, equality, and string output.
-* `EditCommandParserTest` covers both prefixes, repeated and empty values, invalid names, case-insensitive conflicts, and validation order.
+* `EditCommandParserTest` covers recognised and unrecognised prefixes, repeated and empty values, invalid names, case-insensitive conflicts, and validation order.
 * `EditCommandTest` covers additions, selective deletions, combined operations, filtered lists, existing tags, missing deletions, and preservation of the full model on failure. It also parses command text through `AddressBookParser` before execution to cover the acceptance examples and failure cases.
 * `AddressBookParserTest` checks that an edit containing both operations is routed to the edit parser.
 
@@ -531,10 +576,12 @@ It supports case-insensitive, ascending ordering by name, role, or both, with fi
 
 #### Parsing and validation
 
-`AddressBookParser` delegates sort arguments to `SortCommandParser`. Empty or whitespace-only arguments default to
-`SortField.NAME`. Otherwise, the parser splits arguments on whitespace and maps standalone `n/` and `r/` tokens to
-an ordered list of `SortField` values. Duplicate fields, values attached to prefixes, and unsupported tokens produce
-specific `ParseException` messages before any model state changes.
+`AddressBookParser` delegates sort arguments to `SortCommandParser`. Empty or
+whitespace-only arguments default to `SortField.NAME`. Otherwise, the parser
+accepts standalone `n/` and `r/` tokens in the supplied priority order, or the
+standalone `clear` argument. Duplicate fields, values attached to prefixes,
+unsupported tokens, and combinations such as `clear n/` produce specific
+`ParseException` messages before any model state changes.
 
 `SortCommand` independently requires one or two distinct, non-null fields and makes an immutable defensive copy of
 the supplied list. This preserves field priority even if the caller later modifies its original list.
@@ -549,9 +596,12 @@ the supplied list. This preserves field priority even if the caller later modifi
 4. Applies the comparator using `Model#updateSortedPersonList()`.
 5. Returns a `CommandResult`, selecting empty-address-book feedback when the underlying contact list is empty.
 
-The empty-address-book check affects feedback only: sorting is still applied so contacts added afterwards follow
-the selected order. An empty search result does not trigger this feedback if the underlying address book has contacts.
-Executing another sort command replaces the previous comparator rather than adding to the previous sorting criteria.
+The empty-address-book check affects feedback only: sorting is still applied so
+contacts added afterwards follow the selected order. The user receives an
+informational message instead of an error. An empty search result does not
+trigger this feedback if the underlying address book contains contacts.
+Executing another sort command replaces the previous comparator rather than
+adding to the previous sorting criteria.
 
 #### Model integration, persistence, and history
 
@@ -559,6 +609,10 @@ Executing another sort command replaces the previous comparator rather than addi
 `sortedPersons` from `filteredPersons`. `updateFilteredPersonList()` changes the predicate on the filtered view;
 `updateSortedPersonList()` changes the comparator on the sorted view. Neither operation rearranges stored contacts.
 With no comparator, the sorted view follows its source order.
+
+`sort clear` calls `updateSortedPersonList(null)`. Since a `SortedList` without
+a comparator follows its source order, this restores the original insertion
+order without rearranging the stored contact list.
 
 ![Partial class diagram of the model's filtered and sorted contact views](images/SortModelClassDiagram.png)
 
@@ -574,9 +628,10 @@ contacts propagate through both views, including repositioning a contact when an
 After successful execution, `LogicManager` saves `model.getAddressBook()`, not the displayed view. The comparator is
 not serialized, so sorting does not change saved contact order and is reset on restart.
 
-Sort does not call `commitAddressBook()`, so it creates no undo snapshot and does not discard redo history.
-Undo and redo restore contact data and clear the filter without replacing the active comparator. Subsequent find
-and list commands also retain the selected sort order.
+Sort and `sort clear` do not call `commitAddressBook()`, so neither creates an
+undo snapshot or discards redo history. Undo and redo restore contact data and
+retain the active sort order unless the user explicitly runs `sort clear`.
+Subsequent find and list commands retain the selected sort order.
 
 #### Design considerations
 
@@ -594,9 +649,13 @@ Filtering remains independent: users can run find afterwards to narrow the sorte
 
 #### Test coverage
 
-* `SortCommandParserTest` covers default sorting, field priority, whitespace, and invalid arguments.
-* `SortCommandTest` covers constructor validation, defensive copying, comparator priority, case handling, empty and
-  single-contact lists, filter clearing, replacement sorting, and sorting contacts added after an empty-book sort.
+* `SortCommandParserTest` covers default sorting, field priority, whitespace,
+  `clear`, invalid arguments, and invalid combinations of `clear` with sorting
+  fields.
+* `SortCommandTest` covers constructor validation, defensive copying, comparator
+  priority, case handling, empty and single-contact lists, filter clearing,
+  replacement sorting, clearing the sort, restoring insertion order, and sorting
+  contacts added after an empty-book sort.
 * `ModelManagerTest` covers displayed ordering, chained comparators, filtering, live add/edit/delete updates through
   an existing list reference, and model equality.
 * `AddressBookParserTest` checks command dispatch to the sort parser.
@@ -998,9 +1057,27 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 * 2a. The address book contains no contacts.
 
-  * 2a1. `KeyBossWarriorsPro` informs the user that there are no
-    contacts to sort. The selected sorting criteria remain active
-    for contacts added afterwards.
+  * 2a1. `KeyBossWarriorsPro` displays an informational message instead of an
+    error. The selected sorting criteria remain active for contacts added
+    afterwards.
+
+    Use case ends.
+
+**Use Case: UC7 - Clear Sort Order**
+
+**MSS**
+
+1. User requests to clear the active sort order using `sort clear`.
+2. `KeyBossWarriorsPro` displays all contacts in their original insertion order.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The address book contains no contacts.
+
+  * 1a1. `KeyBossWarriorsPro` displays an empty list and confirms that sorting
+    has been cleared.
 
     Use case ends.
 
@@ -1108,6 +1185,28 @@ Restart the application. | Contact data remains available and the details panel 
 
 1. _{ more test cases …​ }_
 
+### Name, role, and tag formatting
+
+Use a disposable application copy and add a contact with unused phone and email details:
+
+```text
+add n/Anne-Marie   O'Connor p/81009001 e/formatting@example.com a/Test Address r/R&D   Partner t/lubed/filmed   switches
+```
+
+Expected: The contact has name `Anne-Marie O'Connor`, role `R&D Partner`, and tag
+`lubed/filmed switches`. Punctuation and capitalisation are preserved, while each
+run of internal spaces becomes one space. Run `find n/Anne-Marie O'Connor` and
+confirm there is exactly one result before using index 1 below.
+
+Command | Expected result
+--------|------------------
+`find n/Anne-Marie   O'Connor`, then `find n/Anne-Marie O'Connor` | Both searches return the test contact.
+`find r/R&D   Partner`, then `find r/R&D Partner` | Both searches return the test contact.
+`find t/lubed/filmed   switches`, then `find t/lubed/filmed switches` | Both searches return the test contact.
+`edit 1 n/Anne-Marie    O'Connor r/R&D    Partner t/PCB    Supplier` | All supplied fields use single internal spaces. The new tag is `PCB Supplier`, and the existing tag remains.
+`edit 1 n/Changed xx/value` | Unknown-prefix error; the contact's name, role, and tags remain unchanged.
+Restart the application, then run `find n/Anne-Marie O'Connor`. | The normalised name, role, and both tags are retained.
+
 ### Editing contact tags
 
 Create a test contact with a unique phone number and email, for example `add n/TagEditExample p/12345678 e/tagedit@example.com a/Test Address r/Employee t/trainee t/supplier`. Run `find TagEditExample` and confirm this is the only result. Before each command below, run `find TagEditExample` again because a successful edit displays all contacts. Perform the cases in the order shown.
@@ -1197,8 +1296,13 @@ The roles and phone numbers distinguish the two Alice contacts. Perform each gro
       contacts in role-then-name order, confirming the comparator is unchanged.
 
    1. Test case: `clear`, then `sort n/`.<br>
-      Expected: Empty list and feedback `Error: There are no contacts to sort.`
+      Expected: Empty list and feedback
+      `No contacts are currently available. The selected sort order will apply to contacts added later.`
       Add Zoe and Alice (Supplier) using their setup commands: Alice appears before Zoe.
+
+   1. Test case: `sort r/`, then `sort clear`.<br>
+      Expected: Contacts return to their original insertion order: Zoe, ben, Alice, alice.
+      Feedback: `Sorting cleared. Contacts will be displayed in insertion order.`
 
 ### Saving data
 

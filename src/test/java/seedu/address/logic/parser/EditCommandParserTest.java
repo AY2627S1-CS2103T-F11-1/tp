@@ -84,9 +84,28 @@ public class EditCommandParserTest {
 
         // invalid arguments being parsed as preamble
         assertParseFailure(parser, "1 some random string", MESSAGE_INVALID_INDEX);
+    }
 
-        // invalid prefix being parsed as preamble
-        assertParseFailure(parser, "1 i/ string", MESSAGE_INVALID_INDEX);
+    @Test
+    public void parse_unrecognizedPrefix_failure() {
+        assertParseFailure(parser, "1 xx/value",
+                Messages.getErrorMessageForUnrecognizedPrefixes(new Prefix("xx/")));
+
+        assertParseFailure(parser, "1" + NAME_DESC_AMY + " xx/value",
+                Messages.getErrorMessageForUnrecognizedPrefixes(new Prefix("xx/")));
+    }
+
+    @Test
+    public void parse_punctuationAndMultipleSpaces_success() {
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
+                .withName("Anne-Marie O'Connor")
+                .withRole("R&D Partner")
+                .withTagsToAdd("lubed/filmed switches")
+                .build();
+
+        assertParseSuccess(parser,
+                "1 n/  Anne-Marie   O'Connor   r/  R&D   Partner   t/lubed/filmed   switches  ",
+                new EditCommand(INDEX_FIRST_PERSON, descriptor));
     }
 
     @Test
