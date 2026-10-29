@@ -20,9 +20,6 @@ import seedu.address.model.person.FollowUp;
  */
 public class FollowUpCommandParser implements Parser<FollowUpCommand> {
 
-    public static final String MESSAGE_INVALID_DATE =
-            "Follow-up due dates must be valid calendar dates in YYYY-MM-DD format.";
-
     private static final String CLEAR_KEYWORD = "clear";
     /**
      * Parses the given {@code String} of arguments in the context of the FollowUpCommand
