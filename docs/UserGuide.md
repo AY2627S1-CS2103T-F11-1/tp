@@ -61,8 +61,6 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 * The optional argument to `help` is treated as a command name. For example, `help add` displays the `add` command's usage; an unsupported target such as `help 123` displays guidance instead of opening the full help window.
 * For `list`, additional arguments are ignored and a warning is displayed.
   For example, `list 3` lists all contacts and does not navigate to contact 3.
-* For `clear`, additional arguments are ignored and a warning is displayed.
-  For example, `clear 1` clears all entries and does not delete only contact 1.
 * For `exit`, a message explains that any extra text is ignored before the application closes.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
@@ -104,10 +102,6 @@ Clears all entries from KeyBossWarriorsPro.
 
 **Format:** `clear`
 
-* If KeyBossWarriorsPro is already empty (contains 0 contacts), no entries are cleared, the undo/redo history is preserved, and the message `KeyBossWarriorsPro is already empty; no contacts were cleared.` is shown.
-* Additional arguments are ignored and a warning is displayed. For example, `clear 1` or `clear all` clears all contacts and warns that the additional arguments were ignored.
-
-
 
 ### Deleting a contact: `delete`
 
@@ -118,7 +112,6 @@ Deletes the contact at the specified position in the currently displayed contact
 * `INDEX` **must be a positive integer** 1, 2, 3, …​
 * `INDEX` refers to the contact's position in the contact list currently displayed to the user.
 * The index is temporary and may change when commands such as `list`, `find`, `add`, `edit`, or `delete` change the displayed list.
-* The confirmation message summarizes all details of the deleted contact, including any active follow-up due date and description.
 
 Examples:
 * `list` followed by `delete 2` deletes the second contact in the currently displayed list.
@@ -221,7 +214,7 @@ Command | Behavior
 * A follow-up due today is not overdue.
 * Today is determined using the computer's local date when the command executes. Rerun the command to refresh date-based results after the date changes.
 * Date cutoffs follow the same date constraints as `followup`. Past cutoffs are accepted.
-* Query modes cannot be combined and extra arguments or keywords (e.g. `followups by/2026-11-01 overdue`) are rejected with an invalid command format error. Index arguments are not supported.
+* Query modes cannot be combined. Index arguments are not supported.
 * Queries do not modify contact details or undo/redo history.
 * If no contacts match, the list is empty and the application displays `No follow-ups found.`
 
@@ -351,31 +344,34 @@ Examples:
 
 
 
-### Sorting contacts: `sort`
+### Sorting all contacts: `sort`
 
-Displays all contacts in ascending, case-insensitive order by name, role, or both.
+Displays all contacts sorted by name, role, or both, making it easier to browse contacts in preferred order.
 
-**Format:** `sort [n/] [r/]` or `sort clear`
+**Format:** `sort [n/] [r/]` or `sort [r/] [n/]`
 
 | Command | Behaviour |
 |---|---|
-| `sort` | Sorts contacts by name. |
-| `sort n/` | Sorts contacts by name. |
-| `sort r/` | Sorts contacts by role. |
-| `sort n/ r/` | Sorts by name, then by role when names are identical. |
-| `sort r/ n/` | Sorts by role, then by name when roles are identical. |
-| `sort clear` | Restores the original insertion order. |
+| `sort` | Sort by name. |
+| `sort n/` | Sort by name. |
+| `sort r/` | Sort by role. |
+| `sort n/ r/` | Sort by name, then role for contacts with matching names. |
+| `sort r/ n/` | Sort by role, then name for contacts with matching roles. |
 
-* Sorting is ascending and case-insensitive.
-* When both `n/` and `r/` are provided, the first field has priority and the second field breaks ties.
-* Each sorting field may be used only once and must not have a value. For example, `sort n/Alice` is invalid.
-* Use lowercase `n/` and `r/` prefixes, separated by whitespace.
-* Sorting displays all contacts and clears any active `find` filter.
+* Sorting is ascending and case-insensitive. For example, `alice` and
+  `Alice` are treated as equal when comparing names.
+* When both fields are supplied, their order matters: the first field
+  takes priority, and the second breaks ties.
+* Each field may appear only once and takes no value. Use lowercase
+  prefixes `n/` and `r/`, separated by whitespace.
+* Sorting clears any active search filter and displays **all contacts**,
+  not just the current search results.
+* Running another sort command replaces the previous sorting criteria.
 
 **Using the sorted list**
 
 * Contact indices follow the displayed order. After sorting, check the displayed index before using `edit`, `delete`, or other index-based commands.
-* `find` and `list` retain the selected sort order.
+* `find`, `list` and `followups` retain the selected sort order.
 * Adding, editing, or deleting contacts automatically updates the displayed order. Editing a contact's name or role may change its displayed index.
 * Sorting changes only the displayed order. It does not modify contact details or the order saved to the data file.
 * Running another `sort` command replaces the current ordering.
@@ -447,13 +443,13 @@ Displays all contacts in KeyBossWarriorsPro and resets any active search filter.
 
 **Format:** `list`
 
-* Additional arguments are ignored and a warning is displayed. For example, `list 3` or `list abc xyz` displays all contacts and warns that additional arguments were ignored.
-* Whitespace-only arguments are treated as empty input.
-
 Examples:
 
 * `list` displays all contacts.
-* `list 3` displays all contacts and warns that additional arguments were ignored.
+* `list 3` displays all contacts and warns that `3` was ignored.
+* `list abc xyz` displays all contacts and warns that the arguments were ignored.
+
+Whitespace-only arguments are treated as empty input.
 
 If there are no contacts, the application displays:
 
@@ -532,4 +528,4 @@ Action | Format, Examples
 **Undo** | `undo`
 **Follow-up** | `followup INDEX by/DUE_DATE abt/DESCRIPTION` or `followup INDEX clear`<br> e.g., `followup 1 by/2026-11-01 abt/Confirm quotation`
 **Follow-up queries** | `followups`, `followups overdue`, or `followups by/DUE_DATE`<br> e.g., `followups by/2026-11-01`
-**Sort** | `sort [n/] [r/]`, `sort [r/] [n/]`, or `sort clear`
+**Sort** | `sort [n/] [r/]`
