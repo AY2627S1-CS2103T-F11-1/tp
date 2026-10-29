@@ -48,8 +48,14 @@ public class FollowUpsCommandParser implements Parser<FollowUpsCommand> {
         arguments.verifyNoMissingPrefixesFor(PREFIX_FOLLOW_UP_DATE);
         arguments.verifyNoDuplicatePrefixesFor(PREFIX_FOLLOW_UP_DATE);
 
-        LocalDate cutoffDate = ParserUtil.parseFollowUpDate(
-                arguments.getValue(PREFIX_FOLLOW_UP_DATE).orElseThrow());
+        String rawDate = arguments.getValue(PREFIX_FOLLOW_UP_DATE).orElseThrow();
+        String[] dateTokens = rawDate.trim().split("\\s+");
+        if (dateTokens.length > 1) {
+            throw new ParseException(
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.COMMAND_USAGE));
+        }
+
+        LocalDate cutoffDate = ParserUtil.parseFollowUpDate(rawDate);
 
         return FollowUpsCommand.dueBy(cutoffDate);
     }

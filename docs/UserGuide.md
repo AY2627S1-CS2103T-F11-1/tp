@@ -210,8 +210,7 @@ Command | Behavior
 
 `followups by/DUE_DATE` | Displays contacts with follow-ups due on or before the specified date.
 * Contacts without follow-ups are excluded.
-* Results retain the active sort order. If no sort order has been selected, results follow the saved address-book order.
-* Results are numbered from 1. Use these displayed indexes for subsequent contact commands, including `followup INDEX clear`.
+* Results retain address-book order and are numbered from 1. Use these displayed indexes for subsequent contact commands.
 * A follow-up due today is not overdue.
 * Today is determined using the computer's local date when the command executes. Rerun the command to refresh date-based results after the date changes.
 * Date cutoffs follow the same date constraints as `followup`. Past cutoffs are accepted.
@@ -371,19 +370,40 @@ Displays all contacts sorted by name, role, or both, making it easier to browse 
 
 **Using the sorted list**
 
-* Contact indices follow the sorted displayed order. After sorting,
-  check the displayed index before using `edit` or `delete`.
-* Subsequent `find` and `followups` results retain the selected sort order.
-  Running `list` shows all contacts while retaining that order.
-* Adding, editing, or deleting contacts automatically updates the sorted
-  view. Changing a contact's name or role may change its displayed index.
-* Sorting does not modify contact details or the contact order saved
-  to the data file.
-* Sorting cannot be undone. Undo and redo apply to contact-data changes
-  while retaining the selected sort order. Sorting does not discard
-  available redo history.
-* The selected sort order lasts until the application closes. After
-  restarting, contacts appear in their saved order until sorted again.
+* Contact indices follow the displayed order. After sorting, check the displayed index before using `edit`, `delete`, or other index-based commands.
+* `find`, `list` and `followups` retain the selected sort order.
+* Adding, editing, or deleting contacts automatically updates the displayed order. Editing a contact's name or role may change its displayed index.
+* Sorting changes only the displayed order. It does not modify contact details or the order saved to the data file.
+* Running another `sort` command replaces the current ordering.
+* Sorting is not an undoable contact-data change. Use `sort clear` to restore the original insertion order.
+* Sorting is reset when the application restarts.
+
+If the address book is empty, the selected sort order is still applied and will affect contacts added later. The application displays:
+
+```text
+No contacts are currently available. The selected sort order will apply to contacts added later.
+```
+
+Example:
+
+```text
+sort r/ n/
+```
+
+This displays contacts by role first, then by name for contacts with the same role.
+
+To restore the original insertion order:
+
+```text
+sort clear
+```
+
+The application displays:
+
+```text
+Sorting cleared. Contacts will be displayed in insertion order.
+```
+
 
 ### Viewing help: `help [COMMAND]`
 
