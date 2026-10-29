@@ -69,8 +69,11 @@ public class PersonCardTest {
             assertEquals(ALICE.getRole().value, roleLabel.getText());
             assertEquals(ALICE.getPhone().value, phoneLabel.getText());
             assertNull(card.getRoot().lookup("#address"));
-            assertNull(card.getRoot().lookup("#email"));
-            for (String id : List.of("id", "name", "role", "phone", "tags")) {
+            Label emailLabel = (Label) card.getRoot().lookup("#email");
+            assertEquals(ALICE.getEmail().value, emailLabel.getText());
+            assertEquals(ALICE.getEmail().value, emailLabel.getTooltip().getText());
+            assertTrue(emailLabel.getTooltip().isWrapText());
+            for (String id : List.of("id", "name", "role", "followUpBadge", "phone", "email", "tags")) {
                 assertEquals(1, card.getRoot().lookupAll("#" + id).size(), "Each summary field should appear once");
             }
 

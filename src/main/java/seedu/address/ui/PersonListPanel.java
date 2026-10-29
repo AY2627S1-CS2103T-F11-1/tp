@@ -40,6 +40,9 @@ public class PersonListPanel extends UiPart<Region> {
     private final UiDateTracker uiDate;
     private boolean commandExecuting;
     private ScrollRequest pendingScroll;
+    // Temporary Windows CI tracing; enabled only by the affected UI test.
+    private Consumer<String> scrollDiagnostics;
+    private long scrollRequestId;
 
     @FXML
     private ListView<Person> personListView;
@@ -66,7 +69,7 @@ public class PersonListPanel extends UiPart<Region> {
         // A list change can replace the selected contact or automatically select a neighbour.
         personList.addListener((ListChangeListener<Person>) change -> {
             if (!commandExecuting) {
-                cancelPendingScroll();
+                cancelPendingScroll("list-change-outside-command");
                 personListView.getSelectionModel().clearSelection();
             }
         });
@@ -88,7 +91,8 @@ public class PersonListPanel extends UiPart<Region> {
      * Prevents automatic ListView selection changes from becoming contact selections during a command.
      */
     void beginCommand() {
-        cancelPendingScroll();
+        recordScrollDiagnostics("begin-command");
+        cancelPendingScroll("later-command");
         commandExecuting = true;
     }
 

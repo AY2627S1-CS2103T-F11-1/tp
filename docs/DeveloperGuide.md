@@ -90,12 +90,20 @@ The `UI` component,
 The minimum height is 600 pixels. `MainWindow` clamps smaller restored dimensions in the UI without changing the
 preferences data structure.
 
-`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, and sorted tags.
-Email, address, and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
-tags are hidden and unmanaged. Long names use a single line with an ellipsis and a full-name tooltip; tags wrap.
+`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, email, and sorted tags.
+The header contains one name, one coloured role badge, and an optional follow-up indicator. Phone and email appear
+beneath the header, followed by a single tag container. A small minimum name width keeps an ellipsis visible when
+long roles and follow-up badges share the header. Names and emails use single-line ellipses with full-text tooltips;
+roles and tags wrap. Address and complete follow-up content appear in the right details panel. Empty tags and absent
+follow-up indicators are hidden and unmanaged.
+
+The follow-up indicator displays `Follow-up` for future dates, `Due today` for the shared local date, or `Overdue`
+for past dates. It measures all three labels in the resolved font and regular/bold variants, including padding and
+borders, to reserve stable dimensions. All urgency states share a bold font; overdue text is also underlined.
+Font and inset changes update the reserved size, while date changes retain the same dimensions and resolved font.
 `PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
 preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
-remain visible when keyboard focus moves to command input. Unselected cards reserve a transparent border of the same
+remain visible when keyboard focus moves to command input. Selected and unselected cards reserve the same border
 width, so selection does not change row heights or tag wrapping and invalidate the virtual list's cached geometry.
 
 `MainWindow#fillInnerParts()` mounts `PersonDetailsPanel` in the right placeholder. The panel extends `UiPart<Region>`
