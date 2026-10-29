@@ -71,7 +71,8 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 ### Viewing contact details
 
 Click a contact in the list, or enter `select INDEX`, to display its full details in the panel on the right.
-List cards show the name, role, phone number, and tags. Long names use an ellipsis; hover over a name to read it in full.
+List cards show the name, role, phone number, email address, and tags. Long names and email addresses use an ellipsis;
+hover over either to read it in full.
 While the contact list has keyboard focus, use the Up and Down arrow keys to move between contacts.
 The details panel updates immediately without moving keyboard focus.
 

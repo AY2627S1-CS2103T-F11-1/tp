@@ -38,6 +38,8 @@ public class PersonCard extends UiPart<Region> {
     @FXML
     private Label phone;
     @FXML
+    private Label email;
+    @FXML
     private FlowPane tags;
 
     /**
@@ -54,6 +56,11 @@ public class PersonCard extends UiPart<Region> {
         name.setTooltip(nameTooltip);
         role.setText(person.getRole().value);
         phone.setText(person.getPhone().value);
+        email.setText(person.getEmail().value);
+        Tooltip emailTooltip = new Tooltip(person.getEmail().value);
+        emailTooltip.setWrapText(true);
+        emailTooltip.setMaxWidth(400);
+        email.setTooltip(emailTooltip);
         person.getTags().stream()
                 .sorted(Comparator.comparing(tag -> tag.tagName))
                 .forEach(tag -> {

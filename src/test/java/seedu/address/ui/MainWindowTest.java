@@ -49,6 +49,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.Logic;
@@ -938,10 +939,12 @@ public class MainWindowTest {
             assertEquals("1. ", ((Label) card.lookup("#id")).getText());
             assertEquals(person.getRole().value, ((Label) card.lookup("#role")).getText());
             assertEquals(person.getPhone().value, ((Label) card.lookup("#phone")).getText());
+            Label email = (Label) card.lookup("#email");
+            assertEquals(person.getEmail().value, email.getText());
+            assertEquals(person.getEmail().value, email.getTooltip().getText());
             FlowPane tags = (FlowPane) card.lookup("#tags");
             assertEquals(List.of("lube", "switches"), tags.getChildren().stream()
                     .map(node -> ((Label) node).getText()).toList());
-            assertNull(card.lookup("#email"));
             assertNull(card.lookup("#address"));
             assertNull(card.lookup("#followUpSection"));
 
@@ -979,11 +982,82 @@ public class MainWindowTest {
         runOnFxThread(() -> {
             ListCell<?> tagged = contactCell(withTags);
             ListCell<?> untagged = contactCell(withoutTags);
-            assertTrue(tagged.getHeight() < 105, "Summary cards should shrink below the old 105px minimum");
+            assertTrue(tagged.getHeight() < 125, "Summary cards should remain compact with the extra email line");
+            assertTrue(untagged.getHeight() < 105, "Cards without tags should have no fixed 105px minimum");
             assertTrue(untagged.getHeight() < tagged.getHeight(), "Empty tags should leave no layout gap");
             FlowPane tags = (FlowPane) untagged.getGraphic().lookup("#tags");
             assertFalse(tags.isVisible());
             assertFalse(tags.isManaged());
+        });
+    }
+
+    @Test
+    public void cards_longEmail_staysOnOneLineWithTooltipAtDividerLimits() throws Exception {
+        Person person = new PersonBuilder(ALICE).withEmail("supplier".repeat(30) + "@keyboard.example.com")
+                .withTags().build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            initializeMainWindow(model);
+        });
+        for (double width : new double[] {800, 1100, 800}) {
+            for (double position : new double[] {0, 1}) {
+                runOnFxThread(() -> {
+                    stage.setWidth(width);
+                    SplitPane split = (SplitPane) stage.getScene().lookup("#contactSplitPane");
+                    split.setDividerPositions(position);
+                });
+                awaitLayout();
+                runOnFxThread(() -> {
+                    Region card = (Region) contactCell(person).getGraphic();
+                    Label phone = (Label) card.lookup("#phone");
+                    Label email = (Label) card.lookup("#email");
+                    assertEquals(person.getEmail().value, email.getText());
+                    assertEquals(person.getEmail().value, email.getTooltip().getText());
+                    assertTrue(email.getTooltip().isWrapText());
+                    assertFalse(email.isWrapText());
+                    Text displayed = (Text) email.lookup(".text");
+                    assertTrue(displayed.getText().endsWith(email.getEllipsisString()),
+                            "Long emails should visibly end in an ellipsis");
+                    assertTrue(email.getHeight() < email.getFont().getSize() * 2,
+                            "An email should occupy only one line");
+                    Bounds emailBounds = email.localToScene(email.getLayoutBounds());
+                    Bounds cardBounds = card.localToScene(card.getLayoutBounds());
+                    assertTrue(emailBounds.getMinY() >= phone.localToScene(phone.getLayoutBounds()).getMaxY());
+                    assertTrue(emailBounds.getMinX() >= cardBounds.getMinX());
+                    assertTrue(emailBounds.getMaxX() <= cardBounds.getMaxX() + 1);
+                    assertFalse(scrollBar(contactList(), Orientation.HORIZONTAL).isVisible());
+                    assertContactPanesFit();
+                });
+            }
+        }
+    }
+
+    @Test
+    public void cards_emailEditsAndUndoRedo_updateSummaryAndDetails() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow().commitAddressBook();
+            submitCommand("select 1");
+            submitCommand("edit 1 e/newalice@example.com");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            Person edited = (Person) contactList().getItems().get(0);
+            assertSelected(edited);
+            assertEquals("newalice@example.com", ((Label) contactCell(edited).getGraphic().lookup("#email")).getText());
+            submitCommand("undo");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertEquals(ALICE.getEmail().value, ((Label) contactCell(ALICE).getGraphic().lookup("#email")).getText());
+            submitCommand("redo");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            Person edited = (Person) contactList().getItems().get(0);
+            assertEquals("newalice@example.com", ((Label) contactCell(edited).getGraphic().lookup("#email")).getText());
+            submitCommand("select 1");
+            assertSelected(edited);
         });
     }
 

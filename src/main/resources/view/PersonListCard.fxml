@@ -32,6 +32,8 @@
              minHeight="-Infinity" maxWidth="Infinity" />
       <Label fx:id="phone" styleClass="cell_small_label" wrapText="true" minWidth="0"
              minHeight="-Infinity" maxWidth="Infinity" />
+      <Label fx:id="email" styleClass="cell_small_label" wrapText="false" textOverrun="ELLIPSIS"
+             minWidth="0" minHeight="-Infinity" maxWidth="Infinity" />
       <FlowPane fx:id="tags" minWidth="0" />
     </VBox>
   </GridPane>

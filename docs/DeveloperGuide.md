@@ -90,9 +90,10 @@ The `UI` component,
 The minimum height is 600 pixels. `MainWindow` clamps smaller restored dimensions in the UI without changing the
 preferences data structure.
 
-`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, and sorted tags.
-Email, address, and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
-tags are hidden and unmanaged. Long names use a single line with an ellipsis and a full-name tooltip; tags wrap.
+`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, email, and sorted tags.
+Address and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
+tags are hidden and unmanaged. Long names and emails use a single line with an ellipsis and full-text tooltips;
+tags wrap. Email appears beneath the phone number using the existing summary text style.
 `PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
 preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
 remain visible when keyboard focus moves to command input.
