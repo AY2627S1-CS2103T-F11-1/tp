@@ -1,7 +1,12 @@
 package seedu.address.ui;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Comparator;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.WeakChangeListener;
+import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -16,6 +21,8 @@ import seedu.address.model.person.Person;
 public class PersonCard extends UiPart<Region> {
 
     private static final String FXML = "PersonListCard.fxml";
+    private static final PseudoClass DUE_TODAY = PseudoClass.getPseudoClass("due-today");
+    private static final PseudoClass OVERDUE = PseudoClass.getPseudoClass("overdue");
 
     /**
      * Note: Certain keywords such as "location" and "resources" are reserved keywords in JavaFX.
@@ -26,6 +33,9 @@ public class PersonCard extends UiPart<Region> {
      */
 
     public final Person person;
+
+    // Keep the weak listener alive only while this card is in use by a list cell.
+    private final ChangeListener<LocalDate> dateListener;
 
     @FXML
     private HBox cardPane;
@@ -48,6 +58,10 @@ public class PersonCard extends UiPart<Region> {
      * Creates a {@code PersonCard} with the given {@code Person} and index to display.
      */
     public PersonCard(Person person, int displayedIndex) {
+        this(person, displayedIndex, new UiDateTracker(Clock.systemDefaultZone()));
+    }
+
+    PersonCard(Person person, int displayedIndex, UiDateTracker uiDate) {
         super(FXML);
         this.person = person;
         id.setText(displayedIndex + ". ");
@@ -60,6 +74,9 @@ public class PersonCard extends UiPart<Region> {
         boolean hasFollowUp = person.getFollowUp().isPresent();
         followUpBadge.setVisible(hasFollowUp);
         followUpBadge.setManaged(hasFollowUp);
+        dateListener = (observable, previous, today) -> updateFollowUpBadge(today);
+        uiDate.dateProperty().addListener(new WeakChangeListener<>(dateListener));
+        updateFollowUpBadge(uiDate.getDate());
         phone.setText(person.getPhone().value);
         email.setText(person.getEmail().value);
         Tooltip emailTooltip = new Tooltip(person.getEmail().value);
@@ -77,5 +94,18 @@ public class PersonCard extends UiPart<Region> {
                 });
         tags.setVisible(!person.getTags().isEmpty());
         tags.setManaged(!person.getTags().isEmpty());
+    }
+
+    private void updateFollowUpBadge(LocalDate today) {
+        person.getFollowUp().ifPresent(followUp -> {
+            LocalDate dueDate = followUp.getDueDate();
+            boolean overdue = dueDate.isBefore(today);
+            boolean dueToday = dueDate.equals(today);
+            followUpBadge.setText(overdue ? "Overdue" : dueToday ? "Due today" : "Follow-up");
+            followUpBadge.pseudoClassStateChanged(DUE_TODAY, dueToday);
+            followUpBadge.pseudoClassStateChanged(OVERDUE, overdue);
+            followUpBadge.setAccessibleText(followUpBadge.getText()
+                    + ". Select this contact to view follow-up details.");
+        });
     }
 }

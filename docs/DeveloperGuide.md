@@ -94,9 +94,11 @@ preferences data structure.
 Address and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
 tags are hidden and unmanaged. Long names and emails use a single line with an ellipsis and full-text tooltips;
 tags wrap. Email appears beneath the phone number using the existing summary text style.
-The role row includes a fixed-width `Follow-up` badge when `Person#getFollowUp()` is present. The role wraps into the
-remaining width. `PersonCard` hides and unmanages the badge when absent, so it reserves no space. The badge uses text
-and a border in the existing theme; it represents presence only and does not depend on the current date.
+The role row includes a badge when `Person#getFollowUp()` is present: `Follow-up` for a future due date, `Due today`
+for the local date, and `Overdue` for a past date. It reserves the same width for every state so transitions do not
+reflow the role. The role wraps into the remaining width. `PersonCard` hides and unmanages the badge when absent.
+The existing theme uses text and a border for every badge, bold text for `:due-today`, and bold underlined text for
+`:overdue`; urgency does not depend on colour.
 `PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
 preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
 remain visible when keyboard focus moves to command input.
@@ -104,8 +106,18 @@ remain visible when keyboard focus moves to command input.
 `MainWindow#fillInnerParts()` mounts `PersonDetailsPanel` in the right placeholder. The panel extends `UiPart<Region>`
 and exposes `showPerson(Person)` and `clear()`. A fit-to-width `ScrollPane`, viewport-based label width bindings,
 and a wrapping tag `FlowPane` keep long details accessible through vertical scrolling. Empty tags and absent follow-ups
-are hidden and unmanaged. The panel uses a clock to mark follow-ups strictly before the local date as overdue;
+are hidden and unmanaged. The panel marks follow-ups strictly before the shared local date as overdue;
 the package-private clock constructor supports deterministic tests.
+
+`MainWindow` owns one `UiDateTracker`, backed by `Clock.systemDefaultZone()`, and passes it to the list and details
+panels. A single JavaFX `Timeline` checks the local date once per minute while the window is shown, stops when hidden,
+and refreshes immediately on showing or regaining focus. Only calendar-day changes notify observers, including when
+the clock moves backwards. A package-private interval constructor allows timer tests without a one-minute wait.
+The date refresh changes badge text/pseudo-classes and the details due-date label directly, preserving selection,
+scroll positions, and command drafts. It does not rerun filters, execute commands, or modify Model/Storage data.
+`PersonCard` uses a weak date listener; each list cell retains its current card controller so it remains subscribed
+while displayed and can be collected after replacement. `PersonDetailsPanel` clears its retained follow-up on
+`clear()` so subsequent date notifications cannot restore stale content.
 
 `PersonListPanel#selectedPersonProperty()` exposes a read-only property for the displayed contact selection.
 `MainWindow` observes it and calls `showPerson()` for a selected contact or `clear()` for null selection.
@@ -148,7 +160,10 @@ commands, equal replacements, contacts sharing a name, undo/redo, and saving fai
 `PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
 `MainWindowTest` also verifies compact card height, empty-tag spacing, long-name/email tooltips, tag wrapping,
 follow-up badge updates through commands and undo/redo, badge/role layout at divider limits, selected-card styling
-without list focus, and access to the complete selected contact details.
+without list focus, and access to the complete selected contact details. Date-transition tests check that all three
+badge states preserve card dimensions, selection, both scroll positions, and draft text/cursor selection.
+`UiDateTrackerTest` covers local midnight, unchanged days, clock corrections, periodic refresh, hidden/shown windows,
+and focus return. `PersonDetailsPanelTest` checks that date refresh cannot revive a cleared follow-up section.
 Further UI tests cover Escape from the list, details, and feedback, draft/cursor preservation after focus settles,
 independent mouse-wheel scrolling, access to the bottom of long details, and long content at divider limits after
 resizing between minimum and larger windows.
@@ -452,9 +467,11 @@ Queries do not commit snapshots or alter contact data. An empty result displays 
 #### UI integration
 `PersonDetailsPanel` populates the follow-up date and description defined in `PersonDetailsPanel.fxml` when a contact
 is selected. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
-The compact `PersonCard` shows only a `Follow-up` badge beside the role when a follow-up is present, leaving its date
-and description in the details panel. Replacement contacts rebuild the card through the existing list-cell factory,
-so setting, replacing, clearing, undoing, or redoing a follow-up refreshes the badge without new model state.
+The compact `PersonCard` shows only a `Follow-up`, `Due today`, or `Overdue` badge beside the role when a follow-up is
+present, leaving its date and description in the details panel. Replacement contacts rebuild the card through the
+existing list-cell factory, so setting, replacing, clearing, undoing, or redoing a follow-up refreshes the badge without
+new model state. The shared `UiDateTracker` also updates badge urgency and the selected details panel as the day changes.
+The `followups overdue` query keeps the date captured when the command executes; rerun it to update result membership.
 
 The command selection handling described under contact details and selection tracks replacement contacts and refreshes
 the details panel after follow-up changes. A contact that no longer matches a follow-up filter clears selection.
@@ -1064,7 +1081,7 @@ Create a contact with a unique name, phone number, and email. Run `find` with th
 
 Action | Expected result
 -------|----------------
-Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | A Follow-up badge appears on the card; the details panel shows the date and description.
+Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The appropriate Follow-up, Due today, or Overdue badge appears; the details panel shows the date and description.
 Set another follow-up with a different date and description. | Both values replace the existing follow-up; the badge remains.
 Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is preserved.
 Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
@@ -1074,6 +1091,8 @@ Run `undo`, then `redo`. | The follow-up and badge are restored, then removed ag
 Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
 Restart after setting a follow-up. | The saved follow-up is restored.
 Display a long description and resize the window. | Verify the full text remains accessible through vertical scrolling in the details panel.
+Set due dates for yesterday, today, and tomorrow. | The cards show Overdue, Due today, and Follow-up respectively, including at the minimum pane width.
+Leave the window open across local midnight, or return focus after sleep. | Within the next minute, or immediately on focus return, badge urgency and selected overdue details update while selection, scrolling, and draft input remain intact. Rerun any overdue query to refresh which contacts it includes.
 
 ### Sorting contacts
 

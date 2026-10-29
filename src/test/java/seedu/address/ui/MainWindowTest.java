@@ -14,6 +14,10 @@ import static seedu.address.testutil.TypicalPersons.CARL;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -28,6 +32,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
@@ -63,9 +68,12 @@ import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.MutableClock;
 import seedu.address.testutil.PersonBuilder;
 
 public class MainWindowTest {
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-28T16:30:00Z"),
+            ZoneId.of("Asia/Singapore"));
 
     @TempDir
     public Path testFolder;
@@ -132,6 +140,11 @@ public class MainWindowTest {
      * Creates a window with injectable address book storage for saving-failure tests.
      */
     private void initializeMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage) {
+        initializeMainWindow(model, addressBookStorage, new UiDateTracker(CLOCK));
+    }
+
+    private void initializeMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage,
+            UiDateTracker uiDate) {
         Path addressBookPath = addressBookStorage.getAddressBookFilePath();
         StorageManager storage = new StorageManager(
                 addressBookStorage,
@@ -140,7 +153,7 @@ public class MainWindowTest {
         Logic logic = new LogicManager(model, storage);
 
         stage = new Stage();
-        mainWindow = new MainWindow(stage, logic, addressBookPath);
+        mainWindow = new MainWindow(stage, logic, addressBookPath, null, uiDate);
         mainWindow.fillInnerParts();
         mainWindow.show();
     }
@@ -994,12 +1007,20 @@ public class MainWindowTest {
     }
 
     private void assertFollowUpBadge(Person person) {
+        assertFollowUpBadge(person, LocalDate.now(CLOCK));
+    }
+
+    private void assertFollowUpBadge(Person person, LocalDate today) {
         Region card = (Region) contactCell(person).getGraphic();
         Label badge = (Label) card.lookup("#followUpBadge");
         boolean hasFollowUp = person.getFollowUp().isPresent();
         assertEquals(hasFollowUp, badge.isVisible());
         assertEquals(hasFollowUp, badge.isManaged());
-        assertEquals("Follow-up", badge.getText());
+        boolean overdue = person.getFollowUp().map(followUp -> followUp.getDueDate().isBefore(today)).orElse(false);
+        boolean dueToday = person.getFollowUp().map(followUp -> followUp.getDueDate().equals(today)).orElse(false);
+        assertEquals(overdue ? "Overdue" : dueToday ? "Due today" : "Follow-up", badge.getText());
+        assertEquals(overdue, badge.getPseudoClassStates().contains(PseudoClass.getPseudoClass("overdue")));
+        assertEquals(dueToday, badge.getPseudoClassStates().contains(PseudoClass.getPseudoClass("due-today")));
         person.getFollowUp().ifPresent(followUp -> {
             List<String> labels = card.lookupAll(".label").stream()
                     .map(node -> ((Label) node).getText()).toList();
@@ -1023,8 +1044,8 @@ public class MainWindowTest {
         });
 
         String[] commands = {
-            "followup 1 by/2026-11-01 abt/Confirm switches",
-            "followup 1 by/2026-11-02 abt/Confirm delivery",
+            "followup 1 by/2026-10-28 abt/Confirm switches",
+            "followup 1 by/2026-10-29 abt/Confirm delivery",
             "edit 1 r/Employee",
             "undo",
             "redo",
@@ -1055,7 +1076,7 @@ public class MainWindowTest {
     @Test
     public void cards_followUpBadgeAndLongRole_fitAtDividerLimits() throws Exception {
         Person person = new PersonBuilder(ALICE).withRole("Keyboard component supplier ".repeat(8).strip())
-                .withTags().withFollowUp("2026-11-01", "Confirm switch shipment").build();
+                .withTags().withFollowUp("2026-10-29", "Confirm switch shipment").build();
         runOnFxThread(() -> {
             ModelManager model = new ModelManager();
             model.addPerson(person);
@@ -1074,7 +1095,7 @@ public class MainWindowTest {
                     Region card = (Region) contactCell(person).getGraphic();
                     Label role = (Label) card.lookup("#role");
                     Label badge = (Label) card.lookup("#followUpBadge");
-                    assertEquals("Follow-up", ((Text) badge.lookup(".text")).getText(),
+                    assertEquals(badge.getText(), ((Text) badge.lookup(".text")).getText(),
                             "The badge text should remain fully visible");
                     assertEquals(person.getRole().value, ((Text) role.lookup(".text")).getText(),
                             "The role should wrap without losing text");
@@ -1090,6 +1111,76 @@ public class MainWindowTest {
                     assertContactPanesFit();
                 });
             }
+        }
+    }
+
+    @Test
+    public void dateChanges_refreshUrgencyAndDetailsWithoutResettingSelectionScrollOrDraft() throws Exception {
+        MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
+        UiDateTracker[] date = new UiDateTracker[1];
+        Region[] originalCard = new Region[1];
+        double[] positions = new double[4];
+        Person target = new PersonBuilder(ALICE).withAddress("Artisan Keyboard Business Park, ".repeat(20))
+                .withFollowUp("2026-10-30", "Confirm switch shipment").build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            for (int i = 0; i < 40; i++) {
+                model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").build());
+            }
+            model.addPerson(target);
+            date[0] = new UiDateTracker(clock);
+            initializeMainWindow(model, new JsonAddressBookStorage(testFolder.resolve("addressbook.json")), date[0]);
+            submitCommand("select 41");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertFollowUpBadge(target);
+            originalCard[0] = (Region) contactCell(target).getGraphic();
+            positions[0] = scrollBar(contactList(), Orientation.VERTICAL).getValue();
+            assertTrue(positions[0] > 0);
+            ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            details.setVvalue(0.65);
+            positions[1] = details.getVvalue();
+            positions[2] = contactCell(target).getHeight();
+            positions[3] = ((Region) originalCard[0].lookup("#followUpBadge")).getWidth();
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            command.setText("edit 41 n/Draft Supplier");
+            command.selectRange(2, 6);
+        });
+        String[] instants = {"2026-10-29T16:30:00Z", "2026-10-30T16:30:00Z", "2026-10-28T16:30:00Z"};
+        String[] badges = {"Due today", "Overdue", "Follow-up"};
+        for (int i = 0; i < instants.length; i++) {
+            Instant instant = Instant.parse(instants[i]);
+            String expectedBadge = badges[i];
+            runOnFxThread(() -> {
+                clock.setInstant(instant);
+                date[0].refresh();
+            });
+            awaitLayout();
+            runOnFxThread(() -> {
+                assertSelected(target);
+                assertFollowUpBadge(target, LocalDate.now(clock));
+                assertSame(originalCard[0], contactCell(target).getGraphic(), "Date refresh should retain the card");
+                Label badge = (Label) originalCard[0].lookup("#followUpBadge");
+                assertEquals(expectedBadge, badge.getText());
+                assertEquals(expectedBadge, ((Text) badge.lookup(".text")).getText());
+                assertEquals(positions[3], badge.getWidth(), 0.1, "All urgency states should use the same width");
+                assertEquals(positions[2], contactCell(target).getHeight(), 0.1);
+                assertEquals(positions[0], scrollBar(contactList(), Orientation.VERTICAL).getValue(), 0.001);
+                ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+                assertEquals(positions[1], details.getVvalue(), 0.001);
+                Label dueDate = (Label) details.getContent().lookup("#followUpDueDate");
+                boolean overdue = expectedBadge.equals("Overdue");
+                assertEquals((overdue ? "Overdue - due: " : "Due: ") + "2026-10-30", dueDate.getText());
+                assertEquals(overdue, dueDate.getPseudoClassStates().contains(PseudoClass.getPseudoClass("overdue")));
+                TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+                assertSame(command, stage.getScene().getFocusOwner());
+                assertEquals("edit 41 n/Draft Supplier", command.getText());
+                assertEquals(2, command.getAnchor());
+                assertEquals(6, command.getCaretPosition());
+            });
         }
     }
 

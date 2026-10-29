@@ -31,6 +31,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import seedu.address.model.person.Person;
+import seedu.address.testutil.MutableClock;
 import seedu.address.testutil.PersonBuilder;
 
 public class PersonDetailsPanelTest {
@@ -204,6 +205,33 @@ public class PersonDetailsPanelTest {
             assertSectionVisible(panel, "detailsScrollPane", false);
             assertSectionVisible(panel, "tagsSection", false);
             assertSectionVisible(panel, "followUpSection", false);
+        });
+    }
+
+    @Test
+    public void dateRefresh_afterClearingOrSelectingNoFollowUp_doesNotRestoreStaleContent() throws Exception {
+        runOnFxThread(() -> {
+            MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
+            UiDateTracker date = new UiDateTracker(clock);
+            PersonDetailsPanel panel = new PersonDetailsPanel(date);
+            panel.showPerson(new PersonBuilder().withFollowUp("2026-10-29", "Confirm delivery").build());
+            clock.setInstant(Instant.parse("2026-10-29T16:30:00Z"));
+            date.refresh();
+            assertEquals("Overdue - due: 2026-10-29", label(panel, "followUpDueDate").getText());
+            panel.clear();
+            clock.setInstant(Instant.parse("2026-10-30T16:30:00Z"));
+            date.refresh();
+            assertEquals("", label(panel, "followUpDueDate").getText());
+            assertFalse(label(panel, "followUpDueDate").getPseudoClassStates().contains(OVERDUE));
+            assertSectionVisible(panel, "emptyState", true);
+            assertSectionVisible(panel, "followUpSection", false);
+
+            panel.showPerson(new PersonBuilder().build());
+            clock.setInstant(Instant.parse("2026-10-31T16:30:00Z"));
+            date.refresh();
+            assertEquals("", label(panel, "followUpDueDate").getText());
+            assertSectionVisible(panel, "followUpSection", false);
+            assertSectionVisible(panel, "detailsScrollPane", true);
         });
     }
 

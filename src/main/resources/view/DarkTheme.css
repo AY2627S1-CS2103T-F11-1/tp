@@ -359,11 +359,23 @@
 .person-follow-up-badge {
     -fx-font-family: "Segoe UI";
     -fx-font-size: 11px;
-    -fx-font-weight: bold;
+    -fx-min-width: 7em;
+    -fx-pref-width: 7em;
+    -fx-max-width: 7em;
+    -fx-alignment: center;
     -fx-padding: 1 6;
     -fx-border-color: #3e7b91;
     -fx-border-width: 1;
     -fx-border-radius: 3;
+}
+
+.person-follow-up-badge:due-today {
+    -fx-font-weight: bold;
+}
+
+.person-follow-up-badge:overdue {
+    -fx-font-weight: bold;
+    -fx-underline: true;
 }
 
 .person-details-panel .scroll-pane,

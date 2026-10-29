@@ -1,5 +1,6 @@
 package seedu.address.ui;
 
+import java.time.Clock;
 import java.util.logging.Logger;
 
 import javafx.beans.binding.Bindings;
@@ -22,6 +23,7 @@ public class PersonListPanel extends UiPart<Region> {
     private static final String FXML = "PersonListPanel.fxml";
     private final Logger logger = LogsCenter.getLogger(PersonListPanel.class);
     private final ReadOnlyObjectWrapper<Person> selectedPerson = new ReadOnlyObjectWrapper<>(this, "selectedPerson");
+    private final UiDateTracker uiDate;
     private boolean commandExecuting;
 
     @FXML
@@ -31,7 +33,12 @@ public class PersonListPanel extends UiPart<Region> {
      * Creates a {@code PersonListPanel} with the given {@code ObservableList}.
      */
     public PersonListPanel(ObservableList<Person> personList) {
+        this(personList, new UiDateTracker(Clock.systemDefaultZone()));
+    }
+
+    PersonListPanel(ObservableList<Person> personList, UiDateTracker uiDate) {
         super(FXML);
+        this.uiDate = uiDate;
         personListView.setItems(personList);
         personListView.setCellFactory(listView -> new PersonListViewCell());
         personListView.getSelectionModel().selectedItemProperty().addListener((observable, previous, selected) -> {
@@ -93,6 +100,9 @@ public class PersonListPanel extends UiPart<Region> {
      * Custom {@code ListCell} that displays the graphics of a {@code Person} using a {@code PersonCard}.
      */
     class PersonListViewCell extends ListCell<Person> {
+        // Retain the controller and its weak date listener for as long as the card is displayed.
+        private PersonCard personCard;
+
         PersonListViewCell() {
             // Let the viewport determine cell width rather than the summary's preferred width.
             setPrefWidth(0);
@@ -103,10 +113,12 @@ public class PersonListPanel extends UiPart<Region> {
             super.updateItem(person, empty);
 
             if (empty || person == null) {
+                personCard = null;
                 setGraphic(null);
                 setText(null);
             } else {
-                Region card = new PersonCard(person, getIndex() + 1).getRoot();
+                personCard = new PersonCard(person, getIndex() + 1, uiDate);
+                Region card = personCard.getRoot();
                 DoubleBinding availableWidth = Bindings.createDoubleBinding(() -> Math.max(0,
                         getWidth() - getInsets().getLeft() - getInsets().getRight()),
                         widthProperty(), insetsProperty());
