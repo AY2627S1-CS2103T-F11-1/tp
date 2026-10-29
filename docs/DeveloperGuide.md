@@ -704,7 +704,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 1.  User requests to delete a contact by specifying its index in the currently displayed contact list.
-2.  `KeyBossWarriorsPro` deletes the selected contact.
+2.  `KeyBossWarriorsPro` deletes the selected contact and displays a confirmation message with the contact's details (including any active follow-up).
 
     Use case ends.
 
