@@ -273,11 +273,17 @@ public class PersonListPanel extends UiPart<Region> {
                 return;
             }
             recordScrollDiagnostics("retry-before id=" + id + " targetIndex=" + index);
-            personListView.scrollTo(index);
             VirtualFlow<?> flow = virtualFlow();
-            if (flow != null && flow.getCellCount() == personListView.getItems().size()) {
-                // Correct the actual viewport after layout, rather than repeating only the index-scroll event.
-                // VirtualFlow measures an adjacent new row and brings an existing row just inside the clip.
+            if (flow == null || flow.getCellCount() != personListView.getItems().size()) {
+                // Let the skin update its item count before correcting the measured viewport on a later pulse.
+                personListView.scrollTo(index);
+            } else if (index == 0 || index == personListView.getItems().size() - 1) {
+                // An endpoint does not depend on cached estimates of the preceding variable-height rows.
+                flow.setPosition(index == 0 ? 0 : 1);
+                flow.requestLayout();
+            } else {
+                // Use one scrolling operation per pulse. An index-scroll event first resets the estimated
+                // position; combining it with this geometry correction can undo the correction on layout.
                 flow.scrollTo(index);
             }
             personListView.requestLayout();

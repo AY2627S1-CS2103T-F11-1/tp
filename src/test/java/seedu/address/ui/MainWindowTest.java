@@ -65,6 +65,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import seedu.address.commons.core.GuiSettings;
@@ -907,15 +908,21 @@ public class MainWindowTest {
             }
             initializeMainWindow(model);
             contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
-                if (event.getScrollTarget() == 39) {
+                if (event.getScrollTarget() == 19 || event.getScrollTarget() == 39) {
                     droppedRequests[0]++;
                     event.consume();
                 }
             });
         });
         awaitContactRowVisible(0, "before checking dropped native scroll requests");
-        runOnFxThread(() -> submitCommand("select 40"));
-        awaitContactRowVisible(39, "after the native index-scroll requests were dropped");
+        for (int index : new int[] {19, 39}) {
+            runOnFxThread(() -> submitCommand("select " + (index + 1)));
+            awaitContactRowVisible(index, "after the native index-scroll requests were dropped");
+            runOnFxThread(() -> {
+                assertSelected((Person) contactList().getItems().get(index));
+                assertContactRowVisible((Person) contactList().getItems().get(index));
+            });
+        }
         runOnFxThread(() -> {
             assertTrue(droppedRequests[0] > 0);
             assertSelected((Person) contactList().getItems().get(39));
@@ -954,6 +961,50 @@ public class MainWindowTest {
         awaitContactRowVisible(39, "after a native layout correction moved the selected row away");
         runOnFxThread(() -> {
             assertTrue(shifted[0]);
+            assertSelected((Person) contactList().getItems().get(39));
+            assertContactRowVisible((Person) contactList().getItems().get(39));
+        });
+    }
+
+    @Test
+    public void deferredScrolling_lastRow_recoversWithoutRepeatingStaleIndexScrolls() throws Exception {
+        int[] indexRequests = {0};
+        int[] requestsBeforeLayout = {0};
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            for (int i = 0; i < 40; i++) {
+                model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").withTags("X".repeat(50), "switches").build());
+            }
+            initializeMainWindow(model);
+            contactList().setMinSize(335, 321);
+            contactList().setPrefSize(335, 321);
+            contactList().setMaxSize(335, 321);
+        });
+        awaitContactRowVisible(0, "before checking stale endpoint scroll estimates");
+        runOnFxThread(() -> {
+            VirtualFlow<?> flow = (VirtualFlow<?>) contactList().lookup(".virtual-flow");
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
+                if (event.getScrollTarget() == 39) {
+                    indexRequests[0]++;
+                    // Simulate the next layout restoring an outdated offset after each index-scroll request.
+                    stage.getScene().addPostLayoutPulseListener(new Runnable() {
+                        @Override
+                        public void run() {
+                            flow.setPosition(0.97);
+                            stage.getScene().removePostLayoutPulseListener(this);
+                        }
+                    });
+                }
+            });
+            submitCommand("select 40");
+            requestsBeforeLayout[0] = indexRequests[0];
+        });
+        awaitContactRowVisible(39, "after correcting a stale scroll estimate for the last row");
+        runOnFxThread(() -> {
+            assertTrue(requestsBeforeLayout[0] > 0);
+            assertEquals(requestsBeforeLayout[0], indexRequests[0],
+                    "Recovery should not restart the stale index-scroll operation");
             assertSelected((Person) contactList().getItems().get(39));
             assertContactRowVisible((Person) contactList().getItems().get(39));
         });
@@ -1292,6 +1343,37 @@ public class MainWindowTest {
     }
 
     @Test
+    public void cards_selection_preservesSummaryDimensions() throws Exception {
+        Person person = new PersonBuilder(ALICE).withTags("X".repeat(50), "switches", "lube").build();
+        double[] dimensions = new double[2];
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            initializeMainWindow(model);
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            dimensions[0] = contactCell(person).getWidth();
+            dimensions[1] = contactCell(person).getHeight();
+        });
+        for (boolean selected : new boolean[] {true, false}) {
+            runOnFxThread(() -> {
+                if (selected) {
+                    contactList().getSelectionModel().select(0);
+                } else {
+                    contactList().getSelectionModel().clearSelection();
+                }
+            });
+            awaitLayout();
+            runOnFxThread(() -> {
+                assertEquals(dimensions[0], contactCell(person).getWidth(), 0.1);
+                assertEquals(dimensions[1], contactCell(person).getHeight(), 0.1,
+                        "The selection border must not change cached row heights or tag wrapping");
+            });
+        }
+    }
+
+    @Test
     public void cards_compactHeightAndEmptyTags_removeUnusedSpace() throws Exception {
         Person withTags = new PersonBuilder(ALICE).withTags("lube", "switches").build();
         Person withoutTags = new PersonBuilder(withTags).withName("Another Contact").withPhone("81000901")
@@ -1533,6 +1615,7 @@ public class MainWindowTest {
         MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
         UiDateTracker[] date = new UiDateTracker[1];
         double[] dimensions = new double[2];
+        Font[] originalFont = new Font[1];
         Person person = new PersonBuilder(ALICE).withRole("Keyboard component supplier ".repeat(8).strip())
                 .withTags().withFollowUp("2026-10-30", "Confirm shipment").build();
         runOnFxThread(() -> {
@@ -1556,6 +1639,7 @@ public class MainWindowTest {
                     Label badge = (Label) contactCell(person).getGraphic().lookup("#followUpBadge");
                     dimensions[0] = badge.getWidth();
                     dimensions[1] = contactCell(person).getHeight();
+                    originalFont[0] = badge.getFont();
                 });
                 for (String instant : List.of("2026-10-28T16:30:00Z", "2026-10-29T16:30:00Z", "2026-10-30T16:30:00Z")) {
                     runOnFxThread(() -> {
@@ -1567,6 +1651,8 @@ public class MainWindowTest {
                         Label badge = (Label) contactCell(person).getGraphic().lookup("#followUpBadge");
                         assertFollowUpBadge(person, LocalDate.now(clock));
                         assertBadgeTextFits(badge);
+                        assertEquals(originalFont[0], badge.getFont(),
+                                "Urgency changes should retain the same resolved font metrics");
                         assertEquals(dimensions[0], badge.getWidth(), 0.1, "Badge width should stay stable");
                         assertEquals(dimensions[1], contactCell(person).getHeight(), 0.1,
                                 "Card height should stay stable");

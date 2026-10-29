@@ -80,7 +80,7 @@ in the right panel. The badge uses your computer's local date:
 
 Follow-up due date | Badge
 -------------------|------
-After today | **Follow-up**
+After today | **Follow-up** (bold)
 Today | **Due today** (bold)
 Before today | **Overdue** (bold and underlined)
 No follow-up | No badge or reserved space

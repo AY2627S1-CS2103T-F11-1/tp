@@ -95,15 +95,17 @@ Address and follow-up content appear in the details panel. The card has no fixed
 tags are hidden and unmanaged. Long names and emails use a single line with an ellipsis and full-text tooltips;
 tags wrap. Email appears beneath the phone number using the existing summary text style.
 The role row includes a badge when `Person#getFollowUp()` is present: `Follow-up` for a future due date, `Due today`
-for the local date, and `Overdue` for a past date. It measures all three labels in regular and bold variants of the
-actual font, including padding and borders, and reserves the same dimensions for every state so transitions do not
+for the local date, and `Overdue` for a past date. It measures all three labels in the resolved font and regular/bold
+variants, including padding and borders, and reserves the same dimensions for every state so transitions do not
 reflow the role. The sizing responds to font and inset changes instead of assuming a fixed width across platforms.
 The role wraps into the remaining width. `PersonCard` hides and unmanages the badge when absent.
-The existing theme uses text and a border for every badge, bold text for `:due-today`, and bold underlined text for
-`:overdue`; urgency does not depend on colour.
+The existing theme uses the same bold font for every badge, with an underline for `:overdue`; urgency does not depend
+on colour. Changing urgency therefore retains the resolved font metrics, including when the requested font falls back
+to a platform font.
 `PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
 preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
-remain visible when keyboard focus moves to command input.
+remain visible when keyboard focus moves to command input. Unselected cards reserve a transparent border of the same
+width, so selection does not change row heights or tag wrapping and invalidate the virtual list's cached geometry.
 
 `MainWindow#fillInnerParts()` mounts `PersonDetailsPanel` in the right placeholder. The panel extends `UiPart<Region>`
 and exposes `showPerson(Person)` and `clear()`. A fit-to-width `ScrollPane`, viewport-based label width bindings,
@@ -152,9 +154,10 @@ resulting current index, or clears selection if the contact is absent. It also r
 equal but distinct replacement objects. It first resolves pending styling/layout and scrolls immediately, then verifies
 visibility after the scene's layout pass. Visibility is checked against the live `VirtualFlow` row and clipped viewport,
 excluding cells retained only for measurement or reuse. A request finishes after two consecutive visible layout passes.
-If needed, it makes up to three corrective scrolls. Once the native item count matches the displayed list, the public
-`VirtualFlow.scrollTo(index)` API also brings the row inside the viewport using measured cell geometry, rather than
-relying only on repeated index-scroll events. Each request retains the exact contact reference and resolves its current
+If needed, it makes up to three corrective scrolls, with one scrolling operation per pulse. While the native item count
+is stale, an index-scroll event lets the skin synchronize it. Once the count matches, the first and last rows use the
+native start/end position; other rows use `VirtualFlow.scrollTo(index)` with measured geometry. A correction does not
+also repeat an index-scroll event in the same pulse. Each request retains the exact contact reference and resolves its current
 index again. A later command, selection change, mouse/key/wheel interaction, scene change,
 or window closure cancels pending scrolling. Scene listeners and window handlers are removed when a request finishes
 or is cancelled, and stale callbacks cannot affect a newer request. This retains visible contacts across filtering, sorting, and unrelated changes;
@@ -186,7 +189,10 @@ Remove the diagnostic hooks, capture callback, upload step, and temporary `fail-
 The newly added-row regression deliberately drops scroll requests made before the first layout pass, exercising
 early-request loss without relying on a particular operating system. Additional regressions discard all index-scroll
 events and move a briefly visible row away during the next layout pass, verifying viewport correction and stable
-visibility respectively. Tests inspect live rows inside the clipped viewport, without accepting measurement cells.
+visibility respectively. An endpoint regression simulates stale layout offsets after index-scroll events and verifies
+recovery without repeating those events. Tests inspect live rows inside the clipped viewport, without accepting
+measurement cells. Selection tests also verify unchanged card dimensions, and urgency tests retain the same resolved
+font across all three badge states.
 Further checks ensure delayed requests respect later commands, changed
 selection, and manual scrolling without moving keyboard focus or resetting the details panel's reading position.
 `UiDateTrackerTest` covers local midnight, unchanged days, clock corrections, periodic refresh, hidden/shown windows,

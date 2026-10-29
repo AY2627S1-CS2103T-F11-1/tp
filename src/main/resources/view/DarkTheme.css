@@ -309,7 +309,9 @@
 
 #cardPane {
     -fx-background-color: transparent;
-    -fx-border-width: 0;
+    /* Keep measured row height and tag width unchanged when selection reveals the border. */
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
 }
 
 #commandTypeLabel {
@@ -359,6 +361,7 @@
 .person-follow-up-badge {
     -fx-font-family: "Segoe UI";
     -fx-font-size: 11px;
+    -fx-font-weight: bold;
     -fx-alignment: center;
     -fx-padding: 1 6;
     -fx-border-color: #3e7b91;
@@ -366,12 +369,7 @@
     -fx-border-radius: 3;
 }
 
-.person-follow-up-badge:due-today {
-    -fx-font-weight: bold;
-}
-
 .person-follow-up-badge:overdue {
-    -fx-font-weight: bold;
     -fx-underline: true;
 }
 

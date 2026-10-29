@@ -128,8 +128,11 @@ public class PersonCard extends UiPart<Region> {
         Text sample = new Text();
         double width = 0;
         double height = 0;
-        for (FontWeight weight : new FontWeight[] {FontWeight.NORMAL, FontWeight.BOLD}) {
-            sample.setFont(Font.font(currentFont.getFamily(), weight, currentFont.getSize()));
+        Font[] fonts = {currentFont,
+            Font.font(currentFont.getFamily(), FontWeight.NORMAL, currentFont.getSize()),
+            Font.font(currentFont.getFamily(), FontWeight.BOLD, currentFont.getSize())};
+        for (Font font : fonts) {
+            sample.setFont(font);
             for (String status : new String[] {"Follow-up", "Due today", "Overdue"}) {
                 sample.setText(status);
                 width = Math.max(width, sample.getLayoutBounds().getWidth());
