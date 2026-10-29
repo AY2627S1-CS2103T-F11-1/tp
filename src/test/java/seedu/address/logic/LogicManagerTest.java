@@ -13,6 +13,7 @@ import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.AMY;
 import static seedu.address.testutil.TypicalPersons.BENSON;
+import static seedu.address.testutil.TypicalPersons.BOB;
 import static seedu.address.testutil.TypicalPersons.CARL;
 
 import java.io.IOException;
@@ -129,6 +130,42 @@ public class LogicManagerTest {
         expectedModel.addPerson(BENSON);
 
         assertCommandSuccess("list", ListCommand.MESSAGE_SUCCESS, expectedModel);
+    }
+
+    @Test
+    public void execute_findRepeatedSpaces_matchesNormalisedFields() throws Exception {
+        logic.execute("add n/Spacing   Tester p/91234567 e/spacingtester@example.com a/Test Street"
+                + " r/Regional   Supplier t/Tactile   Switch");
+        Person expectedPerson = model.getAddressBook().getPersonList().getFirst();
+        model.addPerson(AMY);
+
+        for (String command : List.of("find n/Spacing Tester", "find n/Spacing   Tester",
+                "find r/Regional Supplier", "find r/Regional   Supplier",
+                "find t/Tactile Switch", "find t/Tactile   Switch",
+                "find n/cing   test r/gional   supp t/ctile   swi")) {
+            logic.execute(command);
+            assertEquals(List.of(expectedPerson), logic.getFilteredPersonList(), command);
+        }
+    }
+
+    @Test
+    public void execute_findRepeatedSpaces_preservesOrAndLogic() throws Exception {
+        Person alice = new PersonBuilder(ALICE).withName("Alice Tan")
+                .withRole("Regional Supplier").withTags("Good Friend").build();
+        Person amy = new PersonBuilder(AMY).withName("Amy Bee")
+                .withRole("Local Distributor").withTags("Trusted Partner").build();
+        Person wrongName = new PersonBuilder(BENSON).withName("Benson Meier")
+                .withRole("Regional Supplier").withTags("Good Friend").build();
+        Person wrongRole = new PersonBuilder(CARL).withName("Alice Tan")
+                .withRole("Employee").withTags("Good Friend").build();
+        Person wrongTag = new PersonBuilder(BOB).withName("Amy Bee")
+                .withRole("Local Distributor").withTags("Family").build();
+        List.of(alice, amy, wrongName, wrongRole, wrongTag).forEach(model::addPerson);
+
+        logic.execute("find n/alice   tan n/amy   bee r/regional   supp r/local   distrib"
+                + " t/good   fri t/trusted   part");
+
+        assertEquals(List.of(alice, amy), logic.getFilteredPersonList());
     }
 
     @Test
