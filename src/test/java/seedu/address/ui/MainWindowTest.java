@@ -2,6 +2,7 @@ package seedu.address.ui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,7 +10,9 @@ import static org.junit.jupiter.api.Assumptions.abort;
 import static seedu.address.logic.commands.ExitCommand.MESSAGE_EXIT_ACKNOWLEDGEMENT;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.BENSON;
+import static seedu.address.testutil.TypicalPersons.CARL;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
@@ -48,6 +51,8 @@ import seedu.address.logic.LogicManager;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.model.AddressBook;
 import seedu.address.model.ModelManager;
+import seedu.address.model.ReadOnlyAddressBook;
+import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
@@ -113,9 +118,16 @@ public class MainWindowTest {
      * Creates and shows the test window with the given model on the JavaFX application thread.
      */
     private void initializeMainWindow(ModelManager model) {
-        Path addressBookPath = testFolder.resolve("addressbook.json");
+        initializeMainWindow(model, new JsonAddressBookStorage(testFolder.resolve("addressbook.json")));
+    }
+
+    /**
+     * Creates a window with injectable address book storage for saving-failure tests.
+     */
+    private void initializeMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage) {
+        Path addressBookPath = addressBookStorage.getAddressBookFilePath();
         StorageManager storage = new StorageManager(
-                new JsonAddressBookStorage(addressBookPath),
+                addressBookStorage,
                 new JsonUserPrefsStorage(testFolder.resolve("preferences.json"))
         );
         Logic logic = new LogicManager(model, storage);
@@ -382,7 +394,7 @@ public class MainWindowTest {
     }
 
     @Test
-    public void selection_replacementAndSorting_clearDetailsUntilUserSelectsAgain() throws Exception {
+    public void selection_directReplacementAndSorting_clearPotentiallyStaleDetails() throws Exception {
         runOnFxThread(() -> {
             ModelManager model = initializeContactWindow();
             model.updateSortedPersonList(Comparator.comparing(person -> person.getName().fullName));
@@ -403,6 +415,259 @@ public class MainWindowTest {
             assertSelectionCleared();
             contactList().getSelectionModel().select(0);
             assertDetailsName("Zed Supplier");
+        });
+    }
+
+    private void submitCommand(String text) {
+        submitCommand(text, true);
+    }
+
+    private void submitCommand(String text, boolean expectSuccess) {
+        TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+        command.setText(text);
+        command.fireEvent(new ActionEvent(command, command));
+        TextArea feedback = (TextArea) stage.getScene().lookup("#resultDisplay");
+        assertEquals(!expectSuccess, command.getStyleClass().contains(CommandBox.ERROR_STYLE_CLASS),
+                feedback.getText());
+    }
+
+    private void assertSelected(Person expected) {
+        assertSame(expected, mainWindow.getPersonListPanel().selectedPersonProperty().get());
+        assertSame(expected, contactList().getSelectionModel().getSelectedItem());
+        assertDetailsName(expected.getName().fullName);
+        ScrollPane scroll = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+        assertEquals(expected.getPhone().value, ((Label) scroll.getContent().lookup("#phone")).getText());
+        assertEquals(expected.getEmail().value, ((Label) scroll.getContent().lookup("#email")).getText());
+        assertEquals(expected.getAddress().value, ((Label) scroll.getContent().lookup("#address")).getText());
+    }
+
+    private void initializeFailingStorageWindow(ModelManager model) {
+        initializeMainWindow(model, new JsonAddressBookStorage(testFolder.resolve("addressbook.json")) {
+            @Override
+            public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                throw new IOException("Simulated saving failure");
+            }
+        });
+    }
+
+    @Test
+    public void commandSelection_findListAndSort_preserveVisibleContactOrClear() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = initializeContactWindow();
+            contactList().getSelectionModel().select(1);
+            submitCommand("find Benson");
+            assertSelected(BENSON);
+            assertEquals(0, contactList().getSelectionModel().getSelectedIndex());
+
+            submitCommand("list");
+            assertSelected(BENSON);
+            assertEquals(1, contactList().getSelectionModel().getSelectedIndex());
+            submitCommand("sort r/ n/");
+            assertSelected(BENSON);
+
+            submitCommand("find Alice");
+            assertSelectionCleared();
+            submitCommand("list");
+            assertSelectionCleared();
+            assertEquals(2, model.getFilteredPersonList().size());
+        });
+    }
+
+    @Test
+    public void commandSelection_deleteSelected_doesNotSelectNeighbour() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow();
+            contactList().getSelectionModel().select(0);
+            submitCommand("delete 1");
+            assertSelectionCleared();
+            assertEquals(List.of(BENSON), contactList().getItems());
+
+            contactList().getSelectionModel().select(0);
+            submitCommand("delete 1");
+            assertSelectionCleared();
+            assertTrue(contactList().getItems().isEmpty());
+        });
+    }
+
+    @Test
+    public void commandSelection_deleteOtherAndClear_preserveThenClear() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow();
+            contactList().getSelectionModel().select(1);
+            submitCommand("delete 1");
+            assertSelected(BENSON);
+            assertEquals(0, contactList().getSelectionModel().getSelectedIndex());
+            submitCommand("clear");
+            assertSelectionCleared();
+        });
+    }
+
+    @Test
+    public void commandSelection_filteredSortedEdit_tracksReplacementAcrossIdentityAndIndexChanges() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = initializeContactWindow();
+            model.addPerson(CARL);
+            submitCommand("sort");
+            submitCommand("find Alice");
+            contactList().getSelectionModel().select(0);
+            submitCommand("edit 1 n/Zed Supplier p/81000000 e/zed@example.com");
+
+            Person edited = model.getFilteredPersonList().get(2);
+            assertEquals("Zed Supplier", edited.getName().fullName);
+            assertEquals("81000000", edited.getPhone().value);
+            assertEquals("zed@example.com", edited.getEmail().value);
+            assertSelected(edited);
+            assertEquals(2, contactList().getSelectionModel().getSelectedIndex());
+        });
+    }
+
+    @Test
+    public void commandSelection_editOtherAndEqualReplacement_keepCorrectObject() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = initializeContactWindow();
+            contactList().getSelectionModel().select(0);
+            submitCommand("edit 2 n/A Supplier");
+            assertSelected(ALICE);
+            submitCommand("sort");
+            assertSelected(ALICE);
+            assertEquals(1, contactList().getSelectionModel().getSelectedIndex());
+
+            submitCommand("edit 2 n/Alice Pauline");
+            Person replaced = model.getFilteredPersonList().get(1);
+            assertEquals(ALICE, replaced);
+            assertNotSame(ALICE, replaced);
+            assertSelected(replaced);
+        });
+    }
+
+    @Test
+    public void commandSelection_followUpChanges_refreshDetailsAndRespectFilter() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = initializeContactWindow();
+            contactList().getSelectionModel().select(0);
+            submitCommand("followup 1 by/2026-11-01 abt/Confirm switches");
+            assertSelected(model.getFilteredPersonList().get(0));
+            ScrollPane scroll = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            assertEquals("Confirm switches", ((Label) scroll.getContent().lookup("#followUpDescription")).getText());
+
+            submitCommand("followup 1 clear");
+            assertSelected(model.getFilteredPersonList().get(0));
+            assertFalse(scroll.getContent().lookup("#followUpSection").isVisible());
+
+            submitCommand("followup 1 by/2026-11-01 abt/Call supplier");
+            submitCommand("followups by/2026-11-01");
+            assertSelected(model.getFilteredPersonList().get(0));
+            submitCommand("followup 1 by/2026-11-02 abt/Call tomorrow");
+            assertSelectionCleared();
+            assertTrue(model.getFilteredPersonList().isEmpty());
+        });
+    }
+
+    @Test
+    public void commandSelection_clearFollowUpWhileFiltered_clearsSelection() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow();
+            submitCommand("followup 1 by/2026-11-01 abt/Check stock");
+            assertSelectionCleared();
+            submitCommand("followups");
+            contactList().getSelectionModel().select(0);
+            submitCommand("followup 1 clear");
+            assertSelectionCleared();
+            submitCommand("list");
+            assertSelectionCleared();
+        });
+    }
+
+    @Test
+    public void commandSelection_undoAndRedo_clearEvenForUnchangedSnapshots() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = initializeContactWindow();
+            model.commitAddressBook();
+            model.commitAddressBook();
+            contactList().getSelectionModel().select(0);
+            submitCommand("undo");
+            assertSelectionCleared();
+            contactList().getSelectionModel().select(0);
+            submitCommand("redo");
+            assertSelectionCleared();
+
+            contactList().getSelectionModel().select(0);
+            submitCommand("edit 2 r/Employee");
+            assertSelected(ALICE);
+            submitCommand("undo");
+            assertSelectionCleared();
+            contactList().getSelectionModel().select(0);
+            submitCommand("redo");
+            assertSelectionCleared();
+        });
+    }
+
+    @Test
+    public void commandSelection_failedCommands_preserveSelectionAndAllowFurtherNavigation() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow();
+            contactList().getSelectionModel().select(0);
+            for (String command : List.of("unknowncommand", "edit", "edit 9 n/Invalid Index",
+                    "edit 1 p/" + BENSON.getPhone().value, "undo", "redo")) {
+                submitCommand(command, false);
+                assertSelected(ALICE);
+            }
+            contactList().getSelectionModel().select(1);
+            assertSelected(BENSON);
+        });
+    }
+
+    @Test
+    public void commandSelection_savingFailure_reconcilesEditedFilteredAndDeletedContacts() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(ALICE);
+            model.addPerson(BENSON);
+            initializeFailingStorageWindow(model);
+            contactList().getSelectionModel().select(0);
+            submitCommand("edit 1 n/Zed Supplier p/81000000 e/zed@example.com", false);
+            assertSelected(model.getFilteredPersonList().get(0));
+            assertDetailsName("Zed Supplier");
+            submitCommand("find Benson", false);
+            assertSelectionCleared();
+            contactList().getSelectionModel().select(0);
+            assertSelected(BENSON);
+            submitCommand("delete 1", false);
+            assertSelectionCleared();
+            assertTrue(model.getFilteredPersonList().isEmpty());
+        });
+    }
+
+    @Test
+    public void commandSelection_savingFailureDuringUndoRedo_clearsSelection() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(ALICE);
+            model.commitAddressBook();
+            model.commitAddressBook();
+            initializeFailingStorageWindow(model);
+            contactList().getSelectionModel().select(0);
+            submitCommand("undo", false);
+            assertSelectionCleared();
+            contactList().getSelectionModel().select(0);
+            submitCommand("redo", false);
+            assertSelectionCleared();
+        });
+    }
+
+    @Test
+    public void commandSelection_sameNamesAndSorting_keepSelectedContact() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = initializeContactWindow();
+            Person sameName = new PersonBuilder(ALICE).withPhone("81000001").withEmail("other@example.com").build();
+            model.addPerson(sameName);
+            contactList().getSelectionModel().select(2);
+            submitCommand("sort");
+            assertSelected(sameName);
+            submitCommand("find Alice");
+            assertSelected(sameName);
+            submitCommand("edit 1 n/Zed Supplier");
+            assertSelected(sameName);
         });
     }
 

@@ -79,8 +79,13 @@ The details panel updates immediately without moving keyboard focus.
 * Scroll the details panel independently to read long content. Drag the divider to adjust the two panel widths.
   The window has a minimum width of 800 pixels.
 * On startup or when no contact is selected, the panel shows `Select a contact to view details.`
-* A change to the displayed contact list clears the selection and details. Select a contact again to view its
-  current information after such a change.
+* Commands keep the selected contact when it remains visible, even if its list position changes. Editing that
+  contact or changing its follow-up refreshes its details. Changing another contact keeps your current selection.
+* If the selected contact is deleted or filtered out, or all contacts are cleared, the panel returns to the
+  selection prompt. Deleting a selected contact does not automatically select its neighbour.
+* Successful `undo` and `redo` commands clear selection. Commands rejected because of invalid input keep selection.
+* If saving fails after a command has changed the contacts, the panel reflects the current in-memory contact data
+  alongside the saving error shown in the command feedback.
 
 ### Adding a contact: `add`
 

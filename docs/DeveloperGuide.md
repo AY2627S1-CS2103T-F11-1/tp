@@ -95,19 +95,35 @@ and a wrapping tag `FlowPane` keep long details accessible through vertical scro
 are hidden and unmanaged. The panel uses a clock to mark follow-ups strictly before the local date as overdue;
 the package-private clock constructor supports deterministic tests.
 
-`PersonListPanel#selectedPersonProperty()` exposes the ListView selection model's read-only selected-item property.
-`MainWindow` observes this property and calls `showPerson()` for a selected contact or `clear()` for null selection.
+`PersonListPanel#selectedPersonProperty()` exposes a read-only property for the displayed contact selection.
+`MainWindow` observes it and calls `showPerson()` for a selected contact or `clear()` for null selection.
 Mouse selection and arrow-key navigation use the existing JavaFX ListView behaviour, and displaying details does not
 request keyboard focus.
 
-The displayed list is the model's `SortedList` over a `FilteredList`. A listener in `PersonListPanel` clears selection
-when that displayed list changes, including replacements and permutations. This conservative policy avoids retaining
-an outdated immutable `Person` or keeping a neighbour automatically selected after deletion. It also clears selection
-for unrelated displayed-list changes; it does not track contacts across edits. No Model, Storage, or `CommandResult`
-changes are needed for this milestone.
+The displayed list is the model's `SortedList` over a `FilteredList`. Its events alone cannot reliably associate
+contacts across edits: replacing a contact that no longer matches a filter can emit only a removal, followed by an
+addition of several contacts when the edit resets the filter. Matching by index, name, phone/email, or Person equality
+would also be unreliable because all identifying fields can be edited.
 
-`MainWindowTest` covers selection through mouse and arrow-key events, startup and null selection, and clearing details
-after deletion, filtering, clearing, replacement, and sorting through the real model list pipeline.
+During command execution, `LogicManager` temporarily listens to the underlying address book list. A one-for-one
+replacement supplies the exact old and new `Person` references. The listener is removed in a `finally` block, and an
+immutable `CommandSelectionChange` copies these relationships into an identity-based map. Successful undo and redo
+request a selection reset, including when snapshots contain equal contact data. The information is available through
+`Logic#getSelectionChange()` before saving, so a later storage exception does not lose the replacement relationship.
+Each command attempt resets this information before parsing; failed parsing or validation therefore preserves selection.
+
+`MainWindow` snapshots selection and calls `PersonListPanel#beginCommand()` before executing a command. The panel
+suppresses native ListView selection notifications during that execution, preventing automatic neighbour selection
+from being published. In a `finally` block, `MainWindow` applies the command's selection change and calls
+`PersonListPanel#endCommand(Person)`. The panel searches the current displayed list by object identity and selects the
+resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
+equal but distinct replacement objects. This retains visible contacts across filtering, sorting, and unrelated changes;
+it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
+path still conservatively clear selection. Model, Storage, and `CommandResult` data structures remain unchanged.
+
+`MainWindowTest` covers mouse and arrow-key events, null selection, actual edit/delete/filter/list/sort/clear/follow-up
+commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
+`LogicManagerTest` additionally verifies replacement identity and reset of command selection information after failures.
 `PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
 
 ### Logic component

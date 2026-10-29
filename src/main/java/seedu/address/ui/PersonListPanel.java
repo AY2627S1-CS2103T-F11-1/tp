@@ -3,6 +3,7 @@ package seedu.address.ui;
 import java.util.logging.Logger;
 
 import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -18,6 +19,8 @@ import seedu.address.model.person.Person;
 public class PersonListPanel extends UiPart<Region> {
     private static final String FXML = "PersonListPanel.fxml";
     private final Logger logger = LogsCenter.getLogger(PersonListPanel.class);
+    private final ReadOnlyObjectWrapper<Person> selectedPerson = new ReadOnlyObjectWrapper<>(this, "selectedPerson");
+    private boolean commandExecuting;
 
     @FXML
     private ListView<Person> personListView;
@@ -29,9 +32,16 @@ public class PersonListPanel extends UiPart<Region> {
         super(FXML);
         personListView.setItems(personList);
         personListView.setCellFactory(listView -> new PersonListViewCell());
+        personListView.getSelectionModel().selectedItemProperty().addListener((observable, previous, selected) -> {
+            if (!commandExecuting) {
+                selectedPerson.set(selected);
+            }
+        });
         // A list change can replace the selected contact or automatically select a neighbour.
         personList.addListener((ListChangeListener<Person>) change -> {
-            personListView.getSelectionModel().clearSelection();
+            if (!commandExecuting) {
+                personListView.getSelectionModel().clearSelection();
+            }
         });
     }
 
@@ -39,7 +49,39 @@ public class PersonListPanel extends UiPart<Region> {
      * Returns the read-only selected-contact property. Its value is null when no contact is selected.
      */
     public ReadOnlyObjectProperty<Person> selectedPersonProperty() {
-        return personListView.getSelectionModel().selectedItemProperty();
+        return selectedPerson.getReadOnlyProperty();
+    }
+
+    /**
+     * Prevents automatic ListView selection changes from becoming contact selections during a command.
+     */
+    void beginCommand() {
+        commandExecuting = true;
+    }
+
+    /**
+     * Restores a contact by object identity if it remains visible, or clears selection otherwise.
+     * The index is resolved from the current list after all replacements, filtering, and sorting.
+     */
+    void endCommand(Person personToSelect) {
+        int index = -1;
+        for (int i = 0; i < personListView.getItems().size(); i++) {
+            if (personListView.getItems().get(i) == personToSelect) {
+                index = i;
+                break;
+            }
+        }
+        try {
+            // Force the native selection model to discard an equal but replaced Person as well.
+            personListView.getSelectionModel().clearSelection();
+            if (index != -1) {
+                personListView.getSelectionModel().select(index);
+                personListView.scrollTo(index);
+            }
+        } finally {
+            commandExecuting = false;
+        }
+        selectedPerson.set(index == -1 ? null : personListView.getItems().get(index));
     }
 
     /**

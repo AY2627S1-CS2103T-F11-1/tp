@@ -2,6 +2,7 @@ package seedu.address.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
 import static seedu.address.logic.commands.CommandTestUtil.ADDRESS_DESC_AMY;
@@ -68,6 +69,36 @@ public class LogicManagerTest {
     public void execute_invalidCommandFormat_throwsParseException() {
         String invalidCommand = "uicfhmowqewca";
         assertParseException(invalidCommand, MESSAGE_UNKNOWN_COMMAND);
+    }
+
+    @Test
+    public void execute_filteredSortedEdit_reportsReplacementByObjectIdentity() throws Exception {
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        model.addPerson(CARL);
+        logic.execute("sort");
+        logic.execute("find Alice");
+        logic.execute("edit 1 n/Zed Supplier p/81000000 e/zed@example.com");
+
+        Person replacement = model.getFilteredPersonList().get(2);
+        assertSame(replacement, logic.getSelectionChange().applyTo(ALICE));
+        assertSame(BENSON, logic.getSelectionChange().applyTo(BENSON));
+        Person equalButDistinct = new PersonBuilder(ALICE).build();
+        assertSame(equalButDistinct, logic.getSelectionChange().applyTo(equalButDistinct));
+    }
+
+    @Test
+    public void execute_failureAfterEdit_resetsReplacementInformation() throws Exception {
+        model.addPerson(ALICE);
+        logic.execute("edit 1 n/Updated Supplier");
+        Person replacement = model.getFilteredPersonList().get(0);
+        assertSame(replacement, logic.getSelectionChange().applyTo(ALICE));
+
+        assertThrows(ParseException.class, () -> logic.execute("unknowncommand"));
+        assertSame(ALICE, logic.getSelectionChange().applyTo(ALICE));
+        logic.execute("edit 1 n/Another Supplier");
+        assertThrows(CommandException.class, () -> logic.execute("edit 9 n/Invalid Index"));
+        assertSame(replacement, logic.getSelectionChange().applyTo(replacement));
     }
 
     @Test
