@@ -1,5 +1,6 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -32,6 +33,34 @@ public class AddressTest {
         assertTrue(Address.isValidAddress("Blk 456, Den Road, #01-355"));
         assertTrue(Address.isValidAddress("-")); // one character
         assertTrue(Address.isValidAddress("Leng Inc; 1234 Market St; San Francisco CA 2349879; USA")); // long address
+    }
+
+    @Test
+    public void isValidAddress_onlyWhitespaceOrFormattingCharacters_returnsFalse() {
+        String[] blankAddresses = {
+            "", " ", "   ", "\t", "\u200B", "\u00A0", "\u2060", "\u2003",
+            "\u200B\u00A0\u2060\u2003", " \u200B \u00A0\t\u2060 \u2003 "
+        };
+
+        for (String address : blankAddresses) {
+            assertFalse(Address.isValidAddress(address));
+            assertThrows(IllegalArgumentException.class, Address.MESSAGE_CONSTRAINTS, () -> new Address(address));
+        }
+    }
+
+    @Test
+    public void isValidAddress_visibleTextWithWhitespaceOrFormattingCharacters_returnsTrue() {
+        String[] invisibleCharacters = {"\u200B", "\u00A0", "\u2060", "\u2003", "\u200B\u00A0\u2060\u2003"};
+
+        for (String characters : invisibleCharacters) {
+            String[] addresses = {
+                characters + "123 Main St", "123" + characters + " Main St", "123 Main St" + characters
+            };
+            for (String address : addresses) {
+                assertTrue(Address.isValidAddress(address));
+                assertEquals(address, new Address(address).value);
+            }
+        }
     }
 
     @Test

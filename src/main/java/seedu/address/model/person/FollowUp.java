@@ -16,7 +16,8 @@ public class FollowUp {
 
     public static final int MAX_DESCRIPTION_LENGTH = 200;
 
-    public static final String MESSAGE_CONSTRAINTS = "Follow-up descriptions must not be blank, must not exceed "
+    public static final String MESSAGE_CONSTRAINTS = "Follow-up descriptions must not be blank or contain only "
+            + "whitespace or invisible formatting characters, must not exceed "
             + MAX_DESCRIPTION_LENGTH + " characters after trimming, "
             + "and must not contain control characters or Unicode line or paragraph separators.";
 
@@ -54,13 +55,16 @@ public class FollowUp {
 
     /**
      * Returns whether the description is valid after trimming.
+     * A description must contain a character other than whitespace, Unicode spaces, or formatting characters.
      */
     public static boolean isValidDescription(String description) {
         requireNonNull(description);
         String trimmedDescription = description.strip();
 
-        return !trimmedDescription.isBlank()
-                && trimmedDescription.length() <= MAX_DESCRIPTION_LENGTH
+        return trimmedDescription.length() <= MAX_DESCRIPTION_LENGTH
+                && trimmedDescription.codePoints().anyMatch(codePoint -> !Character.isWhitespace(codePoint)
+                        && !Character.isSpaceChar(codePoint)
+                        && Character.getType(codePoint) != Character.FORMAT)
                 && trimmedDescription.codePoints().noneMatch(FollowUp::isDisallowedDescriptionCharacter);
     }
 

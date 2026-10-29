@@ -250,6 +250,28 @@ public class AddCommandParserTest {
     }
 
     @Test
+    public void parse_blankUnicodeAddress_failure() {
+        String[] addresses = {
+            "", " ", "   ", "\u200B", "\u00A0", "\u2060", "\u2003",
+            "\u200B\u00A0\u2060\u2003", " \u200B \u00A0\t\u2060 \u2003 "
+        };
+
+        for (String address : addresses) {
+            assertParseFailure(parser, NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB
+                    + " a/" + address + ROLE_DESC_BOB, Address.MESSAGE_CONSTRAINTS);
+        }
+    }
+
+    @Test
+    public void parse_visibleAddressWithUnicodeCharacters_success() {
+        String address = "\u200B\u00A0123\u2060 Main\u2003St";
+        Person expectedPerson = new PersonBuilder(BOB).withAddress(address).withTags().build();
+
+        assertParseSuccess(parser, NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB
+                + " a/" + address + ROLE_DESC_BOB, new AddCommand(expectedPerson));
+    }
+
+    @Test
     public void parse_unrecognizedPrefix_failure() {
         String validPersonString = NAME_DESC_BOB + PHONE_DESC_BOB + EMAIL_DESC_BOB
                 + ADDRESS_DESC_BOB + ROLE_DESC_BOB + TAG_DESC_FRIEND;

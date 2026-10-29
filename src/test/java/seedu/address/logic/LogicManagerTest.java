@@ -40,11 +40,14 @@ import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
+import seedu.address.model.person.Address;
+import seedu.address.model.person.FollowUp;
 import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
 import seedu.address.testutil.PersonBuilder;
+import seedu.address.testutil.PersonUtil;
 
 public class LogicManagerTest {
     private static final IOException DUMMY_IO_EXCEPTION = new IOException("dummy IO exception");
@@ -195,6 +198,104 @@ public class LogicManagerTest {
 
         logic.execute(RedoCommand.COMMAND_WORD);
         assertFalse(model.hasPerson(AMY));
+    }
+
+    @Test
+    public void execute_addBlankUnicodeAddress_preservesContactsStorageAndHistory() throws Exception {
+        logic.execute(PersonUtil.getAddCommand(AMY));
+        logic.execute(PersonUtil.getAddCommand(BENSON));
+        logic.execute(UndoCommand.COMMAND_WORD);
+        Path savedFile = temporaryFolder.resolve("addressBook.json");
+        String savedContents = Files.readString(savedFile);
+        String[] addresses = {
+            "", " ", "   ", "\u200B", "\u00A0", "\u2060", "\u2003",
+            "\u200B\u00A0\u2060\u2003", " \u200B \u00A0\t\u2060 \u2003 "
+        };
+
+        for (String address : addresses) {
+            String command = "add n/Blank Address p/123 e/blank@example.com a/" + address + " r/Customer";
+            assertThrows(ParseException.class, Address.MESSAGE_CONSTRAINTS, () -> logic.execute(command));
+            assertEquals(List.of(AMY), model.getAddressBook().getPersonList());
+            assertEquals(List.of(AMY), logic.getFilteredPersonList());
+            assertTrue(model.canUndoAddressBook());
+            assertTrue(model.canRedoAddressBook());
+            assertEquals(savedContents, Files.readString(savedFile));
+        }
+
+        logic.execute(UndoCommand.COMMAND_WORD);
+        assertTrue(model.getAddressBook().getPersonList().isEmpty());
+        assertFalse(model.canUndoAddressBook());
+
+        logic.execute(RedoCommand.COMMAND_WORD);
+        assertEquals(List.of(AMY), model.getAddressBook().getPersonList());
+        logic.execute(RedoCommand.COMMAND_WORD);
+        assertEquals(List.of(AMY, BENSON), model.getAddressBook().getPersonList());
+        assertFalse(model.canRedoAddressBook());
+    }
+
+    @Test
+    public void execute_addVisibleAddressWithUnicodeCharacters_savesAndReloads() throws Exception {
+        String address = "\u200B\u00A0123\u2060 Main\u2003St";
+        Person person = new PersonBuilder().withAddress(address).build();
+
+        logic.execute(PersonUtil.getAddCommand(person));
+
+        assertEquals(List.of(person), model.getAddressBook().getPersonList());
+        JsonAddressBookStorage storage =
+                new JsonAddressBookStorage(temporaryFolder.resolve("addressBook.json"));
+        assertEquals(List.of(person), storage.readAddressBook().orElseThrow().getPersonList());
+    }
+
+    @Test
+    public void execute_followUpBlankUnicodeDescription_preservesContactsStorageAndHistory() throws Exception {
+        logic.execute(PersonUtil.getAddCommand(AMY));
+        logic.execute(PersonUtil.getAddCommand(BENSON));
+        logic.execute("followup 1 by/2026-11-01 abt/Confirm quotation");
+        logic.execute("followup 1 by/2026-11-02 abt/Call customer");
+        logic.execute(UndoCommand.COMMAND_WORD);
+
+        Person withOriginalFollowUp = new PersonBuilder(AMY)
+                .withFollowUp("2026-11-01", "Confirm quotation").build();
+        Path savedFile = temporaryFolder.resolve("addressBook.json");
+        String savedContents = Files.readString(savedFile);
+        String[] descriptions = {
+            "", "   ", "\t\n", "\u2003", "\u200B", "\u00A0", "\u2060",
+            "\u200B\u00A0\u2060", " \u200B \u00A0\u2003\u2060 "
+        };
+
+        for (String description : descriptions) {
+            String command = "followup 1 by/2026-11-03 abt/" + description;
+            assertThrows(ParseException.class, FollowUp.MESSAGE_CONSTRAINTS, () -> logic.execute(command));
+            assertEquals(List.of(withOriginalFollowUp, BENSON), model.getAddressBook().getPersonList());
+            assertEquals(List.of(withOriginalFollowUp, BENSON), logic.getFilteredPersonList());
+            assertTrue(model.canUndoAddressBook());
+            assertTrue(model.canRedoAddressBook());
+            assertEquals(savedContents, Files.readString(savedFile));
+        }
+
+        logic.execute(UndoCommand.COMMAND_WORD);
+        assertEquals(List.of(AMY, BENSON), model.getAddressBook().getPersonList());
+        logic.execute(RedoCommand.COMMAND_WORD);
+        assertEquals(List.of(withOriginalFollowUp, BENSON), model.getAddressBook().getPersonList());
+        logic.execute(RedoCommand.COMMAND_WORD);
+        Person withReplacementFollowUp = new PersonBuilder(AMY)
+                .withFollowUp("2026-11-02", "Call customer").build();
+        assertEquals(List.of(withReplacementFollowUp, BENSON), model.getAddressBook().getPersonList());
+        assertFalse(model.canRedoAddressBook());
+    }
+
+    @Test
+    public void execute_followUpVisibleDescriptionWithInvisibleCharacters_savesAndReloads() throws Exception {
+        String description = "\u200B\u00A0Confirm\u2060 quotation\u2003now\u200B";
+        logic.execute(PersonUtil.getAddCommand(AMY));
+
+        logic.execute("followup 1 by/2026-11-01 abt/" + description);
+
+        Person expected = new PersonBuilder(AMY).withFollowUp("2026-11-01", description).build();
+        assertEquals(List.of(expected), model.getAddressBook().getPersonList());
+        JsonAddressBookStorage storage =
+                new JsonAddressBookStorage(temporaryFolder.resolve("addressBook.json"));
+        assertEquals(List.of(expected), storage.readAddressBook().orElseThrow().getPersonList());
     }
 
     @Test
