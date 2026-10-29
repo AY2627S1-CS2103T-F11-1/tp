@@ -14,9 +14,6 @@ import seedu.address.logic.parser.exceptions.ParseException;
  */
 public class FollowUpsCommandParser implements Parser<FollowUpsCommand> {
 
-    public static final String MESSAGE_INVALID_DATE =
-            "Follow-up date cutoffs must be valud calendar dates in YYYY-MM-DD format.";
-
     private static final String OVERDUE_KEYWORD = "overdue";
 
     /**
