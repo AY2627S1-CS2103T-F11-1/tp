@@ -69,6 +69,7 @@ public class HelpWindowTest {
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nFIND\n"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nSELECT\n" + SelectCommand.COMMAND_DESCRIPTION));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nLIST\nShows all persons"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nLIST\n" + ListCommand.COMMAND_DESCRIPTION));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nCLEAR\nClears all entries"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nHELP\n" + HelpCommand.COMMAND_DESCRIPTION));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("Parameters: " + HelpCommand.COMMAND_PARAMETERS));

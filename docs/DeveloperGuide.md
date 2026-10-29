@@ -612,6 +612,9 @@ Step 5. The user then decides to execute the command `list`. Commands that do no
 
 Step 6. The user executes `clear`, which calls `Model#commitAddressBook()`. Since the `currentStatePointer` is not pointing at the end of the `addressBookStateList`, all address book states after the `currentStatePointer` will be purged. Reason: It no longer makes sense to redo the `add n/David …​` command. This is the behavior that most modern desktop applications follow.
 
+<div markdown="span" class="alert alert-info">:information_source: **Note:** If the address book is already empty, `clear` does not modify contact data or invoke `Model#commitAddressBook()`, keeping the existing `addressBookStateList` and redo history intact.
+</div>
+
 ![UndoRedoState5](images/UndoRedoState5.png)
 
 The following activity diagram summarizes what happens when a user executes a new command:
@@ -818,7 +821,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 1.  User requests to delete a contact by specifying its index in the currently displayed contact list.
-2.  `KeyBossWarriorsPro` deletes the selected contact.
+2.  `KeyBossWarriorsPro` deletes the selected contact and displays a confirmation message with the contact's details (including any active follow-up).
 
     Use case ends.
 
@@ -1062,6 +1065,7 @@ Set another follow-up with a different date and description. | Both values repla
 Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is preserved.
 Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
 Run `followups by/DATE` using the follow-up's exact due date. | The contact appears because the cutoff is inclusive.
+Run `followups by/DATE overdue` or `followups by/DATE extra`. | An invalid command format error appears without changing the view.
 Find the test contact and run `followup 1 clear`. | The follow-up disappears; the contact remains.
 Run `undo`, then `redo`. | The follow-up is restored, then removed again.
 Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.

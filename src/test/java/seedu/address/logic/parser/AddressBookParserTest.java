@@ -55,9 +55,19 @@ public class AddressBookParserTest {
     }
 
     @Test
-    public void parseCommand_clear() throws Exception {
-        assertTrue(parser.parseCommand(ClearCommand.COMMAND_WORD) instanceof ClearCommand);
-        assertTrue(parser.parseCommand(ClearCommand.COMMAND_WORD + " 3") instanceof ClearCommand);
+    public void parseCommand_clearWithoutArguments_returnsClearCommand() throws Exception {
+        assertEquals(new ClearCommand(), parser.parseCommand(ClearCommand.COMMAND_WORD));
+    }
+
+    @Test
+    public void parseCommand_clearWithArguments_returnsClearCommand() throws Exception {
+        assertEquals(new ClearCommand(true), parser.parseCommand(ClearCommand.COMMAND_WORD + " 3"));
+        assertEquals(new ClearCommand(true), parser.parseCommand(ClearCommand.COMMAND_WORD + " all"));
+    }
+
+    @Test
+    public void parseCommand_clearWithWhitespaceOnlyArguments_returnsClearCommand() throws Exception {
+        assertEquals(new ClearCommand(), parser.parseCommand(ClearCommand.COMMAND_WORD + " \t  "));
     }
 
     @Test
