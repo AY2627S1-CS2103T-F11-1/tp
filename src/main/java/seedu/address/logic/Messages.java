@@ -15,8 +15,16 @@ public class Messages {
 
     public static final String MESSAGE_UNKNOWN_COMMAND = "Unknown command.";
     public static final String MESSAGE_INVALID_COMMAND_FORMAT = "Invalid command format!\n%1$s";
-    public static final String MESSAGE_INVALID_PERSON_DISPLAYED_INDEX = "The person index provided is invalid.";
-    public static final String MESSAGE_PERSONS_LISTED_OVERVIEW = "%1$d person(s) listed!";
+    public static final String MESSAGE_INDEX_REQUIRED = "INDEX is required.";
+    public static final String MESSAGE_INVALID_INDEX = "INDEX must be a whole number between 1 and "
+            + Integer.MAX_VALUE + ".";
+    public static final String MESSAGE_NO_CONTACTS_DISPLAYED = "No contacts are currently displayed.";
+    public static final String MESSAGE_NO_CONTACTS_FOUND = "No contacts found.";
+    public static final String MESSAGE_NO_FOLLOW_UPS_FOUND = "No follow-ups found.";
+    public static final String MESSAGE_INDEX_OUT_OF_RANGE = "INDEX %1$d is outside the displayed contact list "
+            + "(valid range: 1-%2$d).";
+    public static final String MESSAGE_SINGLE_INDEX_OUT_OF_RANGE =
+            "INDEX %1$d is outside the displayed contact list (valid index: 1).";
     public static final String MESSAGE_DUPLICATE_FIELDS =
                 "Multiple values specified for the following single-valued field(s): ";
     public static final String MESSAGE_MISSING_PARAMETERS =
@@ -31,6 +39,44 @@ public class Messages {
             "This phone number and email address are already used by existing contacts.";
 
     /**
+     * Returns an informative message for an index outside the currently displayed contact list.
+     * Uses singular wording when only one contact is displayed.
+     */
+    public static String getIndexOutOfRangeMessage(int index, int displayedListSize) {
+        if (displayedListSize == 1) {
+            return String.format(MESSAGE_SINGLE_INDEX_OUT_OF_RANGE, index);
+        }
+
+        return String.format(MESSAGE_INDEX_OUT_OF_RANGE, index, displayedListSize);
+    }
+
+    /**
+     * Returns a grammatically correct message for a contact search result.
+     */
+    public static String getContactsFoundMessage(int contactCount) {
+        if (contactCount == 0) {
+            return MESSAGE_NO_CONTACTS_FOUND;
+        }
+
+        return contactCount == 1
+                ? "1 contact found."
+                : String.format("%d contacts found.", contactCount);
+    }
+
+    /**
+     * Returns a grammatically correct message for a follow-up query result.
+     */
+    public static String getFollowUpsFoundMessage(int followUpCount) {
+        if (followUpCount == 0) {
+            return MESSAGE_NO_FOLLOW_UPS_FOUND;
+        }
+
+        return followUpCount == 1
+                ? "1 follow-up found."
+                : String.format("%d follow-ups found.", followUpCount);
+    }
+
+    /**
      * Returns an error message indicating the duplicate prefixes.
      */
     public static String getErrorMessageForDuplicatePrefixes(Prefix... duplicatePrefixes) {
@@ -39,7 +85,7 @@ public class Messages {
         Set<String> duplicateFields =
                 Stream.of(duplicatePrefixes).map(Prefix::toString).collect(Collectors.toSet());
 
-        return MESSAGE_DUPLICATE_FIELDS + String.join(" ", duplicateFields);
+        return MESSAGE_DUPLICATE_FIELDS + String.join(" ", duplicateFields) + ".";
     }
 
     /**
@@ -52,7 +98,7 @@ public class Messages {
                 .map(Prefix::toString)
                 .collect(Collectors.toList());
 
-        return MESSAGE_MISSING_PARAMETERS + String.join(" ", missingFields);
+        return MESSAGE_MISSING_PARAMETERS + String.join(" ", missingFields) + ".";
     }
 
     /**
@@ -66,7 +112,7 @@ public class Messages {
                 .distinct()
                 .collect(Collectors.toList());
 
-        return MESSAGE_UNRECOGNIZED_PREFIXES + String.join(" ", unrecognizedFields);
+        return MESSAGE_UNRECOGNIZED_PREFIXES + String.join(" ", unrecognizedFields) + ".";
     }
 
     /**

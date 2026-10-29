@@ -60,6 +60,25 @@ public class VersionedAddressBook extends AddressBook {
     }
 
     /**
+     * Discards the most recently committed state and restores the previous state.
+     */
+    public void rollbackCommit() {
+        if (!canUndo()) {
+            return;
+        }
+        currentStatePointer--;
+        resetData(addressBookStateList.get(currentStatePointer));
+        removeStatesAfterCurrentPointer();
+    }
+
+    /**
+     * Returns the current state pointer in the address book history list.
+     */
+    public int getCurrentStatePointer() {
+        return currentStatePointer;
+    }
+
+    /**
      * Returns true if {@code undo()} has address book states to undo.
      */
     public boolean canUndo() {

@@ -16,9 +16,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import javafx.application.Platform;
+import javafx.scene.control.TextArea;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import seedu.address.logic.commands.AddCommand;
@@ -200,6 +203,28 @@ public class HelpWindowTest {
     }
 
     @Test
+    public void userGuideLink_enterKeyPressed_opensTpUserGuideUrl() throws Exception {
+        AtomicReference<URI> openedUri = new AtomicReference<>();
+        FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Stage stage = new Stage();
+            try {
+                HelpWindow helpWindow = new HelpWindow(stage, () -> true, openedUri::set, url -> { });
+                KeyEvent enterEvent = new KeyEvent(KeyEvent.KEY_PRESSED, "", "",
+                        KeyCode.ENTER, false, false, false, false);
+                helpWindow.getUserGuideLink().fireEvent(enterEvent);
+            } finally {
+                stage.close();
+            }
+            return null;
+        });
+
+        Platform.runLater(testOnFxThread);
+        testOnFxThread.get(10, TimeUnit.SECONDS);
+
+        assertEquals(URI.create(HelpWindow.USERGUIDE_URL), openedUri.get());
+    }
+
+    @Test
     public void copyUrlButton_whenClicked_copiesTpUserGuideUrl() throws Exception {
         FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
             Clipboard clipboard = Clipboard.getSystemClipboard();
@@ -211,6 +236,91 @@ public class HelpWindowTest {
                 assertEquals(HelpWindow.USERGUIDE_URL, clipboard.getString());
             } finally {
                 restoreClipboardContent(clipboard, previousContent);
+                stage.close();
+            }
+            return null;
+        });
+
+        Platform.runLater(testOnFxThread);
+        testOnFxThread.get(10, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void copyUrlButton_enterKeyPressed_copiesTpUserGuideUrl() throws Exception {
+        FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Clipboard clipboard = Clipboard.getSystemClipboard();
+            ClipboardContent previousContent = saveClipboardContent(clipboard);
+            Stage stage = new Stage();
+            try {
+                HelpWindow helpWindow = new HelpWindow(stage);
+                KeyEvent enterEvent = new KeyEvent(KeyEvent.KEY_PRESSED, "", "",
+                        KeyCode.ENTER, false, false, false, false);
+                helpWindow.getCopyButton().fireEvent(enterEvent);
+                assertEquals(HelpWindow.USERGUIDE_URL, clipboard.getString());
+            } finally {
+                restoreClipboardContent(clipboard, previousContent);
+                stage.close();
+            }
+            return null;
+        });
+
+        Platform.runLater(testOnFxThread);
+        testOnFxThread.get(10, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void helpMessage_isFocusTraversable() throws Exception {
+        FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Stage stage = new Stage();
+            try {
+                HelpWindow helpWindow = new HelpWindow(stage);
+                assertTrue(helpWindow.getHelpMessage().isFocusTraversable(),
+                        "helpMessage TextArea should be focus-traversable for keyboard navigation");
+            } finally {
+                stage.close();
+            }
+            return null;
+        });
+
+        Platform.runLater(testOnFxThread);
+        testOnFxThread.get(10, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void helpMessage_keyboardNavigation_scrollsContent() throws Exception {
+        FutureTask<Void> testOnFxThread = new FutureTask<>(() -> {
+            Stage stage = new Stage();
+            try {
+                HelpWindow helpWindow = new HelpWindow(stage);
+                stage.show();
+
+                TextArea helpMessage = helpWindow.getHelpMessage();
+                assertEquals(0.0, helpMessage.getScrollTop());
+
+                KeyEvent downEvent = new KeyEvent(KeyEvent.KEY_PRESSED, "", "",
+                        KeyCode.DOWN, false, false, false, false);
+                stage.fireEvent(downEvent);
+                assertTrue(helpMessage.getScrollTop() > 0.0,
+                        "Pressing DOWN should scroll the help content downwards");
+
+                double scrolledDown = helpMessage.getScrollTop();
+                KeyEvent upEvent = new KeyEvent(KeyEvent.KEY_PRESSED, "", "",
+                        KeyCode.UP, false, false, false, false);
+                stage.fireEvent(upEvent);
+                assertTrue(helpMessage.getScrollTop() < scrolledDown,
+                        "Pressing UP should scroll the help content upwards");
+
+                KeyEvent endEvent = new KeyEvent(KeyEvent.KEY_PRESSED, "", "",
+                        KeyCode.END, false, false, false, false);
+                stage.fireEvent(endEvent);
+                assertTrue(helpMessage.getScrollTop() > 0.0);
+
+                KeyEvent homeEvent = new KeyEvent(KeyEvent.KEY_PRESSED, "", "",
+                        KeyCode.HOME, false, false, false, false);
+                stage.fireEvent(homeEvent);
+                assertEquals(0.0, helpMessage.getScrollTop(),
+                        "Pressing HOME should reset scroll to top");
+            } finally {
                 stage.close();
             }
             return null;

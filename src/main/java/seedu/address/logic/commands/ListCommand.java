@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 import static seedu.address.model.Model.PREDICATE_SHOW_ALL_PERSONS;
 
 import seedu.address.commons.util.ToStringBuilder;
+import seedu.address.logic.Messages;
 import seedu.address.model.Model;
 
 /**
@@ -17,9 +18,9 @@ public class ListCommand extends Command {
 
     public static final String MESSAGE_SUCCESS = "Listed all contacts.";
 
-    public static final String MESSAGE_NO_CONTACTS = "No contacts found.";
+    public static final String MESSAGE_NO_CONTACTS = Messages.MESSAGE_NO_CONTACTS_FOUND;
 
-    public static final String MESSAGE_IGNORED_ARGUMENTS = "Warning: Additional arguments after list were ignored.";
+    public static final String MESSAGE_IGNORED_ARGUMENTS = "Warning: additional arguments after list were ignored.";
 
     private final boolean hasExtraArgs;
 

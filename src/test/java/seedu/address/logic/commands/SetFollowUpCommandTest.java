@@ -99,7 +99,7 @@ public class SetFollowUpCommandTest {
         Model emptyModel = new ModelManager();
 
         assertCommandFailure(new SetFollowUpCommand(INDEX_FIRST_PERSON, FOLLOW_UP),
-                emptyModel, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                emptyModel, SetFollowUpCommand.MESSAGE_NO_CONTACTS_TO_SET);
     }
 
     @Test
@@ -107,7 +107,8 @@ public class SetFollowUpCommandTest {
         Index invalidIndex = Index.fromOneBased(model.getFilteredPersonList().size() + 1);
 
         assertCommandFailure(new SetFollowUpCommand(invalidIndex, FOLLOW_UP),
-                model, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                model, Messages.getIndexOutOfRangeMessage(invalidIndex.getOneBased(),
+                        model.getFilteredPersonList().size()));
     }
 
     @Test
@@ -115,7 +116,8 @@ public class SetFollowUpCommandTest {
         showPersonAtIndex(model, INDEX_FIRST_PERSON);
 
         assertCommandFailure(new SetFollowUpCommand(INDEX_SECOND_PERSON, FOLLOW_UP),
-                model, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                model, Messages.getIndexOutOfRangeMessage(INDEX_SECOND_PERSON.getOneBased(),
+                        model.getFilteredPersonList().size()));
     }
 
     @Test
@@ -155,7 +157,8 @@ public class SetFollowUpCommandTest {
 
         Index invalidIndex = Index.fromOneBased(model.getFilteredPersonList().size() + 1);
         assertCommandFailure(new SetFollowUpCommand(invalidIndex, FOLLOW_UP),
-                model, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                model, Messages.getIndexOutOfRangeMessage(invalidIndex.getOneBased(),
+                        model.getFilteredPersonList().size()));
 
         model.redoAddressBook();
         assertEquals(expectedModel, model);

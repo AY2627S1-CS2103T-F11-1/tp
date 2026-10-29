@@ -70,6 +70,16 @@ public interface Model {
     boolean canRedoAddressBook();
 
     /**
+     * Discards the most recently committed address book state and restores the previous state.
+     */
+    void rollbackAddressBook();
+
+    /**
+     * Returns the current state pointer in the address book history list.
+     */
+    int getAddressBookStatePointer();
+
+    /**
      * Returns true if a person with the same identity as {@code person} exists in the address book.
      */
     boolean hasPerson(Person person);

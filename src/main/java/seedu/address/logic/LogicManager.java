@@ -59,6 +59,7 @@ public class LogicManager implements Logic {
         selectionChange = new CommandSelectionChange(Map.of(), false);
         logger.info("----------------[USER COMMAND][" + commandText + "]");
 
+        int pointerBefore = model.getAddressBookStatePointer();
         CommandResult commandResult;
         Command command = addressBookParser.parseCommand(commandText);
         Map<Person, Person> replacements = new IdentityHashMap<>();
@@ -86,12 +87,29 @@ public class LogicManager implements Logic {
         try {
             storage.saveAddressBook(model.getAddressBook());
         } catch (AccessDeniedException e) {
+            rollbackModel(command, pointerBefore);
             throw new CommandException(String.format(FILE_OPS_PERMISSION_ERROR_FORMAT, e.getMessage()), e);
         } catch (IOException ioe) {
+            rollbackModel(command, pointerBefore);
             throw new CommandException(String.format(FILE_OPS_ERROR_FORMAT, ioe.getMessage()), ioe);
         }
 
         return commandResult;
+    }
+
+    /**
+     * Reverts changes to the model if persisting to storage fails.
+     */
+    private void rollbackModel(Command command, int pointerBefore) {
+        if (command instanceof UndoCommand || command instanceof RedoCommand) {
+            return;
+        }
+        int pointerAfter = model.getAddressBookStatePointer();
+        if (pointerAfter > pointerBefore) {
+            model.rollbackAddressBook();
+            // Reconcile the original contact after discarding the failed edit's replacement.
+            selectionChange = new CommandSelectionChange(Map.of(), false);
+        }
     }
 
     @Override

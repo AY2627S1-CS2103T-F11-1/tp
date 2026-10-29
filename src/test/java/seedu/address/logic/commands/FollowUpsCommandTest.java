@@ -258,9 +258,11 @@ public class FollowUpsCommandTest {
 
         CommandResult result = command.execute(model);
 
-        String expectedMessage = expectedContacts.isEmpty()
-                ? FollowUpsCommand.MESSAGE_NO_FOLLOW_UPS
-                : String.format(FollowUpsCommand.MESSAGE_SUCCESS, expectedContacts.size());
+        String expectedMessage = switch (expectedContacts.size()) {
+            case 0 -> "No follow-ups found.";
+            case 1 -> "1 follow-up found.";
+            default -> expectedContacts.size() + " follow-ups found.";
+        };
 
         assertEquals(new CommandResult(expectedMessage), result);
         assertEquals(expectedContacts, model.getFilteredPersonList());

@@ -19,7 +19,8 @@ import seedu.address.model.person.Person;
  */
 public class SetFollowUpCommand extends FollowUpCommand {
 
-    public static final String MESSAGE_SUCCESS = "Follow-up set for %1$s: %2$s - %3$s";
+    public static final String MESSAGE_SUCCESS = "Follow-up set for %1$s: %2$s - %3$s.";
+    public static final String MESSAGE_NO_CONTACTS_TO_SET = Messages.MESSAGE_NO_CONTACTS_DISPLAYED;
 
     private final Index index;
     private final FollowUp followUp;
@@ -44,8 +45,13 @@ public class SetFollowUpCommand extends FollowUpCommand {
         requireNonNull(model);
         List<Person> lastShownList = model.getFilteredPersonList();
 
+        if (lastShownList.isEmpty()) {
+            throw new CommandException(MESSAGE_NO_CONTACTS_TO_SET);
+        }
+
         if (index.getZeroBased() >= lastShownList.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+            throw new CommandException(
+                    Messages.getIndexOutOfRangeMessage(index.getOneBased(), lastShownList.size()));
         }
 
         Person personToUpdate = lastShownList.get(index.getZeroBased());

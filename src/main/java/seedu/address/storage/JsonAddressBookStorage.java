@@ -65,6 +65,9 @@ public class JsonAddressBookStorage {
         } catch (IllegalValueException ive) {
             logger.info("Illegal values found in " + filePath + ": " + ive.getMessage());
             throw new DataLoadingException(ive);
+        } catch (RuntimeException re) {
+            logger.warning("Unexpected runtime exception reading " + filePath + ": " + re.getMessage());
+            throw new DataLoadingException(re);
         }
     }
 
