@@ -133,7 +133,9 @@ from being published. In a `finally` block, `MainWindow` applies the command's s
 resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
 equal but distinct replacement objects. This retains visible contacts across filtering, sorting, and unrelated changes;
 it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
-path still conservatively clear selection. Model, Storage, and `CommandResult` data structures remain unchanged.
+path still conservatively clear selection. Model and Storage data structures remain unchanged.
+`CommandResult` now supports an optional exact-contact selection request. Existing commands leave this empty;
+the `select INDEX` command itself is not yet implemented.
 
 `MainWindowTest` covers mouse and arrow-key events, null selection, actual edit/delete/filter/list/sort/clear/follow-up
 commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
@@ -159,7 +161,10 @@ into `CommandSelectionChange` before saving. An explicit request would take prec
 selection; undo/redo would continue to clear it. This uses the existing `MainWindow` finally block and
 `PersonListPanel#endCommand(Person)`, including reconciliation after saving errors, without Model or Storage changes.
 
-The complete proposed file list is below; these changes are not part of the current implementation.
+The complete planned file list is below. The selection-request plumbing in `CommandResult`, `CommandSelectionChange`,
+and `LogicManager`, with its initial tests, is implemented. The command, parser, help, and end-to-end selection
+workflow remain proposed. `LogicManager` has a package-private parser-injection constructor so tests can exercise
+request-producing commands without registering a production command.
 Paths are relative to the repository root.
 
 File | Proposed change
@@ -176,6 +181,7 @@ File | Proposed change
 `src/test/java/seedu/address/logic/parser/SelectCommandParserTest.java` (new) | Cover missing, malformed, extra, zero, negative, and valid arguments.
 `src/test/java/seedu/address/logic/parser/AddressBookParserTest.java` | Verify command dispatch.
 `src/test/java/seedu/address/logic/commands/CommandResultTest.java` | Test selection-request defaults and value methods.
+`src/test/java/seedu/address/logic/CommandSelectionChangeTest.java` | Verify explicit-request precedence, undo/redo reset precedence, and exact contact references; initial coverage is implemented.
 `src/test/java/seedu/address/logic/LogicManagerTest.java` | Verify request forwarding, resetting between attempts, and behaviour when saving fails.
 `src/test/java/seedu/address/ui/MainWindowTest.java` | Cover selection from the empty state, scrolling, repeated selection, filtered/sorted indexes, invalid requests, focus, and saving failures.
 `src/test/java/seedu/address/logic/commands/HelpCommandTest.java` | Cover targeted help and the supported-command list.
