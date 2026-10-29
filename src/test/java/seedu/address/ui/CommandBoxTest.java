@@ -163,9 +163,8 @@ public class CommandBoxTest {
     @Test
     public void handleCommandEntered_rootAlreadyContainsError_doesNotAddDuplicateError() throws Exception {
         runOnFxThread(() -> {
-            // Pre-seed root with error style class while text field lacks it
-            commandBox.getRoot().getStyleClass().add(ERROR_STYLE_CLASS);
             commandTextField.setText(INVALID_COMMAND);
+            commandBox.getRoot().getStyleClass().add(ERROR_STYLE_CLASS);
             commandTextField.fireEvent(new ActionEvent(commandTextField, commandTextField));
 
             long countRoot = commandBox.getRoot().getStyleClass().stream().filter(ERROR_STYLE_CLASS::equals).count();
