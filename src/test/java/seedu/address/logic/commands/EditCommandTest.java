@@ -490,12 +490,23 @@ public class EditCommandTest {
     }
 
     @Test
+    public void execute_emptyList_failure() {
+        Model emptyModel = new ModelManager();
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withName(VALID_NAME_BOB).build();
+
+        assertCommandFailure(new EditCommand(INDEX_FIRST_PERSON, descriptor),
+                emptyModel, EditCommand.MESSAGE_NO_CONTACTS_TO_EDIT);
+    }
+
+    @Test
     public void execute_invalidPersonIndexUnfilteredList_failure() {
         Index outOfBoundIndex = Index.fromOneBased(model.getFilteredPersonList().size() + 1);
         EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withName(VALID_NAME_BOB).build();
         EditCommand editCommand = new EditCommand(outOfBoundIndex, descriptor);
 
-        assertCommandFailure(editCommand, model, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+        assertCommandFailure(editCommand, model,
+                Messages.getIndexOutOfRangeMessage(outOfBoundIndex.getOneBased(),
+                        model.getFilteredPersonList().size()));
     }
 
     /**
@@ -512,7 +523,9 @@ public class EditCommandTest {
         EditCommand editCommand = new EditCommand(outOfBoundIndex,
                 new EditPersonDescriptorBuilder().withName(VALID_NAME_BOB).build());
 
-        assertCommandFailure(editCommand, model, Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+        assertCommandFailure(editCommand, model,
+                Messages.getIndexOutOfRangeMessage(outOfBoundIndex.getOneBased(),
+                        model.getFilteredPersonList().size()));
     }
 
     @Test
@@ -527,7 +540,8 @@ public class EditCommandTest {
                 new EditPersonDescriptorBuilder().withName("Updated Name").build();
 
         assertCommandFailure(new EditCommand(invalidIndex, descriptor), model,
-                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+                Messages.getIndexOutOfRangeMessage(invalidIndex.getOneBased(),
+                        model.getFilteredPersonList().size()));
 
         assertTrue(model.canRedoAddressBook());
         model.redoAddressBook();

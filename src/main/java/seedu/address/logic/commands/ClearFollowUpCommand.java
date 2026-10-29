@@ -19,6 +19,7 @@ public class ClearFollowUpCommand extends FollowUpCommand {
 
     public static final String MESSAGE_SUCCESS = "Follow-up cleared for %1$s.";
     public static final String MESSAGE_NO_FOLLOW_UP = "%1$s has no follow-up.";
+    public static final String MESSAGE_NO_CONTACTS_TO_CLEAR = Messages.MESSAGE_NO_CONTACTS_DISPLAYED;
 
     private final Index index;
 
@@ -43,8 +44,13 @@ public class ClearFollowUpCommand extends FollowUpCommand {
         requireNonNull(model);
         List<Person> lastShownList = model.getFilteredPersonList();
 
+        if (lastShownList.isEmpty()) {
+            throw new CommandException(MESSAGE_NO_CONTACTS_TO_CLEAR);
+        }
+
         if (index.getZeroBased() >= lastShownList.size()) {
-            throw new CommandException(Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+            throw new CommandException(
+                    Messages.getIndexOutOfRangeMessage(index.getOneBased(), lastShownList.size()));
         }
 
         Person personToUpdate = lastShownList.get(index.getZeroBased());

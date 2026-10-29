@@ -28,6 +28,7 @@ import seedu.address.model.person.Person;
  */
 public class PersonCard extends UiPart<Region> {
 
+    public static final int NUM_ROLE_COLORS = 8;
     private static final String FXML = "PersonListCard.fxml";
     private static final PseudoClass DUE_TODAY = PseudoClass.getPseudoClass("due-today");
     private static final PseudoClass OVERDUE = PseudoClass.getPseudoClass("overdue");
@@ -86,6 +87,9 @@ public class PersonCard extends UiPart<Region> {
         dateListener = (observable, previous, today) -> updateFollowUpBadge(today);
         uiDate.dateProperty().addListener(new WeakChangeListener<>(dateListener));
         updateFollowUpBadge(uiDate.getDate());
+        role.getStyleClass().add("role-badge");
+        int colorIndex = Math.abs(person.getRole().value.toLowerCase().hashCode()) % NUM_ROLE_COLORS;
+        role.getStyleClass().add("role-color-" + colorIndex);
         phone.setText(person.getPhone().value);
         email.setText(person.getEmail().value);
         Tooltip emailTooltip = new Tooltip(person.getEmail().value);

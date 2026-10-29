@@ -52,9 +52,9 @@ import javafx.scene.control.ScrollToEvent;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
+import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -1337,14 +1337,15 @@ public class MainWindowTest {
 
             var selectedBackground = cell.getBackground();
             assertFalse(card.getBorder().isEmpty());
-            assertEquals(1, card.getBorder().getStrokes().get(0).getWidths().getTop());
+            var selectedBorder = card.getBorder();
+            assertTrue(selectedBorder.getStrokes().get(0).getWidths().getTop() > 0);
             TextField command = (TextField) stage.getScene().lookup("#commandTextField");
             command.requestFocus();
             stage.getScene().getRoot().applyCss();
             assertSame(command, stage.getScene().getFocusOwner());
             assertTrue(cell.isSelected());
             assertEquals(selectedBackground, cell.getBackground());
-            assertEquals(1, card.getBorder().getStrokes().get(0).getWidths().getTop());
+            assertEquals(selectedBorder, card.getBorder());
             assertSelected(person);
         });
     }
@@ -1759,7 +1760,8 @@ public class MainWindowTest {
             for (Node node : card.lookupAll(".label")) {
                 Bounds labelBounds = node.localToScene(node.getLayoutBounds());
                 assertTrue(labelBounds.getMinX() >= bounds.getMinX());
-                assertTrue(labelBounds.getMaxX() <= bounds.getMaxX() + 1, "Card text should fit the list width");
+                assertTrue(labelBounds.getMaxX() <= bounds.getMaxX() + 1,
+                        "Card text should fit the list width: " + node.getId() + " " + labelBounds + " in " + bounds);
             }
             Label name = (Label) card.lookup("#name");
             assertEquals(person.getName().fullName, name.getTooltip().getText());

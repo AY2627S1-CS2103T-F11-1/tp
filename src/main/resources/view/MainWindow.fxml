@@ -23,7 +23,7 @@
         <URL value="@Extensions.css" />
       </stylesheets>
 
-      <VBox>
+      <VBox styleClass="main-container">
         <MenuBar fx:id="menuBar" VBox.vgrow="NEVER">
           <Menu mnemonicParsing="false" text="File">
             <MenuItem mnemonicParsing="false" onAction="#handleExit" text="Exit" />
@@ -33,16 +33,16 @@
           </Menu>
         </MenuBar>
 
-        <StackPane VBox.vgrow="NEVER" fx:id="commandBoxPlaceholder" styleClass="pane-with-border">
+        <StackPane VBox.vgrow="NEVER" fx:id="commandBoxPlaceholder" styleClass="pane-container">
           <padding>
-            <Insets top="5" right="10" bottom="5" left="10" />
+            <Insets top="10" right="14" bottom="4" left="14" />
           </padding>
         </StackPane>
 
-        <StackPane VBox.vgrow="NEVER" fx:id="resultDisplayPlaceholder" styleClass="pane-with-border"
-                   minHeight="100" prefHeight="100" maxHeight="100">
+        <StackPane VBox.vgrow="NEVER" fx:id="resultDisplayPlaceholder" styleClass="pane-container"
+                   minHeight="95" prefHeight="95" maxHeight="140">
           <padding>
-            <Insets top="5" right="10" bottom="5" left="10" />
+            <Insets top="4" right="14" bottom="6" left="14" />
           </padding>
         </StackPane>
 

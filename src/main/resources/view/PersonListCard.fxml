@@ -19,7 +19,7 @@
       <padding>
         <Insets top="8" right="12" bottom="8" left="12" />
       </padding>
-      <HBox spacing="0.5" alignment="CENTER_LEFT">
+      <HBox spacing="8" alignment="CENTER_LEFT">
         <Label fx:id="id" styleClass="cell_big_label">
           <minWidth>
             <!-- Ensures that the label text is never truncated -->
@@ -27,6 +27,8 @@
           </minWidth>
         </Label>
         <Label fx:id="name" styleClass="cell_big_label" minWidth="0" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
+        <Label fx:id="role" styleClass="role-badge" wrapText="true" minWidth="0"
+               minHeight="-Infinity" />
       </HBox>
       <HBox spacing="8" alignment="CENTER_LEFT" minWidth="0">
         <Label fx:id="role" styleClass="cell_small_label" wrapText="true" minWidth="0"
@@ -37,6 +39,11 @@
       </HBox>
       <Label fx:id="phone" styleClass="cell_small_label" wrapText="true" minWidth="0"
              minHeight="-Infinity" maxWidth="Infinity" />
+      <FlowPane fx:id="tags" minWidth="0">
+        <padding>
+          <Insets top="6" bottom="6" />
+        </padding>
+      </FlowPane>
       <Label fx:id="email" styleClass="cell_small_label" wrapText="false" textOverrun="ELLIPSIS"
              minWidth="0" minHeight="-Infinity" maxWidth="Infinity" />
       <FlowPane fx:id="tags" minWidth="0" />

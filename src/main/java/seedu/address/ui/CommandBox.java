@@ -82,6 +82,7 @@ public class CommandBox extends UiPart<Region> {
      */
     private void setStyleToDefault() {
         commandTextField.getStyleClass().remove(ERROR_STYLE_CLASS);
+        getRoot().getStyleClass().remove(ERROR_STYLE_CLASS);
     }
 
     /**
@@ -95,6 +96,9 @@ public class CommandBox extends UiPart<Region> {
         }
 
         styleClass.add(ERROR_STYLE_CLASS);
+        if (!getRoot().getStyleClass().contains(ERROR_STYLE_CLASS)) {
+            getRoot().getStyleClass().add(ERROR_STYLE_CLASS);
+        }
     }
 
     /**

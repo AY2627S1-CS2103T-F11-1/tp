@@ -90,18 +90,9 @@ The `UI` component,
 The minimum height is 600 pixels. `MainWindow` clamps smaller restored dimensions in the UI without changing the
 preferences data structure.
 
-`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, email, and sorted tags.
-Address and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
-tags are hidden and unmanaged. Long names and emails use a single line with an ellipsis and full-text tooltips;
-tags wrap. Email appears beneath the phone number using the existing summary text style.
-The role row includes a badge when `Person#getFollowUp()` is present: `Follow-up` for a future due date, `Due today`
-for the local date, and `Overdue` for a past date. It measures all three labels in the resolved font and regular/bold
-variants, including padding and borders, and reserves the same dimensions for every state so transitions do not
-reflow the role. The sizing responds to font and inset changes instead of assuming a fixed width across platforms.
-The role wraps into the remaining width. `PersonCard` hides and unmanages the badge when absent.
-The existing theme uses the same bold font for every badge, with an underline for `:overdue`; urgency does not depend
-on colour. Changing urgency therefore retains the resolved font metrics, including when the requested font falls back
-to a platform font.
+`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, and sorted tags.
+Email, address, and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
+tags are hidden and unmanaged. Long names use a single line with an ellipsis and a full-name tooltip; tags wrap.
 `PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
 preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
 remain visible when keyboard focus moves to command input. Unselected cards reserve a transparent border of the same
@@ -172,6 +163,9 @@ from the displayed list; commands without an explicit request retain their exist
 `MainWindowTest` covers mouse and arrow-key events, null selection, actual edit/delete/filter/list/sort/clear/follow-up
 commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
 `LogicManagerTest` additionally verifies replacement identity and reset of command selection information after failures.
+Save-failure fixtures commit their initial contacts to model history and verify restored selection for both I/O and
+access-denied errors. Compact-card tests compare tag-row spacing and the last visible field's bottom gap across font
+sizes, and verify that focus changes preserve the actual themed selection border rather than assuming a pixel width.
 Saving-failure fixtures commit their starting contacts to model history. Regression tests verify restored data, filters,
 selection, and history after edit/delete failures, including both I/O and access-denied errors.
 `PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
@@ -251,6 +245,9 @@ Tests cover the command through the real parser, logic, storage, and JavaFX UI p
   A package-private parser-injection constructor also supports isolated command-result tests.
 * `MainWindowTest`: focus, duplicate names, invalid-input recovery, empty results, edits/deletion after selection,
   saving errors, off-screen and newly added rows, and repeated selection retaining the details scroll position.
+  Visibility checks wait for the real viewport row rather than a fixed number of frames, without issuing extra scrolls.
+  Regression tests cover dropped index-scroll events, stale endpoint offsets, transient visibility, and cancellation
+  after another command, selection, or manual scroll. Failures report the target/selected indexes and visible row bounds.
 * `HelpCommandTest` and `HelpWindowTest`: targeted usage, supported-command guidance, browse-category placement,
   formatting, and absence of a selection side effect.
 
@@ -1292,6 +1289,9 @@ The roles and phone numbers distinguish the two Alice contacts. Perform each gro
 
    1. Test cases: `sort n/ n/`, `sort n/Alice`, and `sort t/` (separately).<br>
       Expected: Duplicate-field, unexpected-value, and unexpected-token errors respectively.
+      Feedback: `sort accepts each field only once: n/.`,
+      `sort does not accept values after n/.`, and
+      `sort expects clear, n/, or r/, but received: t/.` respectively.
       The two displayed Suppliers and their details remain unchanged. Afterwards, `list` restores all four
       contacts in role-then-name order, confirming the comparator is unchanged.
 
