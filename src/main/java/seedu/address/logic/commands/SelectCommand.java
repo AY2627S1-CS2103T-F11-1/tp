@@ -6,6 +6,7 @@ import java.util.List;
 
 import seedu.address.commons.core.index.Index;
 import seedu.address.commons.util.ToStringBuilder;
+import seedu.address.logic.Messages;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.Model;
 import seedu.address.model.person.Person;
@@ -23,13 +24,11 @@ public class SelectCommand extends Command {
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String MESSAGE_SELECT_CONTACT_SUCCESS = "Selected contact %1$d: %2$s";
-    public static final String MESSAGE_INDEX_REQUIRED = "Error: INDEX is required. Usage: select INDEX";
-    public static final String MESSAGE_EXTRA_ARGUMENTS = "Error: SELECT accepts only one INDEX";
-    public static final String MESSAGE_NO_CONTACTS_TO_SELECT = "Error: There are no displayed contacts to select";
-    public static final String MESSAGE_INDEX_OUT_OF_RANGE = "Error: INDEX %1$d is outside the displayed contact list "
-            + "(valid range: 1-%2$d)";
-    public static final String MESSAGE_SINGLE_INDEX_OUT_OF_RANGE =
-            "Error: INDEX %1$d is outside the displayed contact list (valid index: 1)";
+    public static final String MESSAGE_INDEX_REQUIRED = Messages.MESSAGE_INDEX_REQUIRED;
+    public static final String MESSAGE_EXTRA_ARGUMENTS = "select accepts only one INDEX.";
+    public static final String MESSAGE_NO_CONTACTS_TO_SELECT = Messages.MESSAGE_NO_CONTACTS_DISPLAYED;
+    public static final String MESSAGE_INDEX_OUT_OF_RANGE = Messages.MESSAGE_INDEX_OUT_OF_RANGE;
+    public static final String MESSAGE_SINGLE_INDEX_OUT_OF_RANGE = Messages.MESSAGE_SINGLE_INDEX_OUT_OF_RANGE;
 
     private final Index targetIndex;
 
@@ -53,10 +52,8 @@ public class SelectCommand extends Command {
             throw new CommandException(MESSAGE_NO_CONTACTS_TO_SELECT);
         }
         if (targetIndex.getZeroBased() >= displayedPersons.size()) {
-            String message = displayedPersons.size() == 1
-                    ? String.format(MESSAGE_SINGLE_INDEX_OUT_OF_RANGE, targetIndex.getOneBased())
-                    : String.format(MESSAGE_INDEX_OUT_OF_RANGE, targetIndex.getOneBased(), displayedPersons.size());
-            throw new CommandException(message);
+            throw new CommandException(
+                    Messages.getIndexOutOfRangeMessage(targetIndex.getOneBased(), displayedPersons.size()));
         }
 
         Person selectedPerson = displayedPersons.get(targetIndex.getZeroBased());
