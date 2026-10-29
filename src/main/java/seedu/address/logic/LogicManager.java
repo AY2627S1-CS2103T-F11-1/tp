@@ -97,6 +97,8 @@ public class LogicManager implements Logic {
         int pointerAfter = model.getAddressBookStatePointer();
         if (pointerAfter > pointerBefore) {
             model.rollbackAddressBook();
+            // Reconcile the original contact after discarding the failed edit's replacement.
+            selectionChange = new CommandSelectionChange(Map.of(), false);
         }
     }
 

@@ -49,6 +49,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.Logic;
@@ -659,18 +660,23 @@ public class MainWindowTest {
             ModelManager model = new ModelManager();
             model.addPerson(ALICE);
             model.addPerson(BENSON);
+            model.commitAddressBook();
             initializeFailingStorageWindow(model);
             contactList().getSelectionModel().select(0);
             submitCommand("edit 1 n/Zed Supplier p/81000000 e/zed@example.com", false);
-            assertSelected(model.getFilteredPersonList().get(0));
-            assertDetailsName("Zed Supplier");
+            assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
+            assertEquals(List.of(ALICE, BENSON), model.getFilteredPersonList());
+            assertSelected(ALICE);
             submitCommand("find Benson", false);
             assertSelectionCleared();
+            assertEquals(List.of(BENSON), model.getFilteredPersonList());
             contactList().getSelectionModel().select(0);
             assertSelected(BENSON);
             submitCommand("delete 1", false);
-            assertSelectionCleared();
-            assertTrue(model.getFilteredPersonList().isEmpty());
+            assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
+            assertEquals(List.of(ALICE, BENSON), model.getFilteredPersonList());
+            assertSelected(BENSON);
+            assertFalse(model.canRedoAddressBook());
         });
     }
 
@@ -742,23 +748,24 @@ public class MainWindowTest {
 
             var selectedBackground = cell.getBackground();
             assertFalse(card.getBorder().isEmpty());
-            assertEquals(1, card.getBorder().getStrokes().get(0).getWidths().getTop());
+            var selectedBorder = card.getBorder();
+            assertTrue(selectedBorder.getStrokes().get(0).getWidths().getTop() > 0);
             TextField command = (TextField) stage.getScene().lookup("#commandTextField");
             command.requestFocus();
             stage.getScene().getRoot().applyCss();
             assertSame(command, stage.getScene().getFocusOwner());
             assertTrue(cell.isSelected());
             assertEquals(selectedBackground, cell.getBackground());
-            assertEquals(1, card.getBorder().getStrokes().get(0).getWidths().getTop());
+            assertEquals(selectedBorder, card.getBorder());
             assertSelected(person);
         });
     }
 
     @Test
     public void cards_compactHeightAndEmptyTags_removeUnusedSpace() throws Exception {
-        Person withTags = new PersonBuilder(ALICE).withTags("lube", "switches")
-                .withFollowUp("2026-11-01", "Confirm switch quotation").build();
-        Person withoutTags = new PersonBuilder(BENSON).withTags().build();
+        Person withTags = new PersonBuilder(ALICE).withTags("lube", "switches").build();
+        Person withoutTags = new PersonBuilder(withTags).withName("Another Contact").withPhone("81000901")
+                .withEmail("another@example.com").withTags().build();
         runOnFxThread(() -> {
             ModelManager model = new ModelManager();
             model.addPerson(withTags);
@@ -766,15 +773,35 @@ public class MainWindowTest {
             initializeMainWindow(model);
         });
         awaitLayout();
-        runOnFxThread(() -> {
-            ListCell<?> tagged = contactCell(withTags);
-            ListCell<?> untagged = contactCell(withoutTags);
-            assertTrue(tagged.getHeight() < 105, "Summary cards should shrink below the old 105px minimum");
-            assertTrue(untagged.getHeight() < tagged.getHeight(), "Empty tags should leave no layout gap");
-            FlowPane tags = (FlowPane) untagged.getGraphic().lookup("#tags");
-            assertFalse(tags.isVisible());
-            assertFalse(tags.isManaged());
-        });
+        for (int fontSize : new int[] {13, 19}) {
+            runOnFxThread(() -> {
+                for (Person person : List.of(withTags, withoutTags)) {
+                    contactCell(person).getGraphic().lookup("#phone").setStyle("-fx-font-size: " + fontSize + "px;");
+                }
+            });
+            awaitLayout();
+            runOnFxThread(() -> {
+                ListCell<?> tagged = contactCell(withTags);
+                ListCell<?> untagged = contactCell(withoutTags);
+                FlowPane shownTags = (FlowPane) tagged.getGraphic().lookup("#tags");
+                VBox content = (VBox) shownTags.getParent();
+                assertTrue(shownTags.isVisible());
+                assertTrue(shownTags.isManaged());
+                assertTrue(shownTags.getHeight() > 0);
+                assertEquals(shownTags.getHeight() + content.getSpacing(), tagged.getHeight() - untagged.getHeight(), 1,
+                        "Only the tag row and its spacing should add height");
+                FlowPane tags = (FlowPane) untagged.getGraphic().lookup("#tags");
+                assertFalse(tags.isVisible());
+                assertFalse(tags.isManaged());
+                Label phone = (Label) untagged.getGraphic().lookup("#phone");
+                Region card = (Region) untagged.getGraphic();
+                VBox untaggedContent = (VBox) phone.getParent();
+                double bottomGap = card.localToScene(card.getLayoutBounds()).getMaxY()
+                        - phone.localToScene(phone.getLayoutBounds()).getMaxY();
+                assertEquals(untaggedContent.getPadding().getBottom() + card.getInsets().getBottom(), bottomGap, 1,
+                        "No blank tag row or fixed minimum height should remain below the phone");
+            });
+        }
     }
 
     @Test
@@ -795,7 +822,8 @@ public class MainWindowTest {
             for (Node node : card.lookupAll(".label")) {
                 Bounds labelBounds = node.localToScene(node.getLayoutBounds());
                 assertTrue(labelBounds.getMinX() >= bounds.getMinX());
-                assertTrue(labelBounds.getMaxX() <= bounds.getMaxX() + 1, "Card text should fit the list width");
+                assertTrue(labelBounds.getMaxX() <= bounds.getMaxX() + 1,
+                        "Card text should fit the list width: " + node.getId() + " " + labelBounds + " in " + bounds);
             }
             Label name = (Label) card.lookup("#name");
             assertEquals(person.getName().fullName, name.getTooltip().getText());

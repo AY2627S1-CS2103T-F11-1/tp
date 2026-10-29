@@ -93,9 +93,11 @@ preferences data structure.
 `PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, and sorted tags.
 Email, address, and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
 tags are hidden and unmanaged. Long names use a single line with an ellipsis and a full-name tooltip; tags wrap.
+The name and role badge share the header row, retaining the merged theme's role-colour styling.
 `PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
 preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
-remain visible when keyboard focus moves to command input.
+remain visible when keyboard focus moves to command input. Selected and unselected cards reserve the same border
+width so selection does not change measured row dimensions or tag wrapping.
 
 `MainWindow#fillInnerParts()` mounts `PersonDetailsPanel` in the right placeholder. The panel extends `UiPart<Region>`
 and exposes `showPerson(Person)` and `clear()`. A fit-to-width `ScrollPane`, viewport-based label width bindings,
@@ -123,7 +125,9 @@ During command execution, `LogicManager` temporarily listens to the underlying a
 replacement supplies the exact old and new `Person` references. The listener is removed in a `finally` block, and an
 immutable `CommandSelectionChange` copies these relationships into an identity-based map. Successful undo and redo
 request a selection reset, including when snapshots contain equal contact data. The information is available through
-`Logic#getSelectionChange()` before saving, so a later storage exception does not lose the replacement relationship.
+`Logic#getSelectionChange()` before saving. If a save failure rolls back a committed change, the failed command's
+replacement mappings are discarded. The original selected contact is then retained when it exists in the restored
+list, or cleared otherwise. Save failures after undo/redo still clear selection while retaining the restored snapshot.
 Each command attempt resets this information before parsing; failed parsing or validation therefore preserves selection.
 
 `MainWindow` snapshots selection and calls `PersonListPanel#beginCommand()` before executing a command. The panel
@@ -138,6 +142,9 @@ path still conservatively clear selection. Model, Storage, and `CommandResult` d
 `MainWindowTest` covers mouse and arrow-key events, null selection, actual edit/delete/filter/list/sort/clear/follow-up
 commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
 `LogicManagerTest` additionally verifies replacement identity and reset of command selection information after failures.
+Save-failure fixtures commit their initial contacts to model history and verify restored selection for both I/O and
+access-denied errors. Compact-card tests compare tag-row spacing and the last visible field's bottom gap across font
+sizes, and verify that focus changes preserve the actual themed selection border rather than assuming a pixel width.
 `PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
 `MainWindowTest` also verifies compact card height, empty-tag spacing, long-name tooltips, tag wrapping, selected-card
 styling without list focus, and access to the complete selected contact details.

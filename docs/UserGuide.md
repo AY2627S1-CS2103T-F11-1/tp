@@ -90,8 +90,9 @@ Your draft command, its cursor position and text selection, and the selected con
 * If the selected contact is deleted or filtered out, or all contacts are cleared, the panel returns to the
   selection prompt. Deleting a selected contact does not automatically select its neighbour.
 * Successful `undo` and `redo` commands clear selection. Commands rejected because of invalid input keep selection.
-* If saving fails after a command has changed the contacts, the panel reflects the current in-memory contact data
-  alongside the saving error shown in the command feedback.
+* If saving an edit, addition, deletion, clear, or follow-up change fails, those contact changes are rolled back.
+  The original selection is retained when the contact remains in the restored list; otherwise the panel returns to
+  the selection prompt. Command feedback shows the saving error.
 
 ### Adding a contact: `add`
 

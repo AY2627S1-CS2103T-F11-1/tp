@@ -2,6 +2,7 @@ package seedu.address.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.logic.Messages.MESSAGE_UNKNOWN_COMMAND;
@@ -67,6 +68,42 @@ public class LogicManagerTest {
         JsonUserPrefsStorage userPrefsStorage = new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json"));
         StorageManager storage = new StorageManager(addressBookStorage, userPrefsStorage);
         logic = new LogicManager(model, storage);
+    }
+
+    @Test
+    public void execute_savingFailureAfterEditOrDelete_restoresOriginalSelection() {
+        for (IOException failure : List.of(DUMMY_IO_EXCEPTION, DUMMY_AD_EXCEPTION)) {
+            for (String command : List.of("edit 1 n/Zed Supplier", "delete 1")) {
+                model = new ModelManager();
+                model.addPerson(ALICE);
+                model.addPerson(BENSON);
+                model.commitAddressBook();
+                int pointerBefore = model.getAddressBookStatePointer();
+                model.updateFilteredPersonList(person -> person == ALICE);
+                JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(
+                        temporaryFolder.resolve("rollback-selection.json")) {
+                    @Override
+                    public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                        throw failure;
+                    }
+                };
+                StorageManager storage = new StorageManager(failingStorage,
+                        new JsonUserPrefsStorage(temporaryFolder.resolve("rollback-preferences.json")));
+                logic = new LogicManager(model, storage);
+
+                CommandException exception = Assertions.assertThrows(
+                        CommandException.class, () -> logic.execute(command));
+
+                assertSame(failure, exception.getCause());
+                assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
+                assertEquals(List.of(ALICE, BENSON), model.getFilteredPersonList());
+                assertEquals(pointerBefore, model.getAddressBookStatePointer());
+                assertSame(ALICE, logic.getSelectionChange().applyTo(ALICE));
+                assertSame(BENSON, logic.getSelectionChange().applyTo(BENSON));
+                assertNull(logic.getSelectionChange().applyTo(null));
+                assertFalse(model.canRedoAddressBook());
+            }
+        }
     }
 
     @Test
