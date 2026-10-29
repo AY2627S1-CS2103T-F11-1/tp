@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -54,6 +55,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import seedu.address.commons.core.GuiSettings;
@@ -368,9 +370,72 @@ public class MainWindowTest {
     }
 
     private ListCell<?> contactCell(Person person) {
+        ListCell<?> cell = findContactCell(person);
+        if (cell == null) {
+            throw new AssertionError(contactRowDiagnostics(person));
+        }
+        return cell;
+    }
+
+    private ListCell<?> findContactCell(Person person) {
         return (ListCell<?>) contactList().lookupAll(".list-cell").stream()
                 .filter(node -> node instanceof ListCell<?> cell && cell.getItem() == person && cell.isVisible())
-                .findFirst().orElseThrow();
+                .findFirst().orElse(null);
+    }
+
+    /**
+     * Waits for the requested row to fit in the list for two consecutive frames, without issuing another scroll.
+     */
+    private void awaitContactRowVisible(int index, String operation) throws Exception {
+        CompletableFuture<String> result = new CompletableFuture<>();
+        AnimationTimer[] timer = new AnimationTimer[1];
+        runOnFxThread(() -> {
+            Person person = (Person) contactList().getItems().get(index);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            timer[0] = new AnimationTimer() {
+                private int visibleFrames;
+
+                @Override
+                public void handle(long now) {
+                    ListCell<?> cell = findContactCell(person);
+                    Bounds listBounds = contactList().localToScene(contactList().getLayoutBounds());
+                    Bounds rowBounds = cell == null ? null : cell.localToScene(cell.getLayoutBounds());
+                    boolean visible = rowBounds != null && cell.getHeight() > 0
+                            && rowBounds.getMinY() >= listBounds.getMinY() - 1
+                            && rowBounds.getMaxY() <= listBounds.getMaxY() + 1;
+                    visibleFrames = visible ? visibleFrames + 1 : 0;
+                    if (visibleFrames >= 2) {
+                        stop();
+                        result.complete(null);
+                    } else if (System.nanoTime() >= deadline) {
+                        stop();
+                        result.complete("Timed out " + operation + ": " + contactRowDiagnostics(person));
+                    }
+                }
+            };
+            timer[0].start();
+        });
+        try {
+            String failure = result.get(12, TimeUnit.SECONDS);
+            assertNull(failure, failure);
+        } finally {
+            runOnFxThread(() -> timer[0].stop());
+        }
+    }
+
+    private String contactRowDiagnostics(Person person) {
+        List<String> rows = contactList().lookupAll(".list-cell").stream()
+                .filter(node -> node instanceof ListCell<?> cell && cell.isVisible() && !cell.isEmpty())
+                .map(node -> {
+                    ListCell<?> cell = (ListCell<?>) node;
+                    Bounds bounds = cell.localToScene(cell.getLayoutBounds());
+                    return cell.getIndex() + " at y=" + bounds.getMinY() + ".." + bounds.getMaxY();
+                }).toList();
+        return "Expected visible contact '" + person.getName().fullName + "', target index="
+                + contactList().getItems().indexOf(person) + ", selected index="
+                + contactList().getSelectionModel().getSelectedIndex() + ", window="
+                + stage.getWidth() + "x" + stage.getHeight() + ", list bounds="
+                + contactList().localToScene(contactList().getLayoutBounds()) + ", visible rows=" + rows;
     }
 
     private void assertDetailsName(String expected) {
@@ -703,7 +768,7 @@ public class MainWindowTest {
             command.requestFocus();
             submitCommand("select 41");
         });
-        awaitLayout();
+        awaitContactRowVisible(40, "after selecting the off-screen contact");
         runOnFxThread(() -> {
             assertSelected(target);
             assertContactRowVisible(target);
@@ -711,12 +776,12 @@ public class MainWindowTest {
             details.setVvalue(1);
             contactList().scrollTo(0);
         });
-        awaitLayout();
+        awaitContactRowVisible(0, "after scrolling away from the selected contact");
         runOnFxThread(() -> {
             assertSelected(target);
             submitCommand("select 41");
         });
-        awaitLayout();
+        awaitContactRowVisible(40, "after repeating selection of the off-screen contact");
         runOnFxThread(() -> {
             assertSelected(target);
             assertContactRowVisible(target);
@@ -730,7 +795,7 @@ public class MainWindowTest {
             assertSelected(target);
             submitCommand("select 42");
         });
-        awaitLayout();
+        awaitContactRowVisible(41, "after adding and immediately selecting a contact");
         runOnFxThread(() -> {
             Person appended = (Person) contactList().getItems().get(41);
             assertEquals("Appended Supplier", appended.getName().fullName);
@@ -742,8 +807,10 @@ public class MainWindowTest {
     private void assertContactRowVisible(Person person) {
         Bounds row = contactCell(person).localToScene(contactCell(person).getLayoutBounds());
         Bounds list = contactList().localToScene(contactList().getLayoutBounds());
-        assertTrue(row.getMinY() >= list.getMinY() - 1, "The selected row should not be clipped at the top");
-        assertTrue(row.getMaxY() <= list.getMaxY() + 1, "The selected row should not be clipped at the bottom");
+        assertTrue(row.getMinY() >= list.getMinY() - 1,
+                "The selected row should not be clipped at the top: " + contactRowDiagnostics(person));
+        assertTrue(row.getMaxY() <= list.getMaxY() + 1,
+                "The selected row should not be clipped at the bottom: " + contactRowDiagnostics(person));
     }
 
     @Test
@@ -1019,9 +1086,9 @@ public class MainWindowTest {
 
     @Test
     public void cards_compactHeightAndEmptyTags_removeUnusedSpace() throws Exception {
-        Person withTags = new PersonBuilder(ALICE).withTags("lube", "switches")
-                .withFollowUp("2026-11-01", "Confirm switch quotation").build();
-        Person withoutTags = new PersonBuilder(BENSON).withTags().build();
+        Person withTags = new PersonBuilder(ALICE).withTags("lube", "switches").build();
+        Person withoutTags = new PersonBuilder(withTags).withName("Another Contact").withPhone("81000901")
+                .withEmail("another@example.com").withTags().build();
         runOnFxThread(() -> {
             ModelManager model = new ModelManager();
             model.addPerson(withTags);
@@ -1029,17 +1096,38 @@ public class MainWindowTest {
             initializeMainWindow(model);
         });
         awaitLayout();
-        runOnFxThread(() -> {
-            ListCell<?> tagged = contactCell(withTags);
-            ListCell<?> untagged = contactCell(withoutTags);
-            assertTrue(tagged.getHeight() < 125, "Summary cards should remain compact with the extra email line");
-            assertTrue(untagged.getHeight() < 105, "Cards without tags should have no fixed 105px minimum");
-            assertTrue(untagged.getHeight() < tagged.getHeight(), "Empty tags should leave no layout gap");
-            FlowPane tags = (FlowPane) untagged.getGraphic().lookup("#tags");
-            assertFalse(tags.isVisible());
-            assertFalse(tags.isManaged());
-            assertFollowUpBadge(withoutTags);
-        });
+        for (int fontSize : new int[] {13, 19}) {
+            runOnFxThread(() -> {
+                for (Person person : List.of(withTags, withoutTags)) {
+                    for (Node label : contactCell(person).getGraphic().lookupAll(".cell_small_label")) {
+                        label.setStyle("-fx-font-size: " + fontSize + "px;");
+                    }
+                }
+            });
+            awaitLayout();
+            runOnFxThread(() -> {
+                ListCell<?> tagged = contactCell(withTags);
+                ListCell<?> untagged = contactCell(withoutTags);
+                FlowPane shownTags = (FlowPane) tagged.getGraphic().lookup("#tags");
+                VBox content = (VBox) shownTags.getParent();
+                assertTrue(shownTags.isVisible());
+                assertTrue(shownTags.isManaged());
+                assertTrue(shownTags.getHeight() > 0);
+                assertEquals(shownTags.getHeight() + content.getSpacing(), tagged.getHeight() - untagged.getHeight(), 1,
+                        "Only the tag row and its spacing should add height, independent of font metrics");
+                FlowPane tags = (FlowPane) untagged.getGraphic().lookup("#tags");
+                assertFalse(tags.isVisible());
+                assertFalse(tags.isManaged());
+                Label email = (Label) untagged.getGraphic().lookup("#email");
+                Region card = (Region) untagged.getGraphic();
+                VBox untaggedContent = (VBox) email.getParent();
+                double bottomGap = card.localToScene(card.getLayoutBounds()).getMaxY()
+                        - email.localToScene(email.getLayoutBounds()).getMaxY();
+                assertEquals(untaggedContent.getPadding().getBottom() + card.getInsets().getBottom(), bottomGap, 1,
+                        "No blank tag row or fixed minimum height should remain below the email");
+                assertFollowUpBadge(withoutTags);
+            });
+        }
     }
 
     private void assertFollowUpBadge(Person person) {

@@ -31,6 +31,9 @@ run {
 test {
     enableAssertions = true
     useJUnitPlatform()
+    testLogging {
+        exceptionFormat = 'full'
+    }
     finalizedBy jacocoTestReport
 }
 

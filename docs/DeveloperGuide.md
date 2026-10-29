@@ -166,6 +166,11 @@ without list focus, and access to the complete selected contact details. Date-tr
 badge states preserve card dimensions, selection, both scroll positions, and draft text/cursor selection.
 Badge layout tests also exercise different font families, sizes, and padding, and report rendered text, font, and
 available dimensions when clipping occurs.
+Compact-card checks compare the space occupied by the tags and the gap below the last field at different font sizes,
+instead of imposing a platform-dependent pixel-height limit. Off-screen selection tests wait up to ten seconds for
+the requested row to fit in the list for two consecutive frames, retaining full-visibility checks without issuing
+another scroll. Timeouts report the selected index, window/list bounds, and visible rows. Gradle logs full exception
+details on test failure so CI diagnostics include assertion messages and stack traces.
 `UiDateTrackerTest` covers local midnight, unchanged days, clock corrections, periodic refresh, hidden/shown windows,
 and focus return. `PersonDetailsPanelTest` checks that date refresh cannot revive a cleared follow-up section.
 Further UI tests cover Escape from the list, details, and feedback, draft/cursor preservation after focus settles,
