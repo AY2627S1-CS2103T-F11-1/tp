@@ -175,6 +175,55 @@
     -fx-border-color: #3b4048;
 }
 
+/* Hashed Role Palette for Dynamic Roles */
+.role-color-0 {
+    -fx-background-color: #1a3952;
+    -fx-border-color: #37709e;
+    -fx-text-fill: #61afef;
+}
+
+.role-color-1 {
+    -fx-background-color: #173b26;
+    -fx-border-color: #2b6a43;
+    -fx-text-fill: #98c379;
+}
+
+.role-color-2 {
+    -fx-background-color: #351c47;
+    -fx-border-color: #6a3591;
+    -fx-text-fill: #c678dd;
+}
+
+.role-color-3 {
+    -fx-background-color: #422816;
+    -fx-border-color: #7d4822;
+    -fx-text-fill: #e5c07b;
+}
+
+.role-color-4 {
+    -fx-background-color: #421c26;
+    -fx-border-color: #853549;
+    -fx-text-fill: #e06c75;
+}
+
+.role-color-5 {
+    -fx-background-color: #143636;
+    -fx-border-color: #226161;
+    -fx-text-fill: #56b6c2;
+}
+
+.role-color-6 {
+    -fx-background-color: #25204a;
+    -fx-border-color: #4a3e87;
+    -fx-text-fill: #9d8df1;
+}
+
+.role-color-7 {
+    -fx-background-color: #472611;
+    -fx-border-color: #8a481e;
+    -fx-text-fill: #d19a66;
+}
+
 /* Follow Up Card */
 .follow-up-card {
     -fx-background-color: #35291b;
