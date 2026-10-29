@@ -428,13 +428,13 @@ Displays all contacts in KeyBossWarriorsPro and resets any active search filter.
 
 **Format:** `list`
 
+* Additional arguments are ignored and a warning is displayed. For example, `list 3` or `list abc xyz` displays all contacts and warns that additional arguments were ignored.
+* Whitespace-only arguments are treated as empty input.
+
 Examples:
 
 * `list` displays all contacts.
-* `list 3` displays all contacts and warns that `3` was ignored.
-* `list abc xyz` displays all contacts and warns that the arguments were ignored.
-
-Whitespace-only arguments are treated as empty input.
+* `list 3` displays all contacts and warns that additional arguments were ignored.
 
 If there are no contacts, the application displays:
 
