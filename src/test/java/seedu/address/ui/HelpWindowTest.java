@@ -32,6 +32,7 @@ import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.RedoCommand;
+import seedu.address.logic.commands.SelectCommand;
 import seedu.address.logic.commands.SortCommand;
 import seedu.address.logic.commands.UndoCommand;
 
@@ -66,6 +67,7 @@ public class HelpWindowTest {
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nEDIT\n"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nDELETE\n"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nFIND\n"));
+        assertTrue(HelpWindow.HELP_MESSAGE.contains("\nSELECT\n" + SelectCommand.COMMAND_DESCRIPTION));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nLIST\nShows all persons"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nCLEAR\nClears all entries"));
         assertTrue(HelpWindow.HELP_MESSAGE.contains("\nHELP\n" + HelpCommand.COMMAND_DESCRIPTION));
@@ -80,7 +82,7 @@ public class HelpWindowTest {
         String[] categories = {"MANAGE CONTACTS", "BROWSE CONTACTS", "UNDO AND REDO", "APPLICATION"};
         String[][] commandsByCategory = {
             {"ADD", "EDIT", "DELETE", "CLEAR", "FOLLOWUP"},
-            {"LIST", "FIND", "SORT", "FOLLOWUPS"},
+            {"LIST", "FIND", "SORT", "SELECT", "FOLLOWUPS"},
             {"UNDO", "REDO"},
             {"HELP", "EXIT"}
         };
@@ -108,6 +110,7 @@ public class HelpWindowTest {
         assertUsageIsDisplayed(FollowUpCommand.COMMAND_USAGE);
         assertUsageIsDisplayed(FollowUpsCommand.COMMAND_USAGE);
         assertUsageIsDisplayed(SortCommand.COMMAND_USAGE);
+        assertUsageIsDisplayed(SelectCommand.COMMAND_USAGE);
         assertUsageIsDisplayed(ListCommand.COMMAND_USAGE);
         assertUsageIsDisplayed(ClearCommand.COMMAND_USAGE);
         assertUsageIsDisplayed(UndoCommand.COMMAND_USAGE);

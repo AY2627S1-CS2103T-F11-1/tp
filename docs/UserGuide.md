@@ -28,6 +28,8 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 
    * `list` : Lists all contacts.
 
+   * `select 1` : Shows the first displayed contact's full details in the right panel.
+
    * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01 r/Supplier` : Adds a contact named `John Doe` to KeyBossWarriorsPro.
 
    * `delete 3` : Deletes the 3rd contact shown in the current list.
@@ -68,7 +70,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 
 ### Viewing contact details
 
-Click a contact in the list to display its full details in the panel on the right.
+Click a contact in the list, or enter `select INDEX`, to display its full details in the panel on the right.
 List cards show the name, role, phone number, and tags. Long names use an ellipsis; hover over a name to read it in full.
 While the contact list has keyboard focus, use the Up and Down arrow keys to move between contacts.
 The details panel updates immediately without moving keyboard focus.
@@ -92,6 +94,42 @@ Your draft command, its cursor position and text selection, and the selected con
 * Successful `undo` and `redo` commands clear selection. Commands rejected because of invalid input keep selection.
 * If saving fails after a command has changed the contacts, the panel reflects the current in-memory contact data
   alongside the saving error shown in the command feedback.
+
+### Selecting a contact: `select INDEX`
+
+Selects a contact from the current list and shows its full details in the panel on the right.
+
+**Format:** `select INDEX`
+
+* `INDEX` is a positive, one-based number from the currently displayed list. After `find`, a follow-up query, or
+  `sort`, use the numbers shown in that view. Indexes from the complete address book may not be valid in a filtered view.
+* The contact is highlighted and scrolled into view. Keyboard focus stays in command input, ready for your next command.
+* Selecting the same contact again is allowed. Its card is brought back into view while the details panel keeps its
+  scroll position.
+* Selection does not change contacts, filters, sorting, or undo/redo history, and does not discard available redo history.
+  Selection is cleared on restart and after successful `undo` or `redo`.
+* Invalid input or an empty result list leaves the current selection and details unchanged.
+* If an automatic save fails after a valid selection, the contact remains selected and the feedback shows the saving
+  error. Selection itself does not alter contact data.
+
+Examples with the sample contacts:
+
+* `select 2` selects Bernice Yu in the initial list and displays `Selected contact 2: Bernice Yu`.
+* `find alex david`, followed by `select 2`, selects David Li from the two matching contacts.
+* `sort n/`, followed by `select 1`, selects the first contact in name order.
+* `help select` displays the command's usage without changing selection or opening the Help window.
+
+Common errors:
+
+Input or condition | Feedback
+-------------------|---------
+`select` | `Error: INDEX is required. Usage: select INDEX`
+`select 0`, `select -1`, `select abc`, or an integer larger than 2147483647 | `Error: INDEX must be a positive integer`
+`select 1 2` | `Error: SELECT accepts only one INDEX`
+No contacts are displayed | `Error: There are no displayed contacts to select`
+`select 4` when three contacts are displayed | `Error: INDEX 4 is outside the displayed contact list (valid range: 1-3)`
+
+When exactly one contact is displayed, an out-of-range error states that the only valid index is `1`.
 
 ### Adding a contact: `add`
 
@@ -414,9 +452,11 @@ Displays all contacts sorted by name, role, or both, making it easier to browse 
 
 ### Viewing help: `help [COMMAND]`
 
-Use `help` on its own to open the full help window, which lists all commands. Use `help COMMAND` to display a command's usage directly in the result display without opening the window. Targeted help is available for `add`, `clear`, `delete`, `edit`, `exit`, `find`, `followup`, `followups`, `help`, `list`, `redo`, `sort`, and `undo`. For detailed explanations and examples, refer to this user guide.
+Use `help` on its own to open the full help window, which lists all commands. Use `help COMMAND` to display a command's usage directly in the result display without opening the window. Targeted help is available for `add`, `clear`, `delete`, `edit`, `exit`, `find`, `followup`, `followups`, `help`, `list`, `redo`, `select`, `sort`, and `undo`. For detailed explanations and examples, refer to this user guide.
 
 ![Help window showing commands for managing contacts](images/help.png)
+
+![Help window showing browsing commands, including SELECT](images/help-browse.png)
 
 ![Help window scrolled down to follow-up queries, undo and redo, and application commands](images/help-continued.png)
 
@@ -427,7 +467,7 @@ The full help window groups commands into four categories:
 | Category | Purpose | Commands |
 | --- | --- | --- |
 | Manage contacts | Add, update, or remove contact data, including follow-ups. | `add`, `edit`, `delete`, `clear`, `followup` |
-| Browse contacts | View, filter, or sort contacts without changing their data. | `list`, `find`, `sort`, `followups` |
+| Browse contacts | View, select, filter, or sort contacts without changing their data. | `list`, `find`, `sort`, `select`, `followups` |
 | Undo and redo | Reverse or restore contact changes. | `undo`, `redo` |
 | Application | View help or exit the application. | `help`, `exit` |
 
@@ -440,6 +480,7 @@ Examples:
 
 * `help` opens the full help window.
 * `help add` displays the usage, parameters, and an example for `add` in the result display.
+* `help select` displays the usage, parameters, and an example for selecting a displayed contact.
 * `help undo` displays a brief description of `undo`, without parameters or an example.
 * `help unknown` displays guidance and lists the commands with targeted help.
 
@@ -531,6 +572,7 @@ Action | Format, Examples
 **Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...` or `find KEYWORD [MORE_KEYWORDS]` (Legacy Search)<br> e.g., `find n/John r/Supplier`, `find James Jake`
 **Help** | `help`
 **List** | `list`
+**Select** | `select INDEX`<br> e.g., `select 2` displays the second currently listed contact's details.
 **Redo** | `redo`
 **Undo** | `undo`
 **Follow-up** | `followup INDEX by/DUE_DATE abt/DESCRIPTION` or `followup INDEX clear`<br> e.g., `followup 1 by/2026-11-01 abt/Confirm quotation`

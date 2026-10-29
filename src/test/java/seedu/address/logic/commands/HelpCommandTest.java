@@ -63,6 +63,17 @@ public class HelpCommandTest {
     }
 
     @Test
+    public void execute_helpSelect_returnsUsageWithoutSelectingOrChangingData() throws Exception {
+        Model expected = new ModelManager();
+        CommandResult result = executeHelpInput("help select");
+        assertEquals(SelectCommand.COMMAND_USAGE, result.getFeedbackToUser());
+        assertFalse(result.isShowHelp());
+        assertFalse(result.isExit());
+        assertTrue(result.getSelectedPerson().isEmpty());
+        assertEquals(expected, model);
+    }
+
+    @Test
     public void execute_helpEveryCommand_returnsUsageWithoutExecutingTarget() throws Exception {
         Map<String, String> usages = Map.ofEntries(
                 Map.entry("add", AddCommand.COMMAND_USAGE),
@@ -72,6 +83,7 @@ public class HelpCommandTest {
                 Map.entry("followup", FollowUpCommand.COMMAND_USAGE),
                 Map.entry("followups", FollowUpsCommand.COMMAND_USAGE),
                 Map.entry("sort", SortCommand.COMMAND_USAGE),
+                Map.entry("select", SelectCommand.COMMAND_USAGE),
                 Map.entry("list", ListCommand.COMMAND_USAGE),
                 Map.entry("clear", ClearCommand.COMMAND_USAGE),
                 Map.entry("undo", UndoCommand.COMMAND_USAGE),
@@ -84,6 +96,7 @@ public class HelpCommandTest {
             assertEquals(usage.getValue(), result.getFeedbackToUser());
             assertFalse(result.isShowHelp());
             assertFalse(result.isExit());
+            assertTrue(result.getSelectedPerson().isEmpty());
         }
     }
 
@@ -111,7 +124,7 @@ public class HelpCommandTest {
         assertEquals("No command-specific help is available for 'invalid'.\n"
                 + "Enter `help` to open the full help window, or use `help COMMAND` for command-specific help.\n"
                 + "Supported commands: add, clear, delete, edit, exit, find, followup, followups, help, list, redo, "
-                + "sort, undo.", result.getFeedbackToUser());
+                + "select, sort, undo.", result.getFeedbackToUser());
         assertFalse(result.isShowHelp());
         assertFalse(result.isExit());
     }

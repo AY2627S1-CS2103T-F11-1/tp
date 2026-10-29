@@ -32,6 +32,7 @@ public class HelpCommand extends Command {
             Map.entry(FollowUpCommand.COMMAND_WORD, FollowUpCommand.COMMAND_USAGE),
             Map.entry(FollowUpsCommand.COMMAND_WORD, FollowUpsCommand.COMMAND_USAGE),
             Map.entry(SortCommand.COMMAND_WORD, SortCommand.COMMAND_USAGE),
+            Map.entry(SelectCommand.COMMAND_WORD, SelectCommand.COMMAND_USAGE),
             Map.entry(ListCommand.COMMAND_WORD, ListCommand.COMMAND_USAGE),
             Map.entry(ClearCommand.COMMAND_WORD, ClearCommand.COMMAND_USAGE),
             Map.entry(UndoCommand.COMMAND_WORD, UndoCommand.COMMAND_USAGE),

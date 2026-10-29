@@ -487,6 +487,21 @@ public class MainWindowTest {
     }
 
     @Test
+    public void helpSelect_displaysUsageAndKeepsSelectedContactAndInputFocus() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow();
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            submitCommand("select 2");
+            submitCommand("help select");
+            assertSelected(BENSON);
+            TextArea feedback = (TextArea) stage.getScene().lookup("#resultDisplay");
+            assertEquals(SelectCommand.COMMAND_USAGE, feedback.getText());
+            assertSame(command, stage.getScene().getFocusOwner());
+        });
+    }
+
+    @Test
     public void selectCommand_filteredSortedView_usesDisplayedNumbersAndAllowsRepeatedSelection() throws Exception {
         runOnFxThread(() -> {
             ModelManager model = new ModelManager();
