@@ -503,10 +503,8 @@ Action | Format, Examples
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]…​ [dt/TAG_TO_DELETE]…​`<br> e.g., `edit 1 t/solderer dt/trainee` (requires contact 1 to have `trainee`)
 **Exit** | `exit` 
-**Find** | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
-**Help** | `help [COMMAND]`<br> e.g., `help add` displays the `add` command's usage in the result display; `help` opens the full help window.
-**Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...` or `find KEYWORD [MORE_KEYWORDS]` (Legacy Search)<br> e.g., `find n/John r/Supplier`, `find James Jake`
-**Help** | `help`
+**Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...`<br>or `find KEYWORD [MORE_KEYWORDS]` (legacy search)<br>e.g., `find n/John r/Supplier`, `find James Jake`
+**Help** | `help [COMMAND]`<br>e.g., `help add` displays the `add` command's usage in the result display.<br>`help` opens the full help window.
 **List** | `list`
 **Redo** | `redo`
 **Undo** | `undo`
