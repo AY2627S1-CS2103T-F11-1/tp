@@ -108,6 +108,21 @@ public class SortCommandTest {
     }
 
     @Test
+    public void execute_emptyAddressBook_sortsSubsequentlyAddedContactsByRole() {
+        SortCommand command = new SortCommand(List.of(ROLE));
+
+        assertCommandSuccess(command, model,
+                SortCommand.MESSAGE_EMPTY_ADDRESS_BOOK, expectedModel);
+
+        Person zetaRole = new PersonBuilder(ALICE).withRole("Zeta").build();
+        Person alphaRole = new PersonBuilder(BOB).withRole("Alpha").build();
+        model.addPerson(zetaRole);
+        model.addPerson(alphaRole);
+
+        assertEquals(List.of(alphaRole, zetaRole), model.getFilteredPersonList());
+    }
+
+    @Test
     public void execute_singleContact_success() {
         // BVA: one contact and the maximum valid number of fields
         prepareModels(List.of(ALICE), List.of(ALICE));
@@ -253,6 +268,54 @@ public class SortCommandTest {
     }
 
     @Test
+    public void execute_clearSort_restoresInsertionOrder() {
+        List<Person> insertionOrder = List.of(CARL, ALICE, BENSON);
+        insertionOrder.forEach(model::addPerson);
+
+        new SortCommand(List.of(NAME)).execute(model);
+        assertEquals(List.of(ALICE, BENSON, CARL), model.getFilteredPersonList());
+
+        CommandResult result = SortCommand.clearSort().execute(model);
+
+        assertEquals(SortCommand.MESSAGE_CLEAR_SUCCESS, result.getFeedbackToUser());
+        assertEquals(insertionOrder, model.getFilteredPersonList());
+        assertEquals(insertionOrder, model.getAddressBook().getPersonList());
+    }
+
+    @Test
+    public void execute_clearSort_clearsActiveFilter() {
+        List<Person> insertionOrder = List.of(CARL, ALICE, BENSON);
+        insertionOrder.forEach(model::addPerson);
+        model.updateFilteredPersonList(new NameContainsKeywordsPredicate(List.of("Alice")));
+        assertEquals(List.of(ALICE), model.getFilteredPersonList());
+
+        CommandResult result = SortCommand.clearSort().execute(model);
+
+        assertEquals(SortCommand.MESSAGE_CLEAR_SUCCESS, result.getFeedbackToUser());
+        assertEquals(insertionOrder, model.getFilteredPersonList());
+    }
+
+    @Test
+    public void clearSort_emptyAddressBook_success() {
+        CommandResult result = SortCommand.clearSort().execute(model);
+
+        assertEquals(SortCommand.MESSAGE_CLEAR_SUCCESS, result.getFeedbackToUser());
+        assertTrue(model.getFilteredPersonList().isEmpty());
+    }
+
+    @Test
+    public void clearSort_repeatedly_isIdempotent() {
+        List<Person> insertionOrder = List.of(CARL, ALICE, BENSON);
+        insertionOrder.forEach(model::addPerson);
+
+        SortCommand.clearSort().execute(model);
+        CommandResult result = SortCommand.clearSort().execute(model);
+
+        assertEquals(SortCommand.MESSAGE_CLEAR_SUCCESS, result.getFeedbackToUser());
+        assertEquals(insertionOrder, model.getFilteredPersonList());
+    }
+
+    @Test
     public void equals() {
         SortCommand command = new SortCommand(List.of(NAME, ROLE));
         SortCommand sameFields = new SortCommand(List.of(NAME, ROLE));
@@ -264,8 +327,11 @@ public class SortCommandTest {
         assertFalse(command.equals(new SortCommand(List.of(ROLE, NAME))));
         assertFalse(command.equals(new SortCommand(List.of(NAME))));
         assertFalse(new SortCommand(List.of(NAME)).equals(new SortCommand(List.of(ROLE))));
+        assertFalse(command.equals(SortCommand.clearSort()));
+        assertEquals(SortCommand.clearSort(), SortCommand.clearSort());
 
         assertEquals(command.hashCode(), sameFields.hashCode());
+        assertEquals(SortCommand.clearSort().hashCode(), SortCommand.clearSort().hashCode());
     }
 
     @Test
@@ -275,6 +341,13 @@ public class SortCommandTest {
         String expected = SortCommand.class.getCanonicalName() + "{sortFields=[ROLE, NAME]}";
 
         assertEquals(expected, command.toString());
+    }
+
+    @Test
+    public void clearSort_toStringMethod() {
+        String expected = SortCommand.class.getCanonicalName() + "{sortFields=CLEAR}";
+
+        assertEquals(expected, SortCommand.clearSort().toString());
     }
 
     /**

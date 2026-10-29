@@ -19,7 +19,7 @@
       <padding>
         <Insets top="8" right="12" bottom="8" left="12" />
       </padding>
-      <HBox spacing="0.5" alignment="CENTER_LEFT">
+      <HBox spacing="8" alignment="CENTER_LEFT">
         <Label fx:id="id" styleClass="cell_big_label">
           <minWidth>
             <!-- Ensures that the label text is never truncated -->
@@ -33,6 +33,48 @@
       <Label fx:id="phone" styleClass="cell_small_label" wrapText="true" minWidth="0"
              minHeight="-Infinity" maxWidth="Infinity" />
       <FlowPane fx:id="tags" minWidth="0" />
+        <Label fx:id="name" text="\$first" styleClass="cell_big_label" />
+        <Region HBox.hgrow="ALWAYS" />
+        <Label fx:id="role" styleClass="role-badge" text="\$role" />
+      </HBox>
+      <FlowPane fx:id="tags">
+        <padding>
+          <Insets top="6" bottom="6" />
+        </padding>
+      </FlowPane>
+      <VBox spacing="4" styleClass="contact-details-box">
+        <HBox spacing="8" alignment="CENTER_LEFT">
+          <HBox spacing="4" alignment="CENTER_LEFT">
+            <Label text="Phone:" styleClass="detail-prefix" />
+            <Label fx:id="phone" styleClass="cell_small_label" text="\$phone" />
+          </HBox>
+          <Label text="•" styleClass="detail-separator" />
+          <HBox spacing="4" alignment="CENTER_LEFT">
+            <Label text="Email:" styleClass="detail-prefix" />
+            <Label fx:id="email" styleClass="cell_small_label" text="\$email" />
+          </HBox>
+        </HBox>
+        <HBox spacing="4" alignment="CENTER_LEFT">
+          <Label text="Address:" styleClass="detail-prefix" />
+          <Label fx:id="address" styleClass="cell_small_label" text="\$address" />
+        </HBox>
+      </VBox>
+      <VBox fx:id="followUpSection" spacing="3" styleClass="follow-up-card"
+            visible="false" managed="false">
+        <padding>
+          <Insets top="8" right="10" bottom="8" left="10" />
+        </padding>
+        <Label fx:id="followUpDueDate"
+               styleClass="cell_small_label, follow_up_due_date"
+               wrapText="true"
+               minHeight="-Infinity"
+               maxWidth="Infinity" />
+        <Label fx:id="followUpDescription"
+               styleClass="cell_small_label"
+               wrapText="true"
+               minHeight="-Infinity"
+               maxWidth="Infinity" />
+      </VBox>
     </VBox>
   </GridPane>
 </HBox>

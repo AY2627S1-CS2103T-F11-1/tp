@@ -15,6 +15,7 @@ import seedu.address.model.person.Person;
  */
 public class PersonCard extends UiPart<Region> {
 
+    public static final int NUM_ROLE_COLORS = 8;
     private static final String FXML = "PersonListCard.fxml";
 
     /**
@@ -53,6 +54,9 @@ public class PersonCard extends UiPart<Region> {
         nameTooltip.setMaxWidth(400);
         name.setTooltip(nameTooltip);
         role.setText(person.getRole().value);
+        role.getStyleClass().add("role-badge");
+        int colorIndex = Math.abs(person.getRole().value.toLowerCase().hashCode()) % NUM_ROLE_COLORS;
+        role.getStyleClass().add("role-color-" + colorIndex);
         phone.setText(person.getPhone().value);
         person.getTags().stream()
                 .sorted(Comparator.comparing(tag -> tag.tagName))

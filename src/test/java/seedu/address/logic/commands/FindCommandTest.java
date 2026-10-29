@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static seedu.address.logic.Messages.MESSAGE_PERSONS_LISTED_OVERVIEW;
+import static seedu.address.logic.Messages.getContactsFoundMessage;
 import static seedu.address.logic.commands.CommandTestUtil.assertCommandSuccess;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.AMY;
@@ -101,7 +101,7 @@ public class FindCommandTest {
 
     @Test
     public void execute_zeroNameKeywords_noPersonFound() {
-        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 0);
+        String expectedMessage = getContactsFoundMessage(0);
         NameContainsKeywordsPredicate predicate = prepareNamePredicate(" ");
 
         FindCommand command = new FindCommand(predicate);
@@ -113,7 +113,7 @@ public class FindCommandTest {
 
     @Test
     public void execute_zeroRoleKeywords_noPersonFound() {
-        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 0);
+        String expectedMessage = getContactsFoundMessage(0);
         RoleContainsKeywordsPredicate predicate = prepareRolePredicate(" ");
 
         FindCommand command = new FindCommand(predicate);
@@ -125,7 +125,7 @@ public class FindCommandTest {
 
     @Test
     public void execute_zeroTagKeywords_noPersonFound() {
-        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 0);
+        String expectedMessage = getContactsFoundMessage(0);
         TagContainsKeywordsPredicate predicate = prepareTagPredicate(" ");
 
         FindCommand command = new FindCommand(predicate);
@@ -137,7 +137,7 @@ public class FindCommandTest {
 
     @Test
     public void execute_multipleNameKeywords_multiplePersonsFound() {
-        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 3);
+        String expectedMessage = getContactsFoundMessage(3);
         NameContainsKeywordsPredicate predicate = prepareNamePredicate("Kurz Elle Kunz");
 
         FindCommand command = new FindCommand(predicate);
@@ -149,7 +149,7 @@ public class FindCommandTest {
 
     @Test
     public void execute_nameSubstringKeyword_multiplePersonsFound() {
-        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 2);
+        String expectedMessage = getContactsFoundMessage(2);
         NameContainsKeywordsPredicate predicate = prepareNamePredicate("eier");
 
         FindCommand command = new FindCommand(predicate);
@@ -161,7 +161,7 @@ public class FindCommandTest {
 
     @Test
     public void execute_overlappingNameKeywords_returnsPersonOnce() {
-        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 1);
+        String expectedMessage = getContactsFoundMessage(1);
         NameContainsKeywordsPredicate predicate = prepareNamePredicate("ali paul");
 
         FindCommand command = new FindCommand(predicate);
@@ -173,7 +173,7 @@ public class FindCommandTest {
 
     @Test
     public void execute_multipleRoleKeywords_multiplePersonsFound() {
-        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 2);
+        String expectedMessage = getContactsFoundMessage(2);
         RoleContainsKeywordsPredicate predicate = prepareRolePredicate("Distributor Employee");
 
         model.addPerson(AMY);
@@ -190,7 +190,7 @@ public class FindCommandTest {
 
     @Test
     public void execute_tagKeyword_multiplePersonsFound() {
-        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 3);
+        String expectedMessage = getContactsFoundMessage(3);
         TagContainsKeywordsPredicate predicate = prepareTagPredicate("friend");
 
         FindCommand command = new FindCommand(predicate);
@@ -202,7 +202,7 @@ public class FindCommandTest {
 
     @Test
     public void execute_multiplePredicates_onlyMatchingPersonFound() {
-        String expectedMessage = String.format(MESSAGE_PERSONS_LISTED_OVERVIEW, 1);
+        String expectedMessage = getContactsFoundMessage(1);
         NameContainsKeywordsPredicate namePredicate = prepareNamePredicate("Bee");
         RoleContainsKeywordsPredicate rolePredicate = prepareRolePredicate("Distributor");
         TagContainsKeywordsPredicate tagPredicate = prepareTagPredicate("friend");

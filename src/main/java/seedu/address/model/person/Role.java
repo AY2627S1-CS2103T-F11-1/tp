@@ -11,7 +11,7 @@ public class Role {
 
     public static final String MESSAGE_CONSTRAINTS =
             "Roles should only contain alphanumeric characters, spaces, and punctuation (- / & '), "
-            + "and must start and end with an alphanumeric character";
+            + "and must start and end with an alphanumeric character.";
 
     /*
      * The role must start and end with an alphanumeric character.

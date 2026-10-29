@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.StackPane?>
 
@@ -7,4 +9,15 @@
   <TextField fx:id="commandTextField" onAction="#handleCommandEntered"
              promptText="Enter command here... (Esc to focus)"/>
 </StackPane>
+<?import javafx.scene.layout.HBox?>
 
+<HBox alignment="CENTER_LEFT" styleClass="command-box-bar" spacing="10"
+      xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+  <padding>
+    <Insets top="6" right="14" bottom="6" left="14" />
+  </padding>
+  <Label text="&gt;_" styleClass="command-prompt-glyph" />
+  <TextField fx:id="commandTextField" onAction="#handleCommandEntered"
+             promptText="Enter command here..."
+             HBox.hgrow="ALWAYS" />
+</HBox>

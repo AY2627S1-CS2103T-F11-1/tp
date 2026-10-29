@@ -11,6 +11,7 @@ import java.util.Set;
 
 import seedu.address.commons.core.index.Index;
 import seedu.address.commons.util.StringUtil;
+import seedu.address.logic.Messages;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.Address;
 import seedu.address.model.person.Email;
@@ -24,7 +25,7 @@ import seedu.address.model.tag.Tag;
  */
 public class ParserUtil {
 
-    public static final String MESSAGE_INVALID_INDEX = "Error: INDEX must be a positive integer";
+    public static final String MESSAGE_INVALID_INDEX = Messages.MESSAGE_INVALID_INDEX;
 
     public static final String MESSAGE_INVALID_FOLLOW_UP_DATE =
             "Follow-up dates must be valid calendar dates in YYYY-MM-DD format.";
@@ -38,6 +39,7 @@ public class ParserUtil {
      * @throws ParseException if the specified index is invalid (not a non-zero unsigned integer).
      */
     public static Index parseIndex(String oneBasedIndex) throws ParseException {
+        requireNonNull(oneBasedIndex);
         String trimmedIndex = oneBasedIndex.trim();
         if (!StringUtil.isNonZeroUnsignedInteger(trimmedIndex)) {
             throw new ParseException(MESSAGE_INVALID_INDEX);

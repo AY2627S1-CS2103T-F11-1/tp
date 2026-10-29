@@ -69,9 +69,29 @@ public class FollowUpTest {
 
     @Test
     public void constructor_blankDescriptions_throwsIllegalArgumentException() {
-        String[] inputs = new String[] {"", " ", "\t\n", "\u2003"};
+        String[] inputs = {
+            "", " ", "\t\n", "\u2003", "\u200B", "\u00A0", "\u2060",
+            "\u200B\u00A0\u2060", " \u200B \u00A0\u2003\u2060 "
+        };
         for (String description : inputs) {
-            assertThrows(IllegalArgumentException.class, () -> new FollowUp(VALID_DATE, description));
+            assertFalse(FollowUp.isValidDescription(description));
+            assertThrows(IllegalArgumentException.class, FollowUp.MESSAGE_CONSTRAINTS, () -> new FollowUp(
+                    VALID_DATE, description));
+        }
+    }
+
+    @Test
+    public void constructor_visibleDescriptionWithInvisibleCharacters_preservesContent() {
+        String[] characters = {"\u200B", "\u00A0", "\u2060", "\u200B\u00A0\u2060"};
+
+        for (String invisible : characters) {
+            String[] descriptions = {
+                invisible + VALID_DESCRIPTION, "Confirm" + invisible + " quotation", VALID_DESCRIPTION + invisible
+            };
+            for (String description : descriptions) {
+                assertTrue(FollowUp.isValidDescription(description));
+                assertEquals(description, new FollowUp(VALID_DATE, description).getDescription());
+            }
         }
     }
 

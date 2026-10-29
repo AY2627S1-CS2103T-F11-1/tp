@@ -1,5 +1,6 @@
 package seedu.address.logic.parser;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_PHONE;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseSuccess;
@@ -63,6 +64,37 @@ public class FindCommandParserTest {
                 new FindCommand(new TagContainsKeywordsPredicate(List.of("Good Friend")));
 
         assertParseSuccess(parser, " t/Good Friend", expectedFindCommand);
+    }
+
+    @Test
+    public void parse_repeatedSpaces_normalisesEachField() {
+        assertParseSuccess(parser, " n/  John   Doe  ",
+                new FindCommand(new NameContainsKeywordsPredicate(List.of("John Doe"))));
+        assertParseSuccess(parser, " r/  Regional   Supplier  ",
+                new FindCommand(new RoleContainsKeywordsPredicate(List.of("Regional Supplier"))));
+        assertParseSuccess(parser, " t/  Good   Friend  ",
+                new FindCommand(new TagContainsKeywordsPredicate(List.of("Good Friend"))));
+    }
+
+    @Test
+    public void parse_repeatedSpaces_preservesPrefixGroups() {
+        FindCommand expectedFindCommand = new FindCommand(
+                new NameContainsKeywordsPredicate(List.of("Alice Tan", "Amy Bee")),
+                new RoleContainsKeywordsPredicate(List.of("Regional Supplier", "Local Distributor")),
+                new TagContainsKeywordsPredicate(List.of("Good Friend", "Trusted Partner")));
+
+        assertParseSuccess(parser, " n/Alice   Tan n/Amy  Bee r/Regional   Supplier r/Local  Distributor"
+                + " t/Good   Friend t/Trusted  Partner", expectedFindCommand);
+    }
+
+    @Test
+    public void parse_repeatedSpaces_preservesPartialPhrases() {
+        FindCommand expectedFindCommand = new FindCommand(
+                new NameContainsKeywordsPredicate(List.of("-Marie O'")),
+                new RoleContainsKeywordsPredicate(List.of("& Part")),
+                new TagContainsKeywordsPredicate(List.of("filmed swi")));
+
+        assertParseSuccess(parser, " n/-Marie   O' r/&   Part t/filmed   swi", expectedFindCommand);
     }
 
     @Test
@@ -182,6 +214,15 @@ public class FindCommandParserTest {
         assertParseFailure(parser, "Alice r/Employee", FindCommand.MESSAGE_MIXED_SEARCH_MODE);
 
         assertParseFailure(parser, "Alice  Bob n/Tan", FindCommand.MESSAGE_MIXED_SEARCH_MODE);
+    }
+
+    @Test
+    public void messages_useLowercaseCommandWord() {
+        assertEquals("find requires at least one search criterion.", FindCommand.MESSAGE_MISSING_CRITERIA);
+        assertEquals("find cannot mix unprefixed keywords with prefixed search values.",
+                FindCommand.MESSAGE_MIXED_SEARCH_MODE);
+        assertEquals("find requires a non-blank value after n/, r/, t/.",
+                FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
     }
 
     @Test

@@ -1,5 +1,6 @@
 package seedu.address.logic.parser;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseSuccess;
 import static seedu.address.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
@@ -39,5 +40,10 @@ public class DeleteCommandParserTest {
     @Test
     public void parse_extraArgs_throwsParseException() {
         assertParseFailure(parser, "1 2", DeleteCommand.MESSAGE_EXTRA_ARGUMENTS);
+    }
+
+    @Test
+    public void message_extraArguments_usesLowercaseCommandWord() {
+        assertEquals("delete accepts only one INDEX.", DeleteCommand.MESSAGE_EXTRA_ARGUMENTS);
     }
 }

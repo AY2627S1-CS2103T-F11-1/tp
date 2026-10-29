@@ -74,7 +74,8 @@ public class JsonAdaptedFollowUpTest {
     @Test
     public void toModelType_invalidDescription_throwsIllegalValueException() {
         String[] descriptions = {
-            "", "   ",
+            "", "   ", "\t\n", "\u2003", "\u200B", "\u00A0", "\u2060",
+            "\u200B\u00A0\u2060", " \u200B \u00A0\u2003\u2060 ",
             "a".repeat(FollowUp.MAX_DESCRIPTION_LENGTH + 1),
             "Before\nAfter",
             "Before\tAfter",
@@ -95,6 +96,18 @@ public class JsonAdaptedFollowUpTest {
                 VALID_FOLLOW_UP_DATE, "  " + VALID_FOLLOW_UP_DESCRIPTION + "  ");
 
         assertEquals(VALID_FOLLOW_UP_DESCRIPTION, adapter.toModelType().getDescription());
+    }
+
+    @Test
+    public void jsonRoundTrip_visibleDescriptionWithInvisibleCharacters_preservesValues() throws Exception {
+        String description = "\u200B\u00A0Confirm\u2060 quotation\u2003now\u200B";
+        FollowUp original = new FollowUp(LocalDate.parse(VALID_FOLLOW_UP_DATE), description);
+
+        String json = JsonUtil.toJsonString(new JsonAdaptedFollowUp(original));
+        JsonAdaptedFollowUp restored = JsonUtil.fromJsonString(json, JsonAdaptedFollowUp.class);
+
+        assertEquals(original, restored.toModelType());
+        assertEquals(description, restored.toModelType().getDescription());
     }
 
     @Test
