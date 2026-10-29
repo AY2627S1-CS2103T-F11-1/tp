@@ -130,6 +130,12 @@ public class Messages {
                 .append(person.getRole())
                 .append("; Tags: ");
         person.getTags().forEach(builder::append);
+        person.getFollowUp().ifPresent(followUp ->
+                builder.append("; Follow-up: ")
+                        .append(followUp.getDueDate())
+                        .append(" (")
+                        .append(followUp.getDescription())
+                        .append(")"));
         return builder.toString();
     }
 

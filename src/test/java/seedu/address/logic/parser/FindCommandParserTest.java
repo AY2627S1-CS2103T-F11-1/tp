@@ -67,6 +67,37 @@ public class FindCommandParserTest {
     }
 
     @Test
+    public void parse_repeatedSpaces_normalisesEachField() {
+        assertParseSuccess(parser, " n/  John   Doe  ",
+                new FindCommand(new NameContainsKeywordsPredicate(List.of("John Doe"))));
+        assertParseSuccess(parser, " r/  Regional   Supplier  ",
+                new FindCommand(new RoleContainsKeywordsPredicate(List.of("Regional Supplier"))));
+        assertParseSuccess(parser, " t/  Good   Friend  ",
+                new FindCommand(new TagContainsKeywordsPredicate(List.of("Good Friend"))));
+    }
+
+    @Test
+    public void parse_repeatedSpaces_preservesPrefixGroups() {
+        FindCommand expectedFindCommand = new FindCommand(
+                new NameContainsKeywordsPredicate(List.of("Alice Tan", "Amy Bee")),
+                new RoleContainsKeywordsPredicate(List.of("Regional Supplier", "Local Distributor")),
+                new TagContainsKeywordsPredicate(List.of("Good Friend", "Trusted Partner")));
+
+        assertParseSuccess(parser, " n/Alice   Tan n/Amy  Bee r/Regional   Supplier r/Local  Distributor"
+                + " t/Good   Friend t/Trusted  Partner", expectedFindCommand);
+    }
+
+    @Test
+    public void parse_repeatedSpaces_preservesPartialPhrases() {
+        FindCommand expectedFindCommand = new FindCommand(
+                new NameContainsKeywordsPredicate(List.of("-Marie O'")),
+                new RoleContainsKeywordsPredicate(List.of("& Part")),
+                new TagContainsKeywordsPredicate(List.of("filmed swi")));
+
+        assertParseSuccess(parser, " n/-Marie   O' r/&   Part t/filmed   swi", expectedFindCommand);
+    }
+
+    @Test
     public void parse_multiplePrefixedValues_returnsFindCommand() {
         FindCommand expectedFindCommand =
                 new FindCommand(new NameContainsKeywordsPredicate(List.of("Alice", "Bob")));

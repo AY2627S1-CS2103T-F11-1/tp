@@ -49,6 +49,21 @@ public class JsonAdaptedPersonTest {
     }
 
     @Test
+    public void toModelType_multipleSpaces_returnsNormalisedPerson() throws Exception {
+        JsonAdaptedPerson person = new JsonAdaptedPerson("Anne-Marie   O'Connor", VALID_PHONE, VALID_EMAIL,
+                VALID_ADDRESS, "R&D   Partner", List.of(new JsonAdaptedTag("lubed/filmed   switches")));
+        Person expectedPerson = new PersonBuilder(BENSON)
+                .withName("Anne-Marie O'Connor")
+                .withRole("R&D Partner")
+                .withTags("lubed/filmed switches")
+                .build();
+
+        Person normalisedPerson = person.toModelType();
+        assertEquals(expectedPerson, normalisedPerson);
+        assertEquals(expectedPerson, new JsonAdaptedPerson(normalisedPerson).toModelType());
+    }
+
+    @Test
     public void toModelType_invalidName_throwsIllegalValueException() {
         JsonAdaptedPerson person =
                 new JsonAdaptedPerson(INVALID_NAME, VALID_PHONE, VALID_EMAIL, VALID_ADDRESS, VALID_ROLE, VALID_TAGS);
@@ -102,6 +117,20 @@ public class JsonAdaptedPersonTest {
                 new JsonAdaptedPerson(VALID_NAME, VALID_PHONE, VALID_EMAIL, INVALID_ADDRESS, VALID_ROLE, VALID_TAGS);
         String expectedMessage = Address.MESSAGE_CONSTRAINTS;
         assertThrows(IllegalValueException.class, expectedMessage, person::toModelType);
+    }
+
+    @Test
+    public void toModelType_blankUnicodeAddress_throwsIllegalValueException() {
+        String[] addresses = {
+            "", " ", "   ", "\u200B", "\u00A0", "\u2060", "\u2003",
+            "\u200B\u00A0\u2060\u2003", " \u200B \u00A0\t\u2060 \u2003 "
+        };
+
+        for (String address : addresses) {
+            JsonAdaptedPerson person = new JsonAdaptedPerson(
+                    VALID_NAME, VALID_PHONE, VALID_EMAIL, address, VALID_ROLE, VALID_TAGS);
+            assertThrows(IllegalValueException.class, Address.MESSAGE_CONSTRAINTS, person::toModelType);
+        }
     }
 
     @Test

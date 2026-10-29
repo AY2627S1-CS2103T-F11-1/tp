@@ -144,12 +144,26 @@ public class FollowUpCommandParserTest {
 
     @Test
     public void parse_blankDescription_failure() {
-        assertParseFailure(parser,
-                "1" + DATE_ARGUMENT + " " + PREFIX_FOLLOW_UP_DESCRIPTION,
-                FollowUp.MESSAGE_CONSTRAINTS);
-        assertParseFailure(parser,
-                "1" + DATE_ARGUMENT + " " + PREFIX_FOLLOW_UP_DESCRIPTION + "   ",
-                FollowUp.MESSAGE_CONSTRAINTS);
+        String[] descriptions = {
+            "", "   ", "\t\n", "\u2003", "\u200B", "\u00A0", "\u2060",
+            "\u200B\u00A0\u2060", " \u200B \u00A0\u2003\u2060 "
+        };
+
+        for (String description : descriptions) {
+            assertParseFailure(parser,
+                    "1" + DATE_ARGUMENT + " " + PREFIX_FOLLOW_UP_DESCRIPTION + description,
+                    FollowUp.MESSAGE_CONSTRAINTS);
+        }
+    }
+
+    @Test
+    public void parse_visibleDescriptionWithInvisibleCharacters_success() {
+        String description = "\u200B\u00A0Confirm\u2060 quotation\u2003now\u200B";
+        FollowUp expected = new FollowUp(LocalDate.parse(VALID_FOLLOW_UP_DATE), description);
+
+        assertParseSuccess(parser,
+                "1" + DATE_ARGUMENT + " " + PREFIX_FOLLOW_UP_DESCRIPTION + description,
+                new SetFollowUpCommand(INDEX_FIRST_PERSON, expected));
     }
 
     @Test

@@ -168,6 +168,32 @@ public class VersionedAddressBookTest {
     }
 
     @Test
+    public void rollbackCommit_singleAddressBook_noChange() {
+        VersionedAddressBook versionedAddressBook = prepareAddressBookList(emptyAddressBook);
+
+        versionedAddressBook.rollbackCommit();
+        assertAddressBookListStatus(versionedAddressBook,
+                Collections.emptyList(),
+                emptyAddressBook,
+                Collections.emptyList());
+    }
+
+    @Test
+    public void rollbackCommit_afterCommit_removesCommittedStateAndRestoresPrevious() {
+        VersionedAddressBook versionedAddressBook = prepareAddressBookList(emptyAddressBook);
+        versionedAddressBook.resetData(addressBookWithAmy);
+        versionedAddressBook.commit();
+
+        versionedAddressBook.rollbackCommit();
+        assertAddressBookListStatus(versionedAddressBook,
+                Collections.emptyList(),
+                emptyAddressBook,
+                Collections.emptyList());
+        assertFalse(versionedAddressBook.canUndo());
+        assertFalse(versionedAddressBook.canRedo());
+    }
+
+    @Test
     public void undo_multipleAddressBookPointerAtStartOfStateList_throwsNoUndoableStateException() {
         VersionedAddressBook versionedAddressBook = prepareAddressBookList(
                 emptyAddressBook, addressBookWithAmy, addressBookWithBob);

@@ -9,6 +9,8 @@ import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
 import seedu.address.logic.commands.Command;
 import seedu.address.logic.commands.CommandResult;
+import seedu.address.logic.commands.RedoCommand;
+import seedu.address.logic.commands.UndoCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.AddressBookParser;
 import seedu.address.logic.parser.exceptions.ParseException;
@@ -44,6 +46,7 @@ public class LogicManager implements Logic {
     public CommandResult execute(String commandText) throws CommandException, ParseException {
         logger.info("----------------[USER COMMAND][" + commandText + "]");
 
+        int pointerBefore = model.getAddressBookStatePointer();
         CommandResult commandResult;
         Command command = addressBookParser.parseCommand(commandText);
         commandResult = command.execute(model);
@@ -51,12 +54,27 @@ public class LogicManager implements Logic {
         try {
             storage.saveAddressBook(model.getAddressBook());
         } catch (AccessDeniedException e) {
+            rollbackModel(command, pointerBefore);
             throw new CommandException(String.format(FILE_OPS_PERMISSION_ERROR_FORMAT, e.getMessage()), e);
         } catch (IOException ioe) {
+            rollbackModel(command, pointerBefore);
             throw new CommandException(String.format(FILE_OPS_ERROR_FORMAT, ioe.getMessage()), ioe);
         }
 
         return commandResult;
+    }
+
+    /**
+     * Reverts changes to the model if persisting to storage fails.
+     */
+    private void rollbackModel(Command command, int pointerBefore) {
+        if (command instanceof UndoCommand || command instanceof RedoCommand) {
+            return;
+        }
+        int pointerAfter = model.getAddressBookStatePointer();
+        if (pointerAfter > pointerBefore) {
+            model.rollbackAddressBook();
+        }
     }
 
     @Override

@@ -50,6 +50,22 @@ public class SortCommandParserTest {
     }
 
     @Test
+    public void parse_clear_returnsClearSortCommand() {
+        assertParseSuccess(parser, "clear", SortCommand.clearSort());
+    }
+
+    @Test
+    public void parse_clearWithWhitespace_returnsClearSortCommand() {
+        assertParseSuccess(parser, "   clear \t", SortCommand.clearSort());
+    }
+
+    @Test
+    public void parse_clearWithFields_throwsParseException() {
+        assertParseFailure(parser, "clear n/", SortCommand.MESSAGE_CLEAR_WITH_FIELDS);
+        assertParseFailure(parser, "r/ clear", SortCommand.MESSAGE_CLEAR_WITH_FIELDS);
+    }
+
+    @Test
     public void parse_nullArgs_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> parser.parse(null));
     }

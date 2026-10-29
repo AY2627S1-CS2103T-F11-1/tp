@@ -73,6 +73,8 @@ public class DeleteCommandTest {
 
         String expectedMessage =
                 String.format(DeleteCommand.MESSAGE_DELETE_CONTACT_SUCCESS, Messages.format(original));
+        assertTrue(expectedMessage.contains("; Follow-up: " + VALID_FOLLOW_UP_DATE + " ("
+                + VALID_FOLLOW_UP_DESCRIPTION + ")"));
         assertCommandSuccess(new DeleteCommand(INDEX_FIRST_PERSON), model, expectedMessage, expectedModel);
 
         model.undoAddressBook();

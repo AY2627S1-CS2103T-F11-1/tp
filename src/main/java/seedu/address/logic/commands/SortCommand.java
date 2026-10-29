@@ -19,15 +19,17 @@ public class SortCommand extends Command {
 
     public static final String COMMAND_DESCRIPTION = "Shows all contacts sorted alphabetically by name, role, or both, "
             + "ignoring letter case. Defaults to name when no fields are specified. The first field takes priority; "
-            + "the second breaks ties. Each field may appear only once and takes no value.";
-    public static final String COMMAND_PARAMETERS = "[n/] [r/] or [r/] [n/]";
+            + "the second breaks ties. Each field may appear only once and takes no value. "
+            + "Use clear to restore insertion order.";
+    public static final String COMMAND_PARAMETERS = "[n/] [r/] or [r/] [n/] or clear";
     public static final String COMMAND_EXAMPLE = COMMAND_WORD + " r/ n/";
     public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String MESSAGE_SUCCESS = "Listed all contacts in sorted order.";
 
-    public static final String MESSAGE_EMPTY_ADDRESS_BOOK = "There are no contacts to sort.";
+    public static final String MESSAGE_EMPTY_ADDRESS_BOOK = "No contacts are currently available. "
+            + "The selected sort order will apply to contacts added later.";
 
     public static final String MESSAGE_DUPLICATE_FIELD =
             "sort accepts each field only once: %s.";
@@ -36,7 +38,13 @@ public class SortCommand extends Command {
             "sort does not accept values after %s.";
 
     public static final String MESSAGE_UNEXPECTED_TOKEN =
-            "sort expects n/ or r/, but received: %s.";
+            "Error: SORT expects clear, n/, or r/, but received: %s";
+
+    public static final String MESSAGE_CLEAR_SUCCESS =
+            "Sorting cleared. Contacts will be displayed in insertion order.";
+
+    public static final String MESSAGE_CLEAR_WITH_FIELDS =
+            "SORT clear does not take any extra arguments.";
 
     /**
      * Fields supported for sorting contacts.
@@ -46,6 +54,12 @@ public class SortCommand extends Command {
     }
 
     private final List<SortField> sortFields;
+    private final boolean clearsSort;
+
+    private SortCommand() {
+        this.sortFields = List.of();
+        this.clearsSort = true;
+    }
 
     /**
      * Creates a sort command with one or two fields in priority order.
@@ -61,11 +75,27 @@ public class SortCommand extends Command {
 
         // Defensive copying
         this.sortFields = List.copyOf(sortFields);
+        this.clearsSort = false;
     }
+
+    /**
+     * Creates a sort command that clears the active sort filter (if any), restoring the
+     * insertion order.
+     */
+    public static SortCommand clearSort() {
+        return new SortCommand();
+    }
+
 
     @Override
     public CommandResult execute(Model model) {
         requireNonNull(model);
+
+        if (clearsSort) {
+            model.updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
+            model.updateSortedPersonList(null);
+            return new CommandResult(MESSAGE_CLEAR_SUCCESS);
+        }
 
         Comparator<Person> comparator = comparatorFor(sortFields.get(0));
         for (int i = 1; i < sortFields.size(); i++) {
@@ -107,18 +137,20 @@ public class SortCommand extends Command {
             return false;
         }
 
-        return sortFields.equals(otherSortCommand.sortFields);
+        return clearsSort == otherSortCommand.clearsSort && sortFields.equals(otherSortCommand.sortFields);
     }
 
     @Override
     public int hashCode() {
-        return sortFields.hashCode();
+        return Objects.hash(sortFields, clearsSort);
     }
 
     @Override
     public String toString() {
+        Object sortCriteria = clearsSort ? "CLEAR" : sortFields;
+
         return new ToStringBuilder(this)
-                .add("sortFields", sortFields)
+                .add("sortFields", sortCriteria)
                 .toString();
     }
 }
