@@ -4,15 +4,23 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Comparator;
 
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.DoubleBinding;
+import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.WeakChangeListener;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import seedu.address.model.person.Person;
 
 /**
@@ -74,6 +82,7 @@ public class PersonCard extends UiPart<Region> {
         boolean hasFollowUp = person.getFollowUp().isPresent();
         followUpBadge.setVisible(hasFollowUp);
         followUpBadge.setManaged(hasFollowUp);
+        configureFollowUpBadgeSize();
         dateListener = (observable, previous, today) -> updateFollowUpBadge(today);
         uiDate.dateProperty().addListener(new WeakChangeListener<>(dateListener));
         updateFollowUpBadge(uiDate.getDate());
@@ -94,6 +103,40 @@ public class PersonCard extends UiPart<Region> {
                 });
         tags.setVisible(!person.getTags().isEmpty());
         tags.setManaged(!person.getTags().isEmpty());
+    }
+
+    /** Reserves enough space for every status in either weight, including the current theme's insets. */
+    private void configureFollowUpBadgeSize() {
+        ObjectBinding<Bounds> textBounds = Bindings.createObjectBinding(this::measureFollowUpBadgeText,
+                followUpBadge.fontProperty());
+        DoubleBinding width = Bindings.createDoubleBinding(() -> Math.ceil(textBounds.get().getWidth()
+                + followUpBadge.getInsets().getLeft() + followUpBadge.getInsets().getRight()
+                + followUpBadge.getLabelPadding().getLeft() + followUpBadge.getLabelPadding().getRight()) + 2,
+                textBounds, followUpBadge.insetsProperty(), followUpBadge.labelPaddingProperty());
+        DoubleBinding height = Bindings.createDoubleBinding(() -> Math.ceil(textBounds.get().getHeight()
+                + followUpBadge.getInsets().getTop() + followUpBadge.getInsets().getBottom()
+                + followUpBadge.getLabelPadding().getTop() + followUpBadge.getLabelPadding().getBottom()) + 2,
+                textBounds, followUpBadge.insetsProperty(), followUpBadge.labelPaddingProperty());
+        followUpBadge.minWidthProperty().bind(width);
+        followUpBadge.prefWidthProperty().bind(width);
+        followUpBadge.maxWidthProperty().bind(width);
+        followUpBadge.prefHeightProperty().bind(height);
+    }
+
+    private Bounds measureFollowUpBadgeText() {
+        Font currentFont = followUpBadge.getFont();
+        Text sample = new Text();
+        double width = 0;
+        double height = 0;
+        for (FontWeight weight : new FontWeight[] {FontWeight.NORMAL, FontWeight.BOLD}) {
+            sample.setFont(Font.font(currentFont.getFamily(), weight, currentFont.getSize()));
+            for (String status : new String[] {"Follow-up", "Due today", "Overdue"}) {
+                sample.setText(status);
+                width = Math.max(width, sample.getLayoutBounds().getWidth());
+                height = Math.max(height, sample.getLayoutBounds().getHeight());
+            }
+        }
+        return new BoundingBox(0, 0, width, height);
     }
 
     private void updateFollowUpBadge(LocalDate today) {

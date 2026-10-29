@@ -1065,6 +1065,20 @@ public class MainWindowTest {
         });
     }
 
+    private void assertBadgeTextFits(Label badge) {
+        Text rendered = (Text) badge.lookup(".text");
+        String dimensions = "font=" + badge.getFont() + ", width=" + badge.getWidth()
+                + ", height=" + badge.getHeight() + ", insets=" + badge.getInsets()
+                + ", labelPadding=" + badge.getLabelPadding();
+        assertEquals(badge.getText(), rendered.getText(), "The full badge text should be visible: " + dimensions);
+        double availableWidth = badge.getWidth() - badge.getInsets().getLeft() - badge.getInsets().getRight()
+                - badge.getLabelPadding().getLeft() - badge.getLabelPadding().getRight();
+        double availableHeight = badge.getHeight() - badge.getInsets().getTop() - badge.getInsets().getBottom()
+                - badge.getLabelPadding().getTop() - badge.getLabelPadding().getBottom();
+        assertTrue(rendered.getLayoutBounds().getWidth() <= availableWidth + 1, dimensions);
+        assertTrue(rendered.getLayoutBounds().getHeight() <= availableHeight + 1, dimensions);
+    }
+
     @Test
     public void cards_followUpCommandsAndUndoRedo_refreshBadgeWithoutLeavingSpace() throws Exception {
         double[] originalHeight = new double[1];
@@ -1131,8 +1145,7 @@ public class MainWindowTest {
                     Region card = (Region) contactCell(person).getGraphic();
                     Label role = (Label) card.lookup("#role");
                     Label badge = (Label) card.lookup("#followUpBadge");
-                    assertEquals(badge.getText(), ((Text) badge.lookup(".text")).getText(),
-                            "The badge text should remain fully visible");
+                    assertBadgeTextFits(badge);
                     assertEquals(person.getRole().value, ((Text) role.lookup(".text")).getText(),
                             "The role should wrap without losing text");
                     Bounds roleBounds = role.localToScene(role.getLayoutBounds());
@@ -1201,7 +1214,7 @@ public class MainWindowTest {
                 assertSame(originalCard[0], contactCell(target).getGraphic(), "Date refresh should retain the card");
                 Label badge = (Label) originalCard[0].lookup("#followUpBadge");
                 assertEquals(expectedBadge, badge.getText());
-                assertEquals(expectedBadge, ((Text) badge.lookup(".text")).getText());
+                assertBadgeTextFits(badge);
                 assertEquals(positions[3], badge.getWidth(), 0.1, "All urgency states should use the same width");
                 assertEquals(positions[2], contactCell(target).getHeight(), 0.1);
                 assertEquals(positions[0], scrollBar(contactList(), Orientation.VERTICAL).getValue(), 0.001);
@@ -1217,6 +1230,56 @@ public class MainWindowTest {
                 assertEquals(2, command.getAnchor());
                 assertEquals(6, command.getCaretPosition());
             });
+        }
+    }
+
+    @Test
+    public void cards_badgesFitDifferentFontsAndPadding_withoutResizingBetweenStates() throws Exception {
+        MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
+        UiDateTracker[] date = new UiDateTracker[1];
+        double[] dimensions = new double[2];
+        Person person = new PersonBuilder(ALICE).withRole("Keyboard component supplier ".repeat(8).strip())
+                .withTags().withFollowUp("2026-10-30", "Confirm shipment").build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            date[0] = new UiDateTracker(clock);
+            initializeMainWindow(model, new JsonAddressBookStorage(testFolder.resolve("addressbook.json")), date[0]);
+        });
+        awaitLayout();
+        for (String family : List.of("System", "Monospaced", "Serif")) {
+            for (int fontSize : new int[] {11, 17}) {
+                runOnFxThread(() -> {
+                    Label badge = (Label) contactCell(person).getGraphic().lookup("#followUpBadge");
+                    badge.setStyle("-fx-font-family: '" + family + "'; -fx-font-size: " + fontSize
+                            + "px; -fx-padding: 4 14;");
+                    clock.setInstant(CLOCK.instant());
+                    date[0].refresh();
+                });
+                awaitLayout();
+                runOnFxThread(() -> {
+                    Label badge = (Label) contactCell(person).getGraphic().lookup("#followUpBadge");
+                    dimensions[0] = badge.getWidth();
+                    dimensions[1] = contactCell(person).getHeight();
+                });
+                for (String instant : List.of("2026-10-28T16:30:00Z", "2026-10-29T16:30:00Z", "2026-10-30T16:30:00Z")) {
+                    runOnFxThread(() -> {
+                        clock.setInstant(Instant.parse(instant));
+                        date[0].refresh();
+                    });
+                    awaitLayout();
+                    runOnFxThread(() -> {
+                        Label badge = (Label) contactCell(person).getGraphic().lookup("#followUpBadge");
+                        assertFollowUpBadge(person, LocalDate.now(clock));
+                        assertBadgeTextFits(badge);
+                        assertEquals(dimensions[0], badge.getWidth(), 0.1, "Badge width should stay stable");
+                        assertEquals(dimensions[1], contactCell(person).getHeight(), 0.1,
+                                "Card height should stay stable");
+                        assertFalse(scrollBar(contactList(), Orientation.HORIZONTAL).isVisible());
+                        assertContactPanesFit();
+                    });
+                }
+            }
         }
     }
 

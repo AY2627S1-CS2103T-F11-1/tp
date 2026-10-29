@@ -95,8 +95,10 @@ Address and follow-up content appear in the details panel. The card has no fixed
 tags are hidden and unmanaged. Long names and emails use a single line with an ellipsis and full-text tooltips;
 tags wrap. Email appears beneath the phone number using the existing summary text style.
 The role row includes a badge when `Person#getFollowUp()` is present: `Follow-up` for a future due date, `Due today`
-for the local date, and `Overdue` for a past date. It reserves the same width for every state so transitions do not
-reflow the role. The role wraps into the remaining width. `PersonCard` hides and unmanages the badge when absent.
+for the local date, and `Overdue` for a past date. It measures all three labels in regular and bold variants of the
+actual font, including padding and borders, and reserves the same dimensions for every state so transitions do not
+reflow the role. The sizing responds to font and inset changes instead of assuming a fixed width across platforms.
+The role wraps into the remaining width. `PersonCard` hides and unmanages the badge when absent.
 The existing theme uses text and a border for every badge, bold text for `:due-today`, and bold underlined text for
 `:overdue`; urgency does not depend on colour.
 `PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
@@ -162,6 +164,8 @@ commands, equal replacements, contacts sharing a name, undo/redo, and saving fai
 follow-up badge updates through commands and undo/redo, badge/role layout at divider limits, selected-card styling
 without list focus, and access to the complete selected contact details. Date-transition tests check that all three
 badge states preserve card dimensions, selection, both scroll positions, and draft text/cursor selection.
+Badge layout tests also exercise different font families, sizes, and padding, and report rendered text, font, and
+available dimensions when clipping occurs.
 `UiDateTrackerTest` covers local midnight, unchanged days, clock corrections, periodic refresh, hidden/shown windows,
 and focus return. `PersonDetailsPanelTest` checks that date refresh cannot revive a cleared follow-up section.
 Further UI tests cover Escape from the list, details, and feedback, draft/cursor preservation after focus settles,

@@ -359,9 +359,6 @@
 .person-follow-up-badge {
     -fx-font-family: "Segoe UI";
     -fx-font-size: 11px;
-    -fx-min-width: 7em;
-    -fx-pref-width: 7em;
-    -fx-max-width: 7em;
     -fx-alignment: center;
     -fx-padding: 1 6;
     -fx-border-color: #3e7b91;
