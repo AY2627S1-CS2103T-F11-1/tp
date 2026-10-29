@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane fx:id="personDetailsPanel" styleClass="person-details-panel" minWidth="0"
+           xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+  <ScrollPane fx:id="detailsScrollPane" fitToWidth="true" minWidth="0" visible="false" managed="false">
+    <VBox fx:id="detailsContent" spacing="18" minWidth="0" maxWidth="Infinity">
+      <padding>
+        <Insets top="12" right="12" bottom="12" left="12" />
+      </padding>
+      <VBox spacing="6" minWidth="0">
+        <Label fx:id="name" styleClass="person-details-name" />
+        <Label fx:id="role" />
+      </VBox>
+      <VBox fx:id="tagsSection" spacing="8" minWidth="0" visible="false" managed="false">
+        <Label text="Tags" styleClass="person-details-section-title" />
+        <FlowPane fx:id="detailTags" styleClass="person-details-tags" minWidth="0" />
+      </VBox>
+      <VBox spacing="8" minWidth="0">
+        <Label text="Contact information" styleClass="person-details-section-title" />
+        <VBox spacing="3" minWidth="0">
+          <Label text="Phone" styleClass="person-details-section-title" />
+          <Label fx:id="phone" />
+        </VBox>
+        <VBox spacing="3" minWidth="0">
+          <Label text="Email" styleClass="person-details-section-title" />
+          <Label fx:id="email" />
+        </VBox>
+        <VBox spacing="3" minWidth="0">
+          <Label text="Address" styleClass="person-details-section-title" />
+          <Label fx:id="address" />
+        </VBox>
+      </VBox>
+      <VBox fx:id="followUpSection" spacing="8" minWidth="0" visible="false" managed="false">
+        <Label text="Follow-up" styleClass="person-details-section-title" />
+        <Label fx:id="followUpDueDate" />
+        <Label fx:id="followUpDescription" />
+      </VBox>
+    </VBox>
+  </ScrollPane>
+  <Label fx:id="emptyState" text="Select a contact to view details." wrapText="true" minWidth="0"
+         minHeight="-Infinity" />
+</StackPane>

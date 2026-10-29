@@ -23,6 +23,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
@@ -173,7 +174,10 @@ public class MainWindowTest {
             assertEquals(0.45, splitPane.getDividerPositions()[0], 0.02);
             StackPane details = (StackPane) stage.getScene().lookup("#personDetailsPanelPlaceholder");
             assertTrue(details.isVisible());
-            assertTrue(details.getChildren().isEmpty());
+            assertEquals(1, details.getChildren().size());
+            Label emptyState = (Label) details.lookup("#emptyState");
+            assertEquals("Select a contact to view details.", emptyState.getText());
+            assertTrue(emptyState.isVisible());
             assertContactPanesFit();
         });
     }

@@ -341,12 +341,12 @@
     -fx-background-radius: 0;
 }
 
-#tags {
+#tags, .person-details-tags {
     -fx-hgap: 7;
     -fx-vgap: 3;
 }
 
-#tags .label {
+#tags .label, .person-details-tags .label {
     -fx-text-fill: white;
     -fx-background-color: #3e7b91;
     -fx-padding: 1 3 1 3;
@@ -354,4 +354,27 @@
     -fx-background-radius: 2;
     -fx-font-size: 11;
     -fx-max-width: 250px;
+}
+
+.person-details-panel .label {
+    -fx-text-fill: white;
+}
+
+.person-details-panel .scroll-pane,
+.person-details-panel .viewport {
+    -fx-background-color: transparent;
+}
+
+.person-details-name {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.person-details-section-title {
+    -fx-font-weight: bold;
+}
+
+.person-details-panel .label:overdue {
+    -fx-font-weight: bold;
+    -fx-underline: true;
 }
