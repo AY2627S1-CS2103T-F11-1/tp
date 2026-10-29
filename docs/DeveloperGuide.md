@@ -89,6 +89,13 @@ The `UI` component,
 45% list and 55% details. The minimum window width is 800 pixels, with minimum pane widths of 340 and 400 pixels.
 `MainWindow` clamps smaller restored window widths in the UI without changing the preferences data structure.
 
+`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, and sorted tags.
+Email, address, and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
+tags are hidden and unmanaged. Long names use a single line with an ellipsis and a full-name tooltip; tags wrap.
+`PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
+preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
+remain visible when keyboard focus moves to command input.
+
 `MainWindow#fillInnerParts()` mounts `PersonDetailsPanel` in the right placeholder. The panel extends `UiPart<Region>`
 and exposes `showPerson(Person)` and `clear()`. A fit-to-width `ScrollPane`, viewport-based label width bindings,
 and a wrapping tag `FlowPane` keep long details accessible through vertical scrolling. Empty tags and absent follow-ups
@@ -125,6 +132,8 @@ path still conservatively clear selection. Model, Storage, and `CommandResult` d
 commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
 `LogicManagerTest` additionally verifies replacement identity and reset of command selection information after failures.
 `PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
+`MainWindowTest` also verifies compact card height, empty-tag spacing, long-name tooltips, tag wrapping, selected-card
+styling without list focus, and access to the complete selected contact details.
 
 ### Logic component
 
@@ -374,9 +383,12 @@ The overdue query uses an injectable `Clock`. Today's date is captured when the 
 Queries do not commit snapshots or alter contact data. An empty result displays `No follow-ups found.`
 
 #### UI integration
-`PersonCard` populates the follow-up date and description defined in `PersonListCard.fxml`. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
+`PersonDetailsPanel` populates the follow-up date and description defined in `PersonDetailsPanel.fxml` when a contact
+is selected. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
+The compact `PersonCard` does not repeat follow-up information.
 
-The existing observable-list and cell-update mechanism refreshes cards when contacts are replaced. No separate follow-up listener is required.
+The command selection handling described under contact details and selection tracks replacement contacts and refreshes
+the details panel after follow-up changes. A contact that no longer matches a follow-up filter clears selection.
 
 #### Test coverage
 
@@ -962,11 +974,11 @@ Command | Expected result
 
 ### Managing and viewing follow-ups
 
-Create a contact with a unique name, phone number, and email. Run `find` with that name so only the test contact is displayed. Use valid dates relative to the computer's current local date.
+Create a contact with a unique name, phone number, and email. Run `find` with that name so only the test contact is displayed. Use valid dates relative to the computer's current local date. Select the contact to inspect its follow-up in the right details panel; select it again after undo, redo, or restarting the application.
 
 Action | Expected result
 -------|----------------
-Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The card shows the date and description.
+Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The details panel shows the date and description.
 Set another follow-up with a different date and description. | Both values replace the existing follow-up.
 Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is preserved.
 Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
@@ -975,7 +987,7 @@ Find the test contact and run `followup 1 clear`. | The follow-up disappears; th
 Run `undo`, then `redo`. | The follow-up is restored, then removed again.
 Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
 Restart after setting a follow-up. | The saved follow-up is restored.
-Display a long description and resize the window. | Verify the full text remains accessible and record any horizontal-scrolling limitation.
+Display a long description and resize the window. | Verify the full text remains accessible through vertical scrolling in the details panel.
 
 ### Sorting contacts
 

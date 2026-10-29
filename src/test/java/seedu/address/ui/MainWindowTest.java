@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,10 +30,12 @@ import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
@@ -42,6 +45,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -310,6 +314,12 @@ public class MainWindowTest {
         return (ListView<?>) stage.getScene().lookup("#personListView");
     }
 
+    private ListCell<?> contactCell(Person person) {
+        return (ListCell<?>) contactList().lookupAll(".list-cell").stream()
+                .filter(node -> node instanceof ListCell<?> cell && cell.getItem() == person)
+                .findFirst().orElseThrow();
+    }
+
     private void assertDetailsName(String expected) {
         ScrollPane scroll = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
         Label name = (Label) scroll.getContent().lookup("#name");
@@ -333,9 +343,7 @@ public class MainWindowTest {
         awaitLayout();
         runOnFxThread(() -> {
             ListView<?> list = contactList();
-            ListCell<?> cell = (ListCell<?>) list.lookupAll(".list-cell").stream()
-                    .filter(node -> node instanceof ListCell<?> item && item.getItem() == ALICE)
-                    .findFirst().orElseThrow();
+            ListCell<?> cell = contactCell(ALICE);
             Bounds bounds = cell.localToScene(cell.getLayoutBounds());
             double x = bounds.getCenterX();
             double y = bounds.getCenterY();
@@ -668,6 +676,113 @@ public class MainWindowTest {
             assertSelected(sameName);
             submitCommand("edit 1 n/Zed Supplier");
             assertSelected(sameName);
+        });
+    }
+
+    @Test
+    public void cards_summaryKeepsFullDetailsAndSelectionStylingWhenCommandBoxFocused() throws Exception {
+        Person person = new PersonBuilder(ALICE).withTags("switches", "lube")
+                .withFollowUp("2026-11-01", "Confirm switch quotation").build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            model.addPerson(BENSON);
+            initializeMainWindow(model);
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            contactList().getSelectionModel().select(0);
+            stage.getScene().getRoot().applyCss();
+            assertSelected(person);
+
+            ListCell<?> cell = contactCell(person);
+            Region card = (Region) cell.getGraphic();
+            assertEquals("1. ", ((Label) card.lookup("#id")).getText());
+            assertEquals(person.getRole().value, ((Label) card.lookup("#role")).getText());
+            assertEquals(person.getPhone().value, ((Label) card.lookup("#phone")).getText());
+            FlowPane tags = (FlowPane) card.lookup("#tags");
+            assertEquals(List.of("lube", "switches"), tags.getChildren().stream()
+                    .map(node -> ((Label) node).getText()).toList());
+            assertNull(card.lookup("#email"));
+            assertNull(card.lookup("#address"));
+            assertNull(card.lookup("#followUpSection"));
+
+            ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            assertTrue(details.getContent().lookup("#followUpSection").isVisible());
+            Label description = (Label) details.getContent().lookup("#followUpDescription");
+            assertEquals("Confirm switch quotation", description.getText());
+
+            var selectedBackground = cell.getBackground();
+            assertFalse(card.getBorder().isEmpty());
+            assertEquals(1, card.getBorder().getStrokes().get(0).getWidths().getTop());
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            stage.getScene().getRoot().applyCss();
+            assertSame(command, stage.getScene().getFocusOwner());
+            assertTrue(cell.isSelected());
+            assertEquals(selectedBackground, cell.getBackground());
+            assertEquals(1, card.getBorder().getStrokes().get(0).getWidths().getTop());
+            assertSelected(person);
+        });
+    }
+
+    @Test
+    public void cards_compactHeightAndEmptyTags_removeUnusedSpace() throws Exception {
+        Person withTags = new PersonBuilder(ALICE).withTags("lube", "switches")
+                .withFollowUp("2026-11-01", "Confirm switch quotation").build();
+        Person withoutTags = new PersonBuilder(BENSON).withTags().build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(withTags);
+            model.addPerson(withoutTags);
+            initializeMainWindow(model);
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            ListCell<?> tagged = contactCell(withTags);
+            ListCell<?> untagged = contactCell(withoutTags);
+            assertTrue(tagged.getHeight() < 105, "Summary cards should shrink below the old 105px minimum");
+            assertTrue(untagged.getHeight() < tagged.getHeight(), "Empty tags should leave no layout gap");
+            FlowPane tags = (FlowPane) untagged.getGraphic().lookup("#tags");
+            assertFalse(tags.isVisible());
+            assertFalse(tags.isManaged());
+        });
+    }
+
+    @Test
+    public void cards_longNameAndManyTags_fitListWidthAndKeepNameTooltip() throws Exception {
+        String[] tags = IntStream.range(0, 36).mapToObj(i -> "Component " + i).toArray(String[]::new);
+        tags[0] = "X".repeat(50);
+        Person person = new PersonBuilder(ALICE).withName("Mechanical Keyboard Supplier ".repeat(10).strip())
+                .withTags(tags).build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            initializeMainWindow(model);
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            Region card = (Region) contactCell(person).getGraphic();
+            Bounds bounds = card.localToScene(card.getLayoutBounds());
+            for (Node node : card.lookupAll(".label")) {
+                Bounds labelBounds = node.localToScene(node.getLayoutBounds());
+                assertTrue(labelBounds.getMinX() >= bounds.getMinX());
+                assertTrue(labelBounds.getMaxX() <= bounds.getMaxX() + 1, "Card text should fit the list width");
+            }
+            Label name = (Label) card.lookup("#name");
+            assertEquals(person.getName().fullName, name.getTooltip().getText());
+            FlowPane flow = (FlowPane) card.lookup("#tags");
+            assertEquals(36, flow.getChildren().size());
+            Label longTag = (Label) flow.getChildren().stream()
+                    .filter(node -> ((Label) node).getText().equals("X".repeat(50))).findFirst().orElseThrow();
+            assertTrue(longTag.getHeight() > longTag.getFont().getSize() * 1.5);
+            for (Node node : contactList().lookupAll(".scroll-bar")) {
+                ScrollBar bar = (ScrollBar) node;
+                if (bar.getOrientation() == Orientation.HORIZONTAL) {
+                    assertFalse(bar.isVisible(), "Summary cards should not widen the contact list");
+                }
+            }
+            assertContactPanesFit();
         });
     }
 

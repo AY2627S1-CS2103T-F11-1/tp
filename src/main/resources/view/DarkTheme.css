@@ -132,10 +132,6 @@
     -fx-text-fill: #010504;
 }
 
-.follow_up_due_date {
-    -fx-font-weight: bold;
-}
-
 .stack-pane {
      -fx-background-color: derive(#1d1d1d, 20%);
 }

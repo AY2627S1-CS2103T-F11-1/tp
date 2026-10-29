@@ -9,14 +9,15 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<HBox id="cardPane" fx:id="cardPane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
+<HBox id="cardPane" fx:id="cardPane" minWidth="0"
+      xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1">
   <GridPane HBox.hgrow="ALWAYS">
     <columnConstraints>
       <ColumnConstraints hgrow="ALWAYS" minWidth="0" />
     </columnConstraints>
-    <VBox alignment="CENTER_LEFT" minHeight="105" minWidth="0" GridPane.columnIndex="0">
+    <VBox alignment="CENTER_LEFT" spacing="3" minWidth="0" GridPane.columnIndex="0">
       <padding>
-        <Insets top="5" right="5" bottom="5" left="15" />
+        <Insets top="8" right="12" bottom="8" left="12" />
       </padding>
       <HBox spacing="0.5" alignment="CENTER_LEFT">
         <Label fx:id="id" styleClass="cell_big_label">
@@ -25,29 +26,13 @@
             <Region fx:constant="USE_PREF_SIZE" />
           </minWidth>
         </Label>
-        <Label fx:id="name" text="\$first" styleClass="cell_big_label" />
+        <Label fx:id="name" styleClass="cell_big_label" minWidth="0" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
       </HBox>
-      <FlowPane fx:id="tags" />
-      <Label fx:id="role" styleClass="cell_small_label" text="\$role" />
-      <Label fx:id="phone" styleClass="cell_small_label" text="\$phone" />
-      <Label fx:id="address" styleClass="cell_small_label" text="\$address" />
-      <Label fx:id="email" styleClass="cell_small_label" text="\$email" />
-      <VBox fx:id="followUpSection" spacing="3"
-            visible="false" managed="false">
-        <padding>
-          <Insets top="8" />
-        </padding>
-        <Label fx:id="followUpDueDate"
-               styleClass="cell_small_label, follow_up_due_date"
-               wrapText="true"
-               minHeight="-Infinity"
-               maxWidth="Infinity" />
-        <Label fx:id="followUpDescription"
-               styleClass="cell_small_label"
-               wrapText="true"
-               minHeight="-Infinity"
-               maxWidth="Infinity" />
-      </VBox>
+      <Label fx:id="role" styleClass="cell_small_label" wrapText="true" minWidth="0"
+             minHeight="-Infinity" maxWidth="Infinity" />
+      <Label fx:id="phone" styleClass="cell_small_label" wrapText="true" minWidth="0"
+             minHeight="-Infinity" maxWidth="Infinity" />
+      <FlowPane fx:id="tags" minWidth="0" />
     </VBox>
   </GridPane>
 </HBox>

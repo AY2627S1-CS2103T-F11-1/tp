@@ -2,6 +2,8 @@ package seedu.address.ui;
 
 import java.util.logging.Logger;
 
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.ListChangeListener;
@@ -88,6 +90,11 @@ public class PersonListPanel extends UiPart<Region> {
      * Custom {@code ListCell} that displays the graphics of a {@code Person} using a {@code PersonCard}.
      */
     class PersonListViewCell extends ListCell<Person> {
+        PersonListViewCell() {
+            // Let the viewport determine cell width rather than the summary's preferred width.
+            setPrefWidth(0);
+        }
+
         @Override
         protected void updateItem(Person person, boolean empty) {
             super.updateItem(person, empty);
@@ -96,7 +103,13 @@ public class PersonListPanel extends UiPart<Region> {
                 setGraphic(null);
                 setText(null);
             } else {
-                setGraphic(new PersonCard(person, getIndex() + 1).getRoot());
+                Region card = new PersonCard(person, getIndex() + 1).getRoot();
+                DoubleBinding availableWidth = Bindings.createDoubleBinding(() -> Math.max(0,
+                        getWidth() - getInsets().getLeft() - getInsets().getRight()),
+                        widthProperty(), insetsProperty());
+                card.prefWidthProperty().bind(availableWidth);
+                card.maxWidthProperty().bind(availableWidth);
+                setGraphic(card);
             }
         }
     }

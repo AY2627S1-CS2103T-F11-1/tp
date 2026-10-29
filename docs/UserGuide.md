@@ -69,6 +69,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 ### Viewing contact details
 
 Click a contact in the list to display its full details in the panel on the right.
+List cards show the name, role, phone number, and tags. Long names use an ellipsis; hover over a name to read it in full.
 While the contact list has keyboard focus, use the Up and Down arrow keys to move between contacts.
 The details panel updates immediately without moving keyboard focus.
 
@@ -194,7 +195,8 @@ Creates, replaces, or removes a contact's pending follow-up. Each contact can ha
 * Description casing and internal spacing are preserved. Internal control characters, such as tabs and newlines, and Unicode line or paragraph separators are not permitted.
 * Prefix-like text preceded by a space is interpreted as command syntax. Avoid text such as ` by/`, ` abt/`, or ` date/` inside descriptions; these can produce duplicate-prefix, unknown-prefix, or invalid-value errors.
 * Successful changes preserve other contact details and the current filter. A contact may disappear from the results if it no longer matches that filter.
-* Follow-ups are displayed on contact cards and saved automatically. Changes support `undo` and `redo`.
+* Follow-ups are displayed in the selected contact's details panel and saved automatically.
+  Changes support `undo` and `redo`.
 * Editing other contact details preserves the follow-up. Deleting the contact removes its follow-up.
 
 Examples:
