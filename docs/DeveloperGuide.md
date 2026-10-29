@@ -122,13 +122,8 @@ How the parsing works:
 
 The `Model` component,
 
-<<<<<<< HEAD
 * stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object). Each `Person` contains a `Name`, `Phone`, `Email`, `Address`, `Role`, a set of `Tag` objects, and an optional `FollowUp`.
-* stores the `Person` objects selected by the current filter, such as search results, in a separate _filtered_ list. It exposes this list as an unmodifiable `ObservableList<Person>` that the UI can observe and bind to, so the UI updates when the list changes.
-=======
-* stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object). Each `Person` contains a `Name`, `Phone`, `Email`, `Address`, `Role`, and a set of `Tag` objects.
 * maintains a `FilteredList<Person>` backed by the address book's contact list, and a `SortedList<Person>` wrapping that filtered view. The `getFilteredPersonList()` API exposes the filtered and sorted displayed list as an unmodifiable `ObservableList<Person>`. The UI and index-based commands use the same displayed ordering, while the underlying contact order remains unchanged.
->>>>>>> c709bbe9 (Update User Guide and Developer Guide to reflect sort command)
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
@@ -230,6 +225,30 @@ The activity diagram below illustrates the duplicate resolution and defensive er
 
 `MainWindow` displays the feedback in `ResultDisplay` and opens or focuses `HelpWindow` only when `showHelp` is `true`. The activity diagram assumes at most one command target; input with multiple target words is rejected during parsing, and the parser error is displayed in the result area.
 
+#### Help text conventions
+
+Each user command defines its help text in the command class. `COMMAND_USAGE` is the shared source for both command-specific help and the full help window. `HelpWindow.formatCommandUsage` converts the command name into an uppercase heading while preserving the rest of the usage text.
+
+* Use `COMMAND_WORD`, `COMMAND_DESCRIPTION`, and `COMMAND_USAGE` for help content.
+* Commands without parameters define `COMMAND_USAGE` as `COMMAND_WORD + ": " + COMMAND_DESCRIPTION`. Do not add parameter or example fields for these commands.
+* Commands with required or optional parameters also define `COMMAND_PARAMETERS` and `COMMAND_EXAMPLE`. Their `COMMAND_USAGE` combines the description with `Parameters:` and `Example:` lines. Commands with optional arguments, such as `help`, `sort`, and `followups`, follow this format even though they can run without arguments.
+* Use the `MESSAGE_` prefix for result feedback and errors, such as `MESSAGE_SUCCESS` and `MESSAGE_FAILURE`. Parsers that include usage instructions in an error should reference `COMMAND_USAGE` rather than duplicate its text.
+
+#### Help window categories
+
+`HelpWindow.HELP_MESSAGE` groups commands by user task:
+
+| Category | Commands |
+| --- | --- |
+| Manage contacts | `add`, `edit`, `delete`, `clear`, `followup` |
+| Browse contacts | `list`, `find`, `sort`, `followups` |
+| Undo and redo | `undo`, `redo` |
+| Application | `help`, `exit` |
+
+`followup` belongs under Manage contacts because it changes contact data. `followups` belongs under Browse contacts because it filters the displayed contacts without modifying their data.
+
+When adding a user command, define its help constants, register its `COMMAND_USAGE` in `HelpCommand.COMMAND_USAGE_BY_NAME`, and add it to the appropriate category in `HelpWindow.HELP_MESSAGE`. Update `HelpCommandTest` and `HelpWindowTest` to cover targeted help, category placement, and formatting. Update parser tests when usage text changes, and keep the User Guide's command list, categories, and help screenshot consistent with the implementation.
+
 ### Adding and deleting contact tags
 
 The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_ADD]... [dt/TAG_TO_DELETE]...`, alongside the existing contact fields. Additions preserve existing tags, and deletions remove only explicitly named tags. The complete edit succeeds or leaves all contact details and the displayed list unchanged.
@@ -271,7 +290,7 @@ Requested deletion absent from the selected contact | `EditCommand.MESSAGE_TAG_N
 * `EditCommandTest` covers additions, selective deletions, combined operations, filtered lists, existing tags, missing deletions, and preservation of the full model on failure. It also parses command text through `AddressBookParser` before execution to cover the acceptance examples and failure cases.
 * `AddressBookParserTest` checks that an edit containing both operations is routed to the edit parser.
 
-<<<<<<< HEAD
+
 ### Contact follow-up management
 
 Each `Person` owns an `Optional<FollowUp>`. A contact can have zero or one follow-up.
@@ -323,7 +342,8 @@ The existing observable-list and cell-update mechanism refreshes cards when cont
 * Command tests cover creation, replacement, removal, filtered indexes, failure preservation, and undo/redo.
 * Query tests use fixed clocks to verify date boundaries, time zones, filtering, and history preservation.
 * Parser tests cover supported forms, invalid arguments, shared date parsing, and command routing.
-=======
+
+
 ### Sorting contacts
 
 The sort feature changes the displayed contact order without rearranging the address book's underlying contact list.
@@ -402,7 +422,7 @@ Filtering remains independent: users can run find afterwards to narrow the sorte
 * `AddressBookParserTest` checks command dispatch to the sort parser.
 * `LogicManagerTest` exercises complete command sequences involving displayed indices, filtering, editing,
   deletion, undo/redo, invalid sorts, equal-key contact identities, and preservation of saved contact order.
->>>>>>> c709bbe9 (Update User Guide and Developer Guide to reflect sort command)
+
 
 ### Undo/redo feature
 

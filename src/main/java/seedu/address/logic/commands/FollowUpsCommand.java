@@ -20,16 +20,14 @@ public class FollowUpsCommand extends Command {
 
     public static final String COMMAND_WORD = "followups";
 
-    public static final String MESSAGE_USAGE = COMMAND_WORD
-            + ": Lists contacts with follow-ups across entire KeyBossWarriorsPro.\n"
-            + "Parameters: [overdue | by/YYYY-MM-DD]\n"
-            + "Without arguments, lists all contacts with follow-ups.\n"
-            + "overdue lists follow-ups due before today.\n"
-            + "by/ lists follow-ups due on or before the supplied date. Past dates are accepted.\n"
-            + "Examples:\n"
-            + COMMAND_WORD + "\n"
-            + COMMAND_WORD + " overdue\n"
-            + COMMAND_WORD + " by/2026-11-01";
+    public static final String COMMAND_DESCRIPTION = "Lists contacts with follow-ups across the entire address book. "
+            + "Without arguments, lists all contacts with follow-ups. overdue selects dates before today; "
+            + "by/ selects dates on or before the supplied date. Past dates are accepted.";
+    public static final String COMMAND_PARAMETERS = "[overdue | by/YYYY-MM-DD]";
+    public static final String COMMAND_EXAMPLE = COMMAND_WORD + "\n         " + COMMAND_WORD + " overdue"
+            + "\n         " + COMMAND_WORD + " by/2026-11-01";
+    public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
+            + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String MESSAGE_SUCCESS = "%1$d follow-up(s) found.";
     public static final String MESSAGE_NO_FOLLOW_UPS = "No follow-ups found.";

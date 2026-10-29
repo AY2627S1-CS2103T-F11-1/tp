@@ -42,7 +42,7 @@ public class FollowUpsCommandParser implements Parser<FollowUpsCommand> {
 
         if (!arguments.getPreamble().isBlank()) {
             throw new ParseException(
-                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.MESSAGE_USAGE));
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.COMMAND_USAGE));
         }
 
         arguments.verifyNoMissingPrefixesFor(PREFIX_FOLLOW_UP_DATE);

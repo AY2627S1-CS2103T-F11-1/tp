@@ -17,15 +17,13 @@ import seedu.address.model.person.Person;
 public class SortCommand extends Command {
     public static final String COMMAND_WORD = "sort";
 
-    public static final String MESSAGE_USAGE = COMMAND_WORD
-            + ": Shows all contacts sorted alphabetically by name, role, or both, "
-            + "ignoring differences in letter case.\n"
-            + "Usage: sort [n/] [r/] or sort [r/] [n/]\n"
-            + "With no fields specified, sort defaults to sorting by name.\n"
-            + "When both fields are specified, the first takes priority "
-            + "and the second breaks ties.\n"
-            + "Each field may appear only once and takes no value.\n"
-            + "Examples: sort, sort n/, sort r/, sort r/ n/";
+    public static final String COMMAND_DESCRIPTION = "Shows all contacts sorted alphabetically by name, role, or both, "
+            + "ignoring letter case. Defaults to name when no fields are specified. The first field takes priority; "
+            + "the second breaks ties. Each field may appear only once and takes no value.";
+    public static final String COMMAND_PARAMETERS = "[n/] [r/] or [r/] [n/]";
+    public static final String COMMAND_EXAMPLE = COMMAND_WORD + " r/ n/";
+    public static final String COMMAND_USAGE = COMMAND_WORD + ": " + COMMAND_DESCRIPTION + "\nParameters: "
+            + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String MESSAGE_SUCCESS = "Listed all contacts in sorted order.";
 

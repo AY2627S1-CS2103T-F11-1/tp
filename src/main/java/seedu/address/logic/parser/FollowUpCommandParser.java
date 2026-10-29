@@ -46,7 +46,7 @@ public class FollowUpCommandParser implements Parser<FollowUpCommand> {
         }
 
         if (arguments.getPreamble().isBlank() || preamble.length != 1) {
-            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.MESSAGE_USAGE));
+            throw new ParseException(String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpCommand.COMMAND_USAGE));
         }
 
         Index index = ParserUtil.parseIndex(preamble[0]);

@@ -19,7 +19,7 @@ public class FollowUpsCommandParserTest {
     private static final String DATE_ARGUMENT =
             " " + PREFIX_FOLLOW_UP_DATE + VALID_FOLLOW_UP_DATE;
     private static final String INVALID_FORMAT_MESSAGE =
-            String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.MESSAGE_USAGE);
+            String.format(MESSAGE_INVALID_COMMAND_FORMAT, FollowUpsCommand.COMMAND_USAGE);
 
     private final FollowUpsCommandParser parser = new FollowUpsCommandParser();
 

@@ -23,7 +23,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
    A GUI similar to the one below should appear in a few seconds. Note how the app contains some sample data.<br>
    ![Ui](images/Ui.png)
 
-1. Type a command in the command box and press Enter to execute it. For example, type **`help`** and press Enter to open the help window.<br>
+1. Type a command in the command box and press Enter to execute it. For example, type **`help`** and press Enter to open the full help window, or type **`help add`** to see the `add` command's usage in the result display.<br>
    Some example commands you can try:
 
    * `list` : Lists all contacts.
@@ -58,10 +58,11 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 * Unless stated otherwise, parameters can be in any order.<br>
   For `sort`, field order determines sorting priority.
 
-* Extraneous parameters for commands that take no parameters are ignored.<br>
-  For example, `help 123` is interpreted as `help`.
+* The optional argument to `help` is treated as a command name. For example, `help add` displays the `add` command's usage; an unsupported target such as `help 123` displays guidance instead of opening the full help window.
 * For `list`, additional arguments are ignored and a warning is displayed.
   For example, `list 3` lists all contacts and does not navigate to contact 3.
+* For `clear`, additional arguments are ignored and a warning is displayed.
+  For example, `clear 1` clears all entries and does not delete only contact 1.
 * For `exit`, a message explains that any extra text is ignored before the application closes.
 
 * If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
@@ -104,6 +105,8 @@ Clears all entries from KeyBossWarriorsPro.
 **Format:** `clear`
 
 * If KeyBossWarriorsPro is already empty (contains 0 contacts), no entries are cleared, the undo/redo history is preserved, and the message `KeyBossWarriorsPro is already empty; no contacts were cleared.` is shown.
+* Additional arguments are ignored and a warning is displayed. For example, `clear 1` or `clear all` clears all contacts and warns that the additional arguments were ignored.
+
 
 
 ### Deleting a contact: `delete`
@@ -230,14 +233,15 @@ Examples:
 
 ### Undoing a change: `undo`
 
-Reverses the most recent successful modifying command (`add`, `delete`, `edit`, or `clear`).
+Reverses the most recent successful modifying command (`add`, `delete`, `edit`, `clear`, or `followup`).
 
 **Format:** `undo`
 
 * Each `undo` reverses one modifying command. You can undo repeatedly until you reach the start of the current session.
+* Undoing `followup` restores the contact's previous follow-up. If none existed, the newly added follow-up is removed. Undoing `followup INDEX clear` restores the cleared follow-up.
 * Successful undo displays `Undo success!` and resets the view to show all contacts.
 * If no changes can be undone, the application displays `No more commands to undo!`.
-* Commands such as `find`, `list`, and `help` are not undone.
+* Commands such as `find`, `list`, `help`, and the `followups` query do not create undoable changes.
 * Undo history is cleared when you close the application. Changes from previous sessions cannot be undone.
 * Additional arguments, such as `undo 2`, are rejected.
 
@@ -245,6 +249,11 @@ Example:
 
 1. `delete 1` deletes the first displayed contact.
 2. `undo` restores the deleted contact and displays all contacts.
+
+Follow-up example:
+
+1. `followup 1 by/2026-11-01 abt/Confirm quotation` sets or replaces the first displayed contact's follow-up.
+2. `undo` restores that contact's previous follow-up, or removes the new follow-up if none existed before.
 
 ### Redoing a change: `redo`
 
@@ -381,13 +390,36 @@ Displays all contacts sorted by name, role, or both, making it easier to browse 
 * The selected sort order lasts until the application closes. After
   restarting, contacts appear in their saved order until sorted again.
 
-### Viewing help: `help`
+### Viewing help: `help [COMMAND]`
 
-Opens the help window, which lists the available commands and their usage instructions. For detailed explanations and examples, refer to this user guide.
+Use `help` on its own to open the full help window, which lists all commands. Use `help COMMAND` to display a command's usage directly in the result display without opening the window. Targeted help is available for `add`, `clear`, `delete`, `edit`, `exit`, `find`, `followup`, `followups`, `help`, `list`, `redo`, `sort`, and `undo`. For detailed explanations and examples, refer to this user guide.
 
-![help message](images/help.png)
+![Help window showing commands for managing contacts](images/help.png)
 
-**Format:** `help`
+![Help window scrolled down to follow-up queries, undo and redo, and application commands](images/help-continued.png)
+
+**Format:** `help [COMMAND]`
+
+The full help window groups commands into four categories:
+
+| Category | Purpose | Commands |
+| --- | --- | --- |
+| Manage contacts | Add, update, or remove contact data, including follow-ups. | `add`, `edit`, `delete`, `clear`, `followup` |
+| Browse contacts | View, filter, or sort contacts without changing their data. | `list`, `find`, `sort`, `followups` |
+| Undo and redo | Reverse or restore contact changes. | `undo`, `redo` |
+| Application | View help or exit the application. | `help`, `exit` |
+
+Help text follows the same format in the full help window and the result display:
+
+* Commands without parameters (`clear`, `exit`, `list`, `redo`, and `undo`) show only a brief description, with no parameter or example details.
+* Commands with required or optional parameters show a description, parameter syntax, and examples. This includes `help`, `sort`, and `followups`, which can also be used without arguments.
+
+Examples:
+
+* `help` opens the full help window.
+* `help add` displays the usage, parameters, and an example for `add` in the result display.
+* `help undo` displays a brief description of `undo`, without parameters or an example.
+* `help unknown` displays guidance and lists the commands with targeted help.
 
 
 ### Listing all contacts: `list`
@@ -472,6 +504,8 @@ Action | Format, Examples
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]…​ [dt/TAG_TO_DELETE]…​`<br> e.g., `edit 1 t/solderer dt/trainee` (requires contact 1 to have `trainee`)
 **Exit** | `exit` 
+**Find** | `find KEYWORD [MORE_KEYWORDS]`<br> e.g., `find James Jake`
+**Help** | `help [COMMAND]`<br> e.g., `help add` displays the `add` command's usage in the result display; `help` opens the full help window.
 **Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...` or `find KEYWORD [MORE_KEYWORDS]` (Legacy Search)<br> e.g., `find n/John r/Supplier`, `find James Jake`
 **Help** | `help`
 **List** | `list`

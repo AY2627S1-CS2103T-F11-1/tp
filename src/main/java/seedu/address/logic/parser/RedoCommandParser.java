@@ -25,7 +25,7 @@ public class RedoCommandParser implements Parser<RedoCommand> {
         String trimmedArgs = args.trim();
         if (!trimmedArgs.isEmpty()) {
             throw new ParseException(
-                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, RedoCommand.MESSAGE_USAGE));
+                    String.format(MESSAGE_INVALID_COMMAND_FORMAT, RedoCommand.COMMAND_USAGE));
         }
         return new RedoCommand();
     }
