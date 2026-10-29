@@ -135,8 +135,13 @@ suppresses native ListView selection notifications during that execution, preven
 from being published. In a `finally` block, `MainWindow` applies the command's selection change and calls
 `PersonListPanel#endCommand(Person)`. The panel searches the current displayed list by object identity and selects the
 resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
-equal but distinct replacement objects. Before scrolling, it resolves pending list styling and layout so newly added
-rows are positioned using current dimensions. This retains visible contacts across filtering, sorting, and unrelated changes;
+equal but distinct replacement objects. It resolves pending styling/layout and scrolls immediately, then checks the
+actual live row against the clipped viewport after layout. A request finishes after two consecutive visible layout
+passes and makes at most three corrective scrolls. Each pulse performs one scrolling operation: a stale native item
+count uses the list's index-scroll event; otherwise first/last rows use the viewport's start/end position and other
+rows use measured native scrolling. Requests retain the exact contact reference and re-find its current index.
+Later commands, selection changes, mouse/key/wheel interaction, scene changes, and window closure cancel pending
+scrolling, removing the scene and window listeners. This retains visible contacts across filtering, sorting, and unrelated changes;
 it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
 path still conservatively clear selection. Model and Storage data structures remain unchanged.
 `CommandResult` supports an optional exact-contact selection request. `SelectCommand` supplies the contact resolved
@@ -199,6 +204,9 @@ Tests cover the command through the real parser, logic, storage, and JavaFX UI p
   A package-private parser-injection constructor also supports isolated command-result tests.
 * `MainWindowTest`: focus, duplicate names, invalid-input recovery, empty results, edits/deletion after selection,
   saving errors, off-screen and newly added rows, and repeated selection retaining the details scroll position.
+  Visibility checks wait for the real viewport row rather than a fixed number of frames, without issuing extra scrolls.
+  Regression tests cover dropped index-scroll events, stale endpoint offsets, transient visibility, and cancellation
+  after another command, selection, or manual scroll. Failures report the target/selected indexes and visible row bounds.
 * `HelpCommandTest` and `HelpWindowTest`: targeted usage, supported-command guidance, browse-category placement,
   formatting, and absence of a selection side effect.
 

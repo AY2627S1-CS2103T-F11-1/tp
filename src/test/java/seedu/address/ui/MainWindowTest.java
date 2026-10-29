@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -37,9 +38,11 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ScrollToEvent;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -345,9 +348,82 @@ public class MainWindowTest {
     }
 
     private ListCell<?> contactCell(Person person) {
-        return (ListCell<?>) contactList().lookupAll(".list-cell").stream()
-                .filter(node -> node instanceof ListCell<?> cell && cell.getItem() == person && cell.isVisible())
-                .findFirst().orElseThrow();
+        ListCell<?> cell = findContactCell(person);
+        if (cell == null) {
+            throw new AssertionError(contactRowDiagnostics(person));
+        }
+        return cell;
+    }
+
+    private ListCell<?> findContactCell(Person person) {
+        VirtualFlow<?> flow = (VirtualFlow<?>) contactList().lookup(".virtual-flow");
+        int index = contactList().getItems().indexOf(person);
+        if (flow != null && index >= 0 && flow.getVisibleCell(index) instanceof ListCell<?> cell
+                && cell.getItem() == person && cell.isVisible()) {
+            return cell;
+        }
+        return null;
+    }
+
+    private Bounds contactViewportBounds() {
+        Node viewport = contactList().lookup(".clipped-container");
+        return viewport.localToScene(viewport.getLayoutBounds());
+    }
+
+    /**
+     * Waits for the requested row to fit in the list for two consecutive frames, without issuing another scroll.
+     */
+    private void awaitContactRowVisible(int index, String operation) throws Exception {
+        CompletableFuture<String> result = new CompletableFuture<>();
+        AnimationTimer[] timer = new AnimationTimer[1];
+        runOnFxThread(() -> {
+            Person person = (Person) contactList().getItems().get(index);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            timer[0] = new AnimationTimer() {
+                private int visibleFrames;
+
+                @Override
+                public void handle(long now) {
+                    ListCell<?> cell = findContactCell(person);
+                    Bounds listBounds = contactViewportBounds();
+                    Bounds rowBounds = cell == null ? null : cell.localToScene(cell.getLayoutBounds());
+                    boolean visible = rowBounds != null && cell.getHeight() > 0
+                            && rowBounds.getMinY() >= listBounds.getMinY() - 1
+                            && rowBounds.getMaxY() <= listBounds.getMaxY() + 1;
+                    visibleFrames = visible ? visibleFrames + 1 : 0;
+                    if (visibleFrames >= 2) {
+                        stop();
+                        result.complete(null);
+                    } else if (System.nanoTime() >= deadline) {
+                        stop();
+                        String diagnostics = contactRowDiagnostics(person);
+                        result.complete("Timed out " + operation + ": " + diagnostics);
+                    }
+                }
+            };
+            timer[0].start();
+        });
+        try {
+            String failure = result.get(12, TimeUnit.SECONDS);
+            assertNull(failure, failure);
+        } finally {
+            runOnFxThread(() -> timer[0].stop());
+        }
+    }
+
+    private String contactRowDiagnostics(Person person) {
+        List<String> rows = contactList().lookupAll(".list-cell").stream()
+                .filter(node -> node instanceof ListCell<?> cell && cell.isVisible() && !cell.isEmpty())
+                .map(node -> {
+                    ListCell<?> cell = (ListCell<?>) node;
+                    Bounds bounds = cell.localToScene(cell.getLayoutBounds());
+                    return cell.getIndex() + " at y=" + bounds.getMinY() + ".." + bounds.getMaxY();
+                }).toList();
+        return "Expected visible contact '" + person.getName().fullName + "', target index="
+                + contactList().getItems().indexOf(person) + ", selected index="
+                + contactList().getSelectionModel().getSelectedIndex() + ", window="
+                + stage.getWidth() + "x" + stage.getHeight() + ", list bounds="
+                + contactList().localToScene(contactList().getLayoutBounds()) + ", visible rows=" + rows;
     }
 
     private void assertDetailsName(String expected) {
@@ -680,7 +756,7 @@ public class MainWindowTest {
             command.requestFocus();
             submitCommand("select 41");
         });
-        awaitLayout();
+        awaitContactRowVisible(40, "after selecting the off-screen contact");
         runOnFxThread(() -> {
             assertSelected(target);
             assertContactRowVisible(target);
@@ -688,12 +764,12 @@ public class MainWindowTest {
             details.setVvalue(1);
             contactList().scrollTo(0);
         });
-        awaitLayout();
+        awaitContactRowVisible(0, "after scrolling away from the selected contact");
         runOnFxThread(() -> {
             assertSelected(target);
             submitCommand("select 41");
         });
-        awaitLayout();
+        awaitContactRowVisible(40, "after repeating selection of the off-screen contact");
         runOnFxThread(() -> {
             assertSelected(target);
             assertContactRowVisible(target);
@@ -707,7 +783,7 @@ public class MainWindowTest {
             assertSelected(target);
             submitCommand("select 42");
         });
-        awaitLayout();
+        awaitContactRowVisible(41, "after adding and immediately selecting a contact");
         runOnFxThread(() -> {
             Person appended = (Person) contactList().getItems().get(41);
             assertEquals("Appended Supplier", appended.getName().fullName);
@@ -716,9 +792,175 @@ public class MainWindowTest {
         });
     }
 
+    @Test
+    public void deferredScrolling_droppedRequests_revealsContactAndStopsRetrying() throws Exception {
+        int[] droppedRequests = {0};
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            for (int i = 0; i < 40; i++) {
+                model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").build());
+            }
+            initializeMainWindow(model);
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
+                if (event.getScrollTarget() == 19 || event.getScrollTarget() == 39) {
+                    droppedRequests[0]++;
+                    event.consume();
+                }
+            });
+        });
+        awaitContactRowVisible(0, "before checking dropped native scroll requests");
+        for (int index : new int[] {19, 39}) {
+            runOnFxThread(() -> submitCommand("select " + (index + 1)));
+            awaitContactRowVisible(index, "after the native index-scroll requests were dropped");
+            runOnFxThread(() -> {
+                assertSelected((Person) contactList().getItems().get(index));
+                assertContactRowVisible((Person) contactList().getItems().get(index));
+            });
+        }
+        runOnFxThread(() -> {
+            assertTrue(droppedRequests[0] > 0);
+            assertSelected((Person) contactList().getItems().get(39));
+            assertContactRowVisible((Person) contactList().getItems().get(39));
+            contactList().scrollTo(0);
+        });
+        awaitContactRowVisible(0, "after scrolling away from the completed selection request");
+        awaitLayout();
+        runOnFxThread(() -> assertContactRowVisible((Person) contactList().getItems().getFirst()));
+    }
+
+    @Test
+    public void deferredScrolling_transientVisibility_checksAgainBeforeStopping() throws Exception {
+        boolean[] shifted = {false};
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            for (int i = 0; i < 40; i++) {
+                model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").build());
+            }
+            initializeMainWindow(model);
+        });
+        awaitContactRowVisible(0, "before checking transient row visibility");
+        runOnFxThread(() -> {
+            submitCommand("select 40");
+            // Run after the request's first visibility check, simulating a subsequent native layout correction.
+            stage.getScene().addPostLayoutPulseListener(new Runnable() {
+                @Override
+                public void run() {
+                    shifted[0] = true;
+                    contactList().scrollTo(0);
+                    stage.getScene().removePostLayoutPulseListener(this);
+                }
+            });
+        });
+        awaitContactRowVisible(39, "after a native layout correction moved the selected row away");
+        runOnFxThread(() -> {
+            assertTrue(shifted[0]);
+            assertSelected((Person) contactList().getItems().get(39));
+            assertContactRowVisible((Person) contactList().getItems().get(39));
+        });
+    }
+
+    @Test
+    public void deferredScrolling_lastRow_recoversWithoutRepeatingStaleIndexScrolls() throws Exception {
+        int[] indexRequests = {0};
+        int[] requestsBeforeLayout = {0};
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            for (int i = 0; i < 40; i++) {
+                model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").withTags("X".repeat(50), "switches").build());
+            }
+            initializeMainWindow(model);
+            contactList().setMinSize(335, 321);
+            contactList().setPrefSize(335, 321);
+            contactList().setMaxSize(335, 321);
+        });
+        awaitContactRowVisible(0, "before checking stale endpoint scroll estimates");
+        runOnFxThread(() -> {
+            VirtualFlow<?> flow = (VirtualFlow<?>) contactList().lookup(".virtual-flow");
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
+                if (event.getScrollTarget() == 39) {
+                    indexRequests[0]++;
+                    // Simulate the next layout restoring an outdated offset after each index-scroll request.
+                    stage.getScene().addPostLayoutPulseListener(new Runnable() {
+                        @Override
+                        public void run() {
+                            flow.setPosition(0.97);
+                            stage.getScene().removePostLayoutPulseListener(this);
+                        }
+                    });
+                }
+            });
+            submitCommand("select 40");
+            requestsBeforeLayout[0] = indexRequests[0];
+        });
+        awaitContactRowVisible(39, "after correcting a stale scroll estimate for the last row");
+        runOnFxThread(() -> {
+            assertTrue(requestsBeforeLayout[0] > 0);
+            assertEquals(requestsBeforeLayout[0], indexRequests[0],
+                    "Recovery should not restart the stale index-scroll operation");
+            assertSelected((Person) contactList().getItems().get(39));
+            assertContactRowVisible((Person) contactList().getItems().get(39));
+        });
+    }
+
+    @Test
+    public void deferredScrolling_laterCommandsSelectionAndManualScrolling_cancelOldRequests() throws Exception {
+        Person[] last = new Person[1];
+        int[] scrollRequests = {0};
+        int[] requestsBeforeLayout = {0};
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(ALICE);
+            for (int i = 1; i < 40; i++) {
+                last[0] = new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").build();
+                model.addPerson(last[0]);
+            }
+            initializeMainWindow(model);
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
+                if (event.getScrollTarget() == 39) {
+                    scrollRequests[0]++;
+                    event.consume();
+                }
+            });
+        });
+        awaitContactRowVisible(0, "before checking cancellation of delayed scrolling");
+        for (String action : List.of("command", "selection", "scroll")) {
+            runOnFxThread(() -> {
+                submitCommand("select 40");
+                assertSelected(last[0]);
+                if (action.equals("command")) {
+                    submitCommand("select 1");
+                } else if (action.equals("selection")) {
+                    contactList().getSelectionModel().select(0);
+                } else {
+                    scrollDown(contactList().lookup(".virtual-flow"));
+                }
+                requestsBeforeLayout[0] = scrollRequests[0];
+            });
+            awaitLayout();
+            awaitLayout();
+            runOnFxThread(() -> {
+                assertEquals(requestsBeforeLayout[0], scrollRequests[0],
+                        "An old delayed scroll should not run after a later " + action);
+                if (action.equals("scroll")) {
+                    assertSelected(last[0]);
+                    assertTrue(scrollBar(contactList(), Orientation.VERTICAL).getValue() > 0,
+                            "Manual scrolling should be preserved");
+                    assertNull(findContactCell(last[0]), "Manual scrolling must not jump back to the last contact");
+                } else {
+                    assertSelected(ALICE);
+                    assertContactRowVisible(ALICE);
+                }
+            });
+        }
+    }
+
     private void assertContactRowVisible(Person person) {
         Bounds row = contactCell(person).localToScene(contactCell(person).getLayoutBounds());
-        Bounds list = contactList().localToScene(contactList().getLayoutBounds());
+        Bounds list = contactViewportBounds();
         assertTrue(row.getMinY() >= list.getMinY() - 1, "The selected row should not be clipped at the top");
         assertTrue(row.getMaxY() <= list.getMaxY() + 1, "The selected row should not be clipped at the bottom");
     }
