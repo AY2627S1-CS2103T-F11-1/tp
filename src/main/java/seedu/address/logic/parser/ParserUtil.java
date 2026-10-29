@@ -25,8 +25,7 @@ import seedu.address.model.tag.Tag;
  */
 public class ParserUtil {
 
-    public static final String MESSAGE_INVALID_INDEX = "Error: INDEX must be a whole number between 1 and "
-            + Integer.MAX_VALUE + ".";
+    public static final String MESSAGE_INVALID_INDEX = Messages.MESSAGE_INVALID_INDEX;
 
     public static final String MESSAGE_INVALID_FOLLOW_UP_DATE =
             "Follow-up dates must be valid calendar dates in YYYY-MM-DD format.";

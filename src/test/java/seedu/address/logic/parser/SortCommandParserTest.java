@@ -105,6 +105,6 @@ public class SortCommandParserTest {
     public void messages_useLowercaseCommandWord() {
         assertEquals("sort accepts each field only once: %s.", SortCommand.MESSAGE_DUPLICATE_FIELD);
         assertEquals("sort does not accept values after %s.", SortCommand.MESSAGE_UNEXPECTED_VALUE);
-        assertEquals("sort expects n/ or r/, but received: %s.", SortCommand.MESSAGE_UNEXPECTED_TOKEN);
+        assertEquals("sort expects clear, n/, or r/, but received: %s.", SortCommand.MESSAGE_UNEXPECTED_TOKEN);
     }
 }

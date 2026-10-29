@@ -20,7 +20,7 @@ public class ListCommand extends Command {
 
     public static final String MESSAGE_NO_CONTACTS = Messages.MESSAGE_NO_CONTACTS_FOUND;
 
-    public static final String MESSAGE_IGNORED_ARGUMENTS = "Warning: Additional arguments after list were ignored.";
+    public static final String MESSAGE_IGNORED_ARGUMENTS = "Warning: additional arguments after list were ignored.";
 
     private final boolean hasExtraArgs;
 

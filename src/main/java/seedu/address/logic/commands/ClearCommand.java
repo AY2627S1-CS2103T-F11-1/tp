@@ -19,7 +19,7 @@ public class ClearCommand extends Command {
     public static final String MESSAGE_EMPTY_ADDRESS_BOOK =
             "KeyBossWarriorsPro is already empty; no contacts were cleared.";
     public static final String MESSAGE_IGNORED_ARGUMENTS =
-            "Warning: Additional arguments after clear were ignored.";
+            "Warning: additional arguments after clear were ignored.";
 
     private final boolean hasExtraArgs;
 

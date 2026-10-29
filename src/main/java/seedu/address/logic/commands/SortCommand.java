@@ -38,13 +38,13 @@ public class SortCommand extends Command {
             "sort does not accept values after %s.";
 
     public static final String MESSAGE_UNEXPECTED_TOKEN =
-            "Error: SORT expects clear, n/, or r/, but received: %s";
+            "sort expects clear, n/, or r/, but received: %s.";
 
     public static final String MESSAGE_CLEAR_SUCCESS =
             "Sorting cleared. Contacts will be displayed in insertion order.";
 
     public static final String MESSAGE_CLEAR_WITH_FIELDS =
-            "SORT clear does not take any extra arguments.";
+            "sort clear does not take any extra arguments.";
 
     /**
      * Fields supported for sorting contacts.

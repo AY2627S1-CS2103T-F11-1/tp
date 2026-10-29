@@ -16,7 +16,8 @@ public class Messages {
     public static final String MESSAGE_UNKNOWN_COMMAND = "Unknown command.";
     public static final String MESSAGE_INVALID_COMMAND_FORMAT = "Invalid command format!\n%1$s";
     public static final String MESSAGE_INDEX_REQUIRED = "INDEX is required.";
-    public static final String MESSAGE_INVALID_INDEX = "INDEX must be a positive integer.";
+    public static final String MESSAGE_INVALID_INDEX = "INDEX must be a whole number between 1 and "
+            + Integer.MAX_VALUE + ".";
     public static final String MESSAGE_NO_CONTACTS_DISPLAYED = "No contacts are currently displayed.";
     public static final String MESSAGE_NO_CONTACTS_FOUND = "No contacts found.";
     public static final String MESSAGE_NO_FOLLOW_UPS_FOUND = "No follow-ups found.";
