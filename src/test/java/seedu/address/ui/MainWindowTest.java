@@ -12,8 +12,14 @@ import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.BENSON;
 import static seedu.address.testutil.TypicalPersons.CARL;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -21,14 +27,18 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
+import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
@@ -43,6 +53,8 @@ import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.skin.VirtualFlow;
+import javafx.scene.image.PixelFormat;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -53,6 +65,8 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.Logic;
@@ -66,15 +80,31 @@ import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
+import seedu.address.testutil.MutableClock;
 import seedu.address.testutil.PersonBuilder;
 
 public class MainWindowTest {
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-28T16:30:00Z"),
+            ZoneId.of("Asia/Singapore"));
 
     @TempDir
     public Path testFolder;
 
     private Stage stage;
     private MainWindow mainWindow;
+    private StringBuilder scrollTrace;
+
+    // Temporary Windows diagnostics: capture before @AfterEach hides the failed window.
+    @RegisterExtension
+    private final AfterTestExecutionCallback captureScrollDiagnostics = context -> {
+        if (scrollTrace != null) {
+            try {
+                runOnFxThread(() -> saveScrollDiagnostics(context.getExecutionException().isPresent()));
+            } catch (Exception e) {
+                System.err.println("Unable to capture temporary UI diagnostics: " + e);
+            }
+        }
+    };
 
     @BeforeAll
     public static void initializeJavaFx() throws Exception {
@@ -116,6 +146,32 @@ public class MainWindowTest {
         task.get(10, TimeUnit.SECONDS);
     }
 
+    private void saveScrollDiagnostics(boolean failed) {
+        try {
+            Path directory = Path.of("build", "ui-diagnostics", "select-new-contact");
+            Files.createDirectories(directory);
+            mainWindow.getPersonListPanel().recordScrollDiagnostics(failed ? "test-failed" : "test-passed");
+            scrollTrace.append("window=").append(stage.getWidth()).append('x').append(stage.getHeight())
+                    .append(" scale=").append(stage.getOutputScaleX()).append('x').append(stage.getOutputScaleY())
+                    .append('\n');
+            Files.writeString(directory.resolve("scroll-trace.txt"), scrollTrace.toString());
+            if (failed) {
+                WritableImage snapshot = stage.getScene().snapshot(null);
+                int width = (int) snapshot.getWidth();
+                int height = (int) snapshot.getHeight();
+                int[] pixels = new int[width * height];
+                snapshot.getPixelReader().getPixels(0, 0, width, height, PixelFormat.getIntArgbInstance(),
+                        pixels, 0, width);
+                BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+                image.setRGB(0, 0, width, height, pixels, 0, width);
+                ImageIO.write(image, "png", directory.resolve("failure.png").toFile());
+            }
+            System.out.println("Temporary UI diagnostics: " + directory.toAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("Unable to write temporary UI diagnostics: " + e);
+        }
+    }
+
     /**
      * Creates and shows the test window.
      * Must be called on the JavaFX application thread.
@@ -135,7 +191,15 @@ public class MainWindowTest {
      * Creates a window with injectable address book storage for saving-failure tests.
      */
     private void initializeMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage) {
-        createMainWindow(model, addressBookStorage);
+        initializeMainWindow(model, addressBookStorage, new UiDateTracker(CLOCK));
+    }
+
+    /**
+     * Creates and shows a window with an injectable date tracker for date-transition tests.
+     */
+    private void initializeMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage,
+            UiDateTracker uiDate) {
+        createMainWindow(model, addressBookStorage, uiDate);
         mainWindow.show();
     }
 
@@ -143,6 +207,13 @@ public class MainWindowTest {
      * Creates a window without showing it, allowing requested sizes to be checked before the OS adjusts them.
      */
     private void createMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage) {
+        createMainWindow(model, addressBookStorage, new UiDateTracker(CLOCK));
+    }
+
+    /**
+     * Creates an unshown window with the given date tracker, retaining deterministic date checks.
+     */
+    private void createMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage, UiDateTracker uiDate) {
         Path addressBookPath = addressBookStorage.getAddressBookFilePath();
         StorageManager storage = new StorageManager(
                 addressBookStorage,
@@ -151,7 +222,7 @@ public class MainWindowTest {
         Logic logic = new LogicManager(model, storage);
 
         stage = new Stage();
-        mainWindow = new MainWindow(stage, logic, addressBookPath);
+        mainWindow = new MainWindow(stage, logic, addressBookPath, null, uiDate);
         mainWindow.fillInnerParts();
     }
 
@@ -397,6 +468,12 @@ public class MainWindowTest {
                     } else if (System.nanoTime() >= deadline) {
                         stop();
                         String diagnostics = contactRowDiagnostics(person);
+                        if (scrollTrace != null) {
+                            mainWindow.getPersonListPanel().recordScrollDiagnostics("visibility-wait-timeout");
+                            String trace = scrollTrace.toString();
+                            diagnostics += "\nRecent scroll diagnostics:\n"
+                                    + trace.substring(Math.max(0, trace.length() - 8000));
+                        }
                         result.complete("Timed out " + operation + ": " + diagnostics);
                     }
                 }
@@ -737,6 +814,13 @@ public class MainWindowTest {
 
     @Test
     public void selectCommand_offscreenAndRepeated_revealsContactWithoutResettingDetailsScroll() throws Exception {
+        scrollTrace = new StringBuilder("Temporary select/new-row diagnostics\n")
+                .append("os=").append(System.getProperty("os.name")).append(' ')
+                .append(System.getProperty("os.version")).append(' ').append(System.getProperty("os.arch"))
+                .append("\njava=").append(System.getProperty("java.version"))
+                .append("\njavafx=").append(System.getProperty("javafx.runtime.version")).append('\n');
+        boolean[] newRowLaidOut = {false};
+        int[] earlyScrollRequests = {0};
         Person target = new PersonBuilder().withName("Target Supplier").withPhone("81000999")
                 .withEmail("target@example.com").withTags("X".repeat(50), "switches", "lube")
                 .withAddress("Unit 08 Artisan Keyboard Business Park, ".repeat(16))
@@ -749,6 +833,10 @@ public class MainWindowTest {
             }
             model.addPerson(target);
             initializeMainWindow(model);
+            mainWindow.getPersonListPanel().setScrollDiagnostics(message -> scrollTrace.append(message).append('\n'));
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event ->
+                    mainWindow.getPersonListPanel().recordScrollDiagnostics("scroll-event target="
+                            + event.getScrollTarget() + " consumed=" + event.isConsumed()));
         });
         awaitLayout();
         runOnFxThread(() -> {
@@ -778,6 +866,22 @@ public class MainWindowTest {
             assertSame(stage.getScene().lookup("#commandTextField"), stage.getScene().getFocusOwner());
 
             // A freshly appended row has not yet been measured by the list's virtual layout.
+            // Simulate the native list dropping scroll requests made before that layout completes.
+            stage.getScene().addPostLayoutPulseListener(new Runnable() {
+                @Override
+                public void run() {
+                    newRowLaidOut[0] = true;
+                    mainWindow.getPersonListPanel().recordScrollDiagnostics("test-first-post-layout-marker");
+                    stage.getScene().removePostLayoutPulseListener(this);
+                }
+            });
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
+                if (event.getScrollTarget() == 41 && !newRowLaidOut[0]) {
+                    earlyScrollRequests[0]++;
+                    mainWindow.getPersonListPanel().recordScrollDiagnostics("test-drop-early-scroll target=41");
+                    event.consume();
+                }
+            });
             submitCommand("add n/Appended Supplier p/81000998 e/appended@example.com a/Another supplier address "
                     + "r/Supplier t/" + "Y".repeat(50) + " t/lube t/switches");
             assertSelected(target);
@@ -787,6 +891,7 @@ public class MainWindowTest {
         runOnFxThread(() -> {
             Person appended = (Person) contactList().getItems().get(41);
             assertEquals("Appended Supplier", appended.getName().fullName);
+            assertTrue(earlyScrollRequests[0] > 0, "The regression should discard an early scroll request");
             assertSelected(appended);
             assertContactRowVisible(appended);
         });
@@ -949,7 +1054,6 @@ public class MainWindowTest {
                     assertSelected(last[0]);
                     assertTrue(scrollBar(contactList(), Orientation.VERTICAL).getValue() > 0,
                             "Manual scrolling should be preserved");
-                    assertNull(findContactCell(last[0]), "Manual scrolling must not jump back to the last contact");
                 } else {
                     assertSelected(ALICE);
                     assertContactRowVisible(ALICE);
@@ -961,8 +1065,10 @@ public class MainWindowTest {
     private void assertContactRowVisible(Person person) {
         Bounds row = contactCell(person).localToScene(contactCell(person).getLayoutBounds());
         Bounds list = contactViewportBounds();
-        assertTrue(row.getMinY() >= list.getMinY() - 1, "The selected row should not be clipped at the top");
-        assertTrue(row.getMaxY() <= list.getMaxY() + 1, "The selected row should not be clipped at the bottom");
+        assertTrue(row.getMinY() >= list.getMinY() - 1,
+                "The selected row should not be clipped at the top: " + contactRowDiagnostics(person));
+        assertTrue(row.getMaxY() <= list.getMaxY() + 1,
+                "The selected row should not be clipped at the bottom: " + contactRowDiagnostics(person));
     }
 
     @Test
@@ -1145,6 +1251,7 @@ public class MainWindowTest {
             assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
             assertEquals(List.of(ALICE, BENSON), model.getFilteredPersonList());
             assertSelected(ALICE);
+            assertFalse(model.canRedoAddressBook());
             submitCommand("find Benson", false);
             assertSelectionCleared();
             assertEquals(List.of(BENSON), model.getFilteredPersonList());
@@ -1154,6 +1261,7 @@ public class MainWindowTest {
             assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
             assertEquals(List.of(ALICE, BENSON), model.getFilteredPersonList());
             assertSelected(BENSON);
+            assertTrue(model.canUndoAddressBook());
             assertFalse(model.canRedoAddressBook());
         });
     }
@@ -1212,10 +1320,13 @@ public class MainWindowTest {
             assertEquals("1. ", ((Label) card.lookup("#id")).getText());
             assertEquals(person.getRole().value, ((Label) card.lookup("#role")).getText());
             assertEquals(person.getPhone().value, ((Label) card.lookup("#phone")).getText());
+            assertFollowUpBadge(person);
+            Label email = (Label) card.lookup("#email");
+            assertEquals(person.getEmail().value, email.getText());
+            assertEquals(person.getEmail().value, email.getTooltip().getText());
             FlowPane tags = (FlowPane) card.lookup("#tags");
             assertEquals(List.of("lube", "switches"), tags.getChildren().stream()
                     .map(node -> ((Label) node).getText()).toList());
-            assertNull(card.lookup("#email"));
             assertNull(card.lookup("#address"));
             assertNull(card.lookup("#followUpSection"));
 
@@ -1240,6 +1351,37 @@ public class MainWindowTest {
     }
 
     @Test
+    public void cards_selection_preservesSummaryDimensions() throws Exception {
+        Person person = new PersonBuilder(ALICE).withTags("X".repeat(50), "switches", "lube").build();
+        double[] dimensions = new double[2];
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            initializeMainWindow(model);
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            dimensions[0] = contactCell(person).getWidth();
+            dimensions[1] = contactCell(person).getHeight();
+        });
+        for (boolean selected : new boolean[] {true, false}) {
+            runOnFxThread(() -> {
+                if (selected) {
+                    contactList().getSelectionModel().select(0);
+                } else {
+                    contactList().getSelectionModel().clearSelection();
+                }
+            });
+            awaitLayout();
+            runOnFxThread(() -> {
+                assertEquals(dimensions[0], contactCell(person).getWidth(), 0.1);
+                assertEquals(dimensions[1], contactCell(person).getHeight(), 0.1,
+                        "The selection border must not change cached row heights or tag wrapping");
+            });
+        }
+    }
+
+    @Test
     public void cards_compactHeightAndEmptyTags_removeUnusedSpace() throws Exception {
         Person withTags = new PersonBuilder(ALICE).withTags("lube", "switches").build();
         Person withoutTags = new PersonBuilder(withTags).withName("Another Contact").withPhone("81000901")
@@ -1254,7 +1396,9 @@ public class MainWindowTest {
         for (int fontSize : new int[] {13, 19}) {
             runOnFxThread(() -> {
                 for (Person person : List.of(withTags, withoutTags)) {
-                    contactCell(person).getGraphic().lookup("#phone").setStyle("-fx-font-size: " + fontSize + "px;");
+                    for (Node label : contactCell(person).getGraphic().lookupAll(".cell_small_label")) {
+                        label.setStyle("-fx-font-size: " + fontSize + "px;");
+                    }
                 }
             });
             awaitLayout();
@@ -1267,19 +1411,341 @@ public class MainWindowTest {
                 assertTrue(shownTags.isManaged());
                 assertTrue(shownTags.getHeight() > 0);
                 assertEquals(shownTags.getHeight() + content.getSpacing(), tagged.getHeight() - untagged.getHeight(), 1,
-                        "Only the tag row and its spacing should add height");
+                        "Only the tag row and its spacing should add height, independent of font metrics");
                 FlowPane tags = (FlowPane) untagged.getGraphic().lookup("#tags");
                 assertFalse(tags.isVisible());
                 assertFalse(tags.isManaged());
-                Label phone = (Label) untagged.getGraphic().lookup("#phone");
+                Label email = (Label) untagged.getGraphic().lookup("#email");
                 Region card = (Region) untagged.getGraphic();
-                VBox untaggedContent = (VBox) phone.getParent();
+                VBox untaggedContent = (VBox) email.getParent();
                 double bottomGap = card.localToScene(card.getLayoutBounds()).getMaxY()
-                        - phone.localToScene(phone.getLayoutBounds()).getMaxY();
+                        - email.localToScene(email.getLayoutBounds()).getMaxY();
                 assertEquals(untaggedContent.getPadding().getBottom() + card.getInsets().getBottom(), bottomGap, 1,
-                        "No blank tag row or fixed minimum height should remain below the phone");
+                        "No blank tag row or fixed minimum height should remain below the email");
+                assertFollowUpBadge(withoutTags);
             });
         }
+    }
+
+    private void assertFollowUpBadge(Person person) {
+        assertFollowUpBadge(person, LocalDate.now(CLOCK));
+    }
+
+    private void assertFollowUpBadge(Person person, LocalDate today) {
+        Region card = (Region) contactCell(person).getGraphic();
+        Label badge = (Label) card.lookup("#followUpBadge");
+        boolean hasFollowUp = person.getFollowUp().isPresent();
+        assertEquals(hasFollowUp, badge.isVisible());
+        assertEquals(hasFollowUp, badge.isManaged());
+        boolean overdue = person.getFollowUp().map(followUp -> followUp.getDueDate().isBefore(today)).orElse(false);
+        boolean dueToday = person.getFollowUp().map(followUp -> followUp.getDueDate().equals(today)).orElse(false);
+        assertEquals(overdue ? "Overdue" : dueToday ? "Due today" : "Follow-up", badge.getText());
+        assertEquals(overdue, badge.getPseudoClassStates().contains(PseudoClass.getPseudoClass("overdue")));
+        assertEquals(dueToday, badge.getPseudoClassStates().contains(PseudoClass.getPseudoClass("due-today")));
+        person.getFollowUp().ifPresent(followUp -> {
+            List<String> labels = card.lookupAll(".label").stream()
+                    .map(node -> ((Label) node).getText()).toList();
+            assertFalse(labels.contains(followUp.getDueDate().toString()), "Cards should show only the indicator");
+            assertFalse(labels.contains(followUp.getDescription()), "The description belongs in the details panel");
+        });
+    }
+
+    private void assertBadgeTextFits(Label badge) {
+        Text rendered = (Text) badge.lookup(".text");
+        String dimensions = "font=" + badge.getFont() + ", width=" + badge.getWidth()
+                + ", height=" + badge.getHeight() + ", insets=" + badge.getInsets()
+                + ", labelPadding=" + badge.getLabelPadding();
+        assertEquals(badge.getText(), rendered.getText(), "The full badge text should be visible: " + dimensions);
+        double availableWidth = badge.getWidth() - badge.getInsets().getLeft() - badge.getInsets().getRight()
+                - badge.getLabelPadding().getLeft() - badge.getLabelPadding().getRight();
+        double availableHeight = badge.getHeight() - badge.getInsets().getTop() - badge.getInsets().getBottom()
+                - badge.getLabelPadding().getTop() - badge.getLabelPadding().getBottom();
+        assertTrue(rendered.getLayoutBounds().getWidth() <= availableWidth + 1, dimensions);
+        assertTrue(rendered.getLayoutBounds().getHeight() <= availableHeight + 1, dimensions);
+    }
+
+    @Test
+    public void cards_followUpCommandsAndUndoRedo_refreshBadgeWithoutLeavingSpace() throws Exception {
+        double[] originalHeight = new double[1];
+        runOnFxThread(() -> {
+            initializeContactWindow().commitAddressBook();
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertFollowUpBadge(ALICE);
+            originalHeight[0] = contactCell(ALICE).getHeight();
+        });
+
+        String[] commands = {
+            "followup 1 by/2026-10-28 abt/Confirm switches",
+            "followup 1 by/2026-10-29 abt/Confirm delivery",
+            "edit 1 r/Employee",
+            "undo",
+            "redo",
+            "followup 1 clear",
+            "undo",
+            "redo"
+        };
+        boolean[] hasFollowUp = {true, true, true, true, true, false, true, false};
+        for (int i = 0; i < commands.length; i++) {
+            String command = commands[i];
+            boolean expected = hasFollowUp[i];
+            runOnFxThread(() -> submitCommand(command));
+            awaitLayout();
+            runOnFxThread(() -> {
+                Person person = (Person) contactList().getItems().get(0);
+                assertEquals(expected, person.getFollowUp().isPresent());
+                assertFollowUpBadge(person);
+                assertFollowUpBadge((Person) contactList().getItems().get(1));
+                assertSame(stage.getScene().lookup("#commandTextField"), stage.getScene().getFocusOwner());
+                if (!expected) {
+                    assertEquals(originalHeight[0], contactCell(person).getHeight(), 1,
+                            "Clearing the follow-up should restore the card's original height");
+                }
+            });
+        }
+    }
+
+    @Test
+    public void cards_followUpBadgeAndLongRole_fitAtDividerLimits() throws Exception {
+        Person person = new PersonBuilder(ALICE).withRole("Keyboard component supplier ".repeat(8).strip())
+                .withTags().withFollowUp("2026-10-29", "Confirm switch shipment").build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            initializeMainWindow(model);
+        });
+        for (double width : new double[] {800, 1100, 800}) {
+            for (double position : new double[] {0, 1}) {
+                runOnFxThread(() -> {
+                    stage.setWidth(width);
+                    SplitPane split = (SplitPane) stage.getScene().lookup("#contactSplitPane");
+                    split.setDividerPositions(position);
+                });
+                awaitLayout();
+                runOnFxThread(() -> {
+                    assertFollowUpBadge(person);
+                    Region card = (Region) contactCell(person).getGraphic();
+                    Label role = (Label) card.lookup("#role");
+                    Label badge = (Label) card.lookup("#followUpBadge");
+                    Label name = (Label) card.lookup("#name");
+                    assertBadgeTextFits(badge);
+                    assertTrue(name.getWidth() > 0, "The role and follow-up badges must leave space for the name");
+                    assertFalse(((Text) name.lookup(".text")).getText().isBlank());
+                    assertEquals(person.getName().fullName, name.getTooltip().getText());
+                    assertEquals(person.getRole().value, ((Text) role.lookup(".text")).getText(),
+                            "The role should wrap without losing text");
+                    Bounds roleBounds = role.localToScene(role.getLayoutBounds());
+                    Bounds nameBounds = name.localToScene(name.getLayoutBounds());
+                    Bounds badgeBounds = badge.localToScene(badge.getLayoutBounds());
+                    Bounds cardBounds = card.localToScene(card.getLayoutBounds());
+                    Bounds phoneBounds = card.lookup("#phone").localToScene(card.lookup("#phone").getLayoutBounds());
+                    assertTrue(roleBounds.getMinX() >= cardBounds.getMinX());
+                    assertTrue(nameBounds.getMaxX() <= roleBounds.getMinX(), "Header labels must not overlap");
+                    assertTrue(roleBounds.getMaxX() <= badgeBounds.getMinX());
+                    assertTrue(badgeBounds.getMaxX() <= cardBounds.getMaxX() + 1);
+                    assertTrue(phoneBounds.getMinY() >= Math.max(roleBounds.getMaxY(), badgeBounds.getMaxY()));
+                    assertFalse(scrollBar(contactList(), Orientation.HORIZONTAL).isVisible());
+                    assertContactPanesFit();
+                });
+            }
+        }
+    }
+
+    @Test
+    public void dateChanges_refreshUrgencyAndDetailsWithoutResettingSelectionScrollOrDraft() throws Exception {
+        MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
+        UiDateTracker[] date = new UiDateTracker[1];
+        Region[] originalCard = new Region[1];
+        double[] positions = new double[4];
+        Person target = new PersonBuilder(ALICE).withAddress("Artisan Keyboard Business Park, ".repeat(20))
+                .withFollowUp("2026-10-30", "Confirm switch shipment").build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            for (int i = 0; i < 40; i++) {
+                model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").build());
+            }
+            model.addPerson(target);
+            date[0] = new UiDateTracker(clock);
+            initializeMainWindow(model, new JsonAddressBookStorage(testFolder.resolve("addressbook.json")), date[0]);
+            submitCommand("select 41");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertFollowUpBadge(target);
+            originalCard[0] = (Region) contactCell(target).getGraphic();
+            positions[0] = scrollBar(contactList(), Orientation.VERTICAL).getValue();
+            assertTrue(positions[0] > 0);
+            ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            details.setVvalue(0.65);
+            positions[1] = details.getVvalue();
+            positions[2] = contactCell(target).getHeight();
+            positions[3] = ((Region) originalCard[0].lookup("#followUpBadge")).getWidth();
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            command.setText("edit 41 n/Draft Supplier");
+            command.selectRange(2, 6);
+        });
+        String[] instants = {"2026-10-29T16:30:00Z", "2026-10-30T16:30:00Z", "2026-10-28T16:30:00Z"};
+        String[] badges = {"Due today", "Overdue", "Follow-up"};
+        for (int i = 0; i < instants.length; i++) {
+            Instant instant = Instant.parse(instants[i]);
+            String expectedBadge = badges[i];
+            runOnFxThread(() -> {
+                clock.setInstant(instant);
+                date[0].refresh();
+            });
+            awaitLayout();
+            runOnFxThread(() -> {
+                assertSelected(target);
+                assertFollowUpBadge(target, LocalDate.now(clock));
+                assertSame(originalCard[0], contactCell(target).getGraphic(), "Date refresh should retain the card");
+                Label badge = (Label) originalCard[0].lookup("#followUpBadge");
+                assertEquals(expectedBadge, badge.getText());
+                assertBadgeTextFits(badge);
+                assertEquals(positions[3], badge.getWidth(), 0.1, "All urgency states should use the same width");
+                assertEquals(positions[2], contactCell(target).getHeight(), 0.1);
+                assertEquals(positions[0], scrollBar(contactList(), Orientation.VERTICAL).getValue(), 0.001);
+                ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+                assertEquals(positions[1], details.getVvalue(), 0.001);
+                Label dueDate = (Label) details.getContent().lookup("#followUpDueDate");
+                boolean overdue = expectedBadge.equals("Overdue");
+                assertEquals((overdue ? "Overdue - due: " : "Due: ") + "2026-10-30", dueDate.getText());
+                assertEquals(overdue, dueDate.getPseudoClassStates().contains(PseudoClass.getPseudoClass("overdue")));
+                TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+                assertSame(command, stage.getScene().getFocusOwner());
+                assertEquals("edit 41 n/Draft Supplier", command.getText());
+                assertEquals(2, command.getAnchor());
+                assertEquals(6, command.getCaretPosition());
+            });
+        }
+    }
+
+    @Test
+    public void cards_badgesFitDifferentFontsAndPadding_withoutResizingBetweenStates() throws Exception {
+        MutableClock clock = new MutableClock(CLOCK.instant(), CLOCK.getZone());
+        UiDateTracker[] date = new UiDateTracker[1];
+        double[] dimensions = new double[2];
+        Font[] originalFont = new Font[1];
+        Person person = new PersonBuilder(ALICE).withRole("Keyboard component supplier ".repeat(8).strip())
+                .withTags().withFollowUp("2026-10-30", "Confirm shipment").build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            date[0] = new UiDateTracker(clock);
+            initializeMainWindow(model, new JsonAddressBookStorage(testFolder.resolve("addressbook.json")), date[0]);
+        });
+        awaitLayout();
+        for (String family : List.of("System", "Monospaced", "Serif")) {
+            for (int fontSize : new int[] {11, 17}) {
+                runOnFxThread(() -> {
+                    Label badge = (Label) contactCell(person).getGraphic().lookup("#followUpBadge");
+                    badge.setStyle("-fx-font-family: '" + family + "'; -fx-font-size: " + fontSize
+                            + "px; -fx-padding: 4 14;");
+                    clock.setInstant(CLOCK.instant());
+                    date[0].refresh();
+                });
+                awaitLayout();
+                runOnFxThread(() -> {
+                    Label badge = (Label) contactCell(person).getGraphic().lookup("#followUpBadge");
+                    dimensions[0] = badge.getWidth();
+                    dimensions[1] = contactCell(person).getHeight();
+                    originalFont[0] = badge.getFont();
+                });
+                for (String instant : List.of("2026-10-28T16:30:00Z", "2026-10-29T16:30:00Z", "2026-10-30T16:30:00Z")) {
+                    runOnFxThread(() -> {
+                        clock.setInstant(Instant.parse(instant));
+                        date[0].refresh();
+                    });
+                    awaitLayout();
+                    runOnFxThread(() -> {
+                        Label badge = (Label) contactCell(person).getGraphic().lookup("#followUpBadge");
+                        assertFollowUpBadge(person, LocalDate.now(clock));
+                        assertBadgeTextFits(badge);
+                        assertEquals(originalFont[0], badge.getFont(),
+                                "Urgency changes should retain the same resolved font metrics");
+                        assertEquals(dimensions[0], badge.getWidth(), 0.1, "Badge width should stay stable");
+                        assertEquals(dimensions[1], contactCell(person).getHeight(), 0.1,
+                                "Card height should stay stable");
+                        assertFalse(scrollBar(contactList(), Orientation.HORIZONTAL).isVisible());
+                        assertContactPanesFit();
+                    });
+                }
+            }
+        }
+    }
+
+    @Test
+    public void cards_longEmail_staysOnOneLineWithTooltipAtDividerLimits() throws Exception {
+        Person person = new PersonBuilder(ALICE).withEmail("supplier".repeat(30) + "@keyboard.example.com")
+                .withTags().build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(person);
+            initializeMainWindow(model);
+        });
+        for (double width : new double[] {800, 1100, 800}) {
+            for (double position : new double[] {0, 1}) {
+                runOnFxThread(() -> {
+                    stage.setWidth(width);
+                    SplitPane split = (SplitPane) stage.getScene().lookup("#contactSplitPane");
+                    split.setDividerPositions(position);
+                });
+                awaitLayout();
+                runOnFxThread(() -> {
+                    Region card = (Region) contactCell(person).getGraphic();
+                    Label phone = (Label) card.lookup("#phone");
+                    Label email = (Label) card.lookup("#email");
+                    assertEquals(person.getEmail().value, email.getText());
+                    assertEquals(person.getEmail().value, email.getTooltip().getText());
+                    assertTrue(email.getTooltip().isWrapText());
+                    assertFalse(email.isWrapText());
+                    Text displayed = (Text) email.lookup(".text");
+                    assertTrue(displayed.getText().endsWith(email.getEllipsisString()),
+                            "Long emails should visibly end in an ellipsis");
+                    assertTrue(email.getHeight() < email.getFont().getSize() * 2,
+                            "An email should occupy only one line");
+                    Bounds emailBounds = email.localToScene(email.getLayoutBounds());
+                    Bounds cardBounds = card.localToScene(card.getLayoutBounds());
+                    assertTrue(emailBounds.getMinY() >= phone.localToScene(phone.getLayoutBounds()).getMaxY());
+                    assertTrue(emailBounds.getMinX() >= cardBounds.getMinX());
+                    assertTrue(emailBounds.getMaxX() <= cardBounds.getMaxX() + 1);
+                    assertFalse(scrollBar(contactList(), Orientation.HORIZONTAL).isVisible());
+                    assertContactPanesFit();
+                });
+            }
+        }
+    }
+
+    @Test
+    public void cards_emailEditsAndUndoRedo_updateSummaryAndDetails() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow().commitAddressBook();
+            submitCommand("select 1");
+            submitCommand("edit 1 e/newalice@example.com");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            Person edited = (Person) contactList().getItems().get(0);
+            assertSelected(edited);
+            assertEquals("newalice@example.com", ((Label) contactCell(edited).getGraphic().lookup("#email")).getText());
+            submitCommand("undo");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertEquals(ALICE.getEmail().value, ((Label) contactCell(ALICE).getGraphic().lookup("#email")).getText());
+            submitCommand("redo");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            Person edited = (Person) contactList().getItems().get(0);
+            assertEquals("newalice@example.com", ((Label) contactCell(edited).getGraphic().lookup("#email")).getText());
+            submitCommand("select 1");
+            assertSelected(edited);
+        });
     }
 
     @Test

@@ -71,7 +71,22 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 ### Viewing contact details
 
 Click a contact in the list, or enter `select INDEX`, to display its full details in the panel on the right.
-List cards show the name, role, phone number, and tags. Long names use an ellipsis; hover over a name to read it in full.
+List cards show the name, role, phone number, email address, and tags. Long names and email addresses use an ellipsis;
+hover over either to read it in full.
+A badge beside the role identifies contacts with a follow-up. Select the contact to read its date and description
+in the right panel. The badge uses your computer's local date:
+
+Follow-up due date | Badge
+-------------------|------
+After today | **Follow-up** (bold)
+Today | **Due today** (bold)
+Before today | **Overdue** (bold and underlined)
+No follow-up | No badge or reserved space
+
+The badges and selected contact's overdue display refresh approximately once per minute while the window is open,
+and immediately when you return focus to the window or reopen it. They keep your selection, scroll positions, and
+draft command. After midnight or sleep, the next refresh uses the current local date.
+
 While the contact list has keyboard focus, use the Up and Down arrow keys to move between contacts.
 The details panel updates immediately without moving keyboard focus.
 
@@ -83,7 +98,6 @@ Your draft command, its cursor position and text selection, and the selected con
 * Details include the contact's name, role, tags, phone number, email address, address, and follow-up when present.
 * Empty tags and absent follow-ups do not leave blank sections.
 * A follow-up due before today is marked **Overdue**. A follow-up due today is not overdue.
-  The overdue state is checked when the contact is displayed, using your computer's local date.
 * Scroll the details panel independently to read long content. Drag the divider to adjust the two panel widths.
   The window has a minimum size of 800 by 600 pixels. Each panel scrolls independently.
 * On startup or when no contact is selected, the panel shows `Select a contact to view details.`
@@ -92,9 +106,9 @@ Your draft command, its cursor position and text selection, and the selected con
 * If the selected contact is deleted or filtered out, or all contacts are cleared, the panel returns to the
   selection prompt. Deleting a selected contact does not automatically select its neighbour.
 * Successful `undo` and `redo` commands clear selection. Commands rejected because of invalid input keep selection.
-* If saving an edit, addition, deletion, clear, or follow-up change fails, those contact changes are rolled back.
-  The original selection is retained when the contact remains in the restored list; otherwise the panel returns to
-  the selection prompt. Command feedback shows the saving error.
+* If saving an edit, addition, deletion, clear, or follow-up change fails, the contact changes are rolled back.
+  The original selection is retained when that contact still exists in the restored list; otherwise the panel returns
+  to the selection prompt. Command feedback shows the saving error.
 
 ### Selecting a contact: `select INDEX`
 
@@ -261,7 +275,8 @@ Creates, replaces, or removes a contact's pending follow-up. Each contact can ha
 * Description casing and internal spacing are preserved. Internal control characters, such as tabs and newlines, and Unicode line or paragraph separators are not permitted.
 * Prefix-like text preceded by a space is interpreted as command syntax. Avoid text such as ` by/`, ` abt/`, or ` date/` inside descriptions; these can produce duplicate-prefix, unknown-prefix, or invalid-value errors.
 * Successful changes preserve other contact details and the current filter. A contact may disappear from the results if it no longer matches that filter.
-* Follow-ups are displayed in the selected contact's details panel and saved automatically.
+* Contacts with a follow-up show **Follow-up**, **Due today**, or **Overdue** in the left list according to the due date.
+  The date and description are displayed in the selected contact's details panel and saved automatically.
   Changes support `undo` and `redo`.
 * Editing other contact details preserves the follow-up. Deleting the contact removes its follow-up.
 

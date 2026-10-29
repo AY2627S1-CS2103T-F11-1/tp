@@ -228,13 +228,17 @@ public class LogicManagerTest {
     }
 
     @Test
-    public void execute_savingFailureAfterEditOrDelete_restoresOriginalSelection() {
+    public void execute_savingFailureAfterMutation_restoresOriginalSelectionAndHistory() {
         for (IOException failure : List.of(DUMMY_IO_EXCEPTION, DUMMY_AD_EXCEPTION)) {
-            for (String command : List.of("edit 1 n/Zed Supplier", "delete 1")) {
+            for (String command : List.of("edit 1 n/Zed Supplier", "delete 1", "clear",
+                    "followup 1 by/2026-11-01 abt/Confirm quotation",
+                    AddCommand.COMMAND_WORD + NAME_DESC_AMY + PHONE_DESC_AMY + EMAIL_DESC_AMY
+                            + ADDRESS_DESC_AMY + ROLE_DESC_AMY)) {
                 model = new ModelManager();
                 model.addPerson(ALICE);
                 model.addPerson(BENSON);
                 model.commitAddressBook();
+                AddressBook original = new AddressBook(model.getAddressBook());
                 int pointerBefore = model.getAddressBookStatePointer();
                 model.updateFilteredPersonList(person -> person == ALICE);
                 JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(
@@ -244,7 +248,7 @@ public class LogicManagerTest {
                         throw failure;
                     }
                 };
-                StorageManager storage = new StorageManager(failingStorage,
+                storage = new StorageManager(failingStorage,
                         new JsonUserPrefsStorage(temporaryFolder.resolve("rollback-preferences.json")));
                 logic = new LogicManager(model, storage);
 
@@ -252,7 +256,7 @@ public class LogicManagerTest {
                         CommandException.class, () -> logic.execute(command));
 
                 assertSame(failure, exception.getCause());
-                assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
+                assertEquals(original, model.getAddressBook(), command);
                 assertEquals(List.of(ALICE, BENSON), model.getFilteredPersonList());
                 assertEquals(pointerBefore, model.getAddressBookStatePointer());
                 assertSame(ALICE, logic.getSelectionChange().applyTo(ALICE));
@@ -260,6 +264,105 @@ public class LogicManagerTest {
                 assertNull(logic.getSelectionChange().applyTo(null));
                 assertFalse(model.canRedoAddressBook());
             }
+        }
+    }
+
+    @Test
+    public void execute_savingFailureDuringUndoOrRedo_keepsRestoredStateAndClearsSelection() {
+        for (IOException failure : List.of(DUMMY_IO_EXCEPTION, DUMMY_AD_EXCEPTION)) {
+            for (String command : List.of(UndoCommand.COMMAND_WORD, RedoCommand.COMMAND_WORD)) {
+                model = new ModelManager();
+                model.addPerson(ALICE);
+                model.commitAddressBook();
+                model.addPerson(BENSON);
+                model.addPerson(CARL);
+                model.commitAddressBook();
+                boolean undo = command.equals(UndoCommand.COMMAND_WORD);
+                if (!undo) {
+                    model.undoAddressBook();
+                }
+                int pointerBefore = model.getAddressBookStatePointer();
+                JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(
+                        temporaryFolder.resolve("history-save-failure.json")) {
+                    @Override
+                    public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                        throw failure;
+                    }
+                };
+                storage = new StorageManager(failingStorage,
+                        new JsonUserPrefsStorage(temporaryFolder.resolve("history-preferences.json")));
+                logic = new LogicManager(model, storage);
+
+                CommandException exception = Assertions.assertThrows(
+                        CommandException.class, () -> logic.execute(command));
+
+                assertSame(failure, exception.getCause());
+                List<Person> restored = undo ? List.of(ALICE) : List.of(ALICE, BENSON, CARL);
+                assertEquals(restored, model.getAddressBook().getPersonList());
+                assertEquals(restored, model.getFilteredPersonList());
+                assertEquals(pointerBefore + (undo ? -1 : 1), model.getAddressBookStatePointer());
+                assertTrue(model.canUndoAddressBook());
+                assertEquals(undo, model.canRedoAddressBook());
+                assertNull(logic.getSelectionChange().applyTo(ALICE));
+                assertNull(logic.getSelectionChange().applyTo(BENSON));
+                assertNull(logic.getSelectionChange().applyTo(null));
+
+                if (undo) {
+                    model.redoAddressBook();
+                    assertEquals(List.of(ALICE, BENSON, CARL), model.getAddressBook().getPersonList());
+                } else {
+                    model.undoAddressBook();
+                    assertEquals(List.of(ALICE), model.getAddressBook().getPersonList());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void execute_rolledBackSelectionRequest_discardsTargetAndRetainsOriginalIdentity() {
+        for (IOException failure : List.of(DUMMY_IO_EXCEPTION, DUMMY_AD_EXCEPTION)) {
+            model = new ModelManager();
+            model.addPerson(ALICE);
+            model.commitAddressBook();
+            int pointerBefore = model.getAddressBookStatePointer();
+            Person edited = new PersonBuilder(ALICE).withName("Zed Supplier").build();
+            JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(
+                    temporaryFolder.resolve("discarded-selection.json")) {
+                @Override
+                public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                    assertSame(edited, logic.getSelectionChange().applyTo(null));
+                    assertSame(edited, logic.getSelectionChange().applyTo(ALICE));
+                    throw failure;
+                }
+            };
+            storage = new StorageManager(failingStorage,
+                    new JsonUserPrefsStorage(temporaryFolder.resolve("discarded-selection-preferences.json")));
+            AddressBookParser parser = new AddressBookParser() {
+                @Override
+                public Command parseCommand(String commandText) {
+                    return new Command() {
+                        @Override
+                        public CommandResult execute(Model commandModel) {
+                            commandModel.setPerson(ALICE, edited);
+                            commandModel.commitAddressBook();
+                            return new CommandResult("Edited and selected contact", edited);
+                        }
+                    };
+                }
+            };
+            logic = new LogicManager(model, storage, parser);
+
+            CommandException exception = Assertions.assertThrows(
+                    CommandException.class, () -> logic.execute("test-edit-and-select"));
+
+            assertSame(failure, exception.getCause());
+            assertSame(ALICE, model.getFilteredPersonList().getFirst());
+            assertEquals(pointerBefore, model.getAddressBookStatePointer());
+            assertFalse(model.canRedoAddressBook());
+            assertSame(ALICE, logic.getSelectionChange().applyTo(ALICE));
+            assertNull(logic.getSelectionChange().applyTo(null));
+            Person equalButDistinct = new PersonBuilder(ALICE).build();
+            assertSame(equalButDistinct, logic.getSelectionChange().applyTo(equalButDistinct));
         }
     }
 

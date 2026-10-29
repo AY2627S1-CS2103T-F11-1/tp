@@ -3,7 +3,6 @@ package seedu.address.ui;
 import static java.util.Objects.requireNonNull;
 
 import java.time.Clock;
-import java.time.LocalDate;
 import java.util.Comparator;
 
 import javafx.beans.binding.Bindings;
@@ -26,8 +25,9 @@ public class PersonDetailsPanel extends UiPart<Region> {
     private static final String FXML = "PersonDetailsPanel.fxml";
     private static final PseudoClass OVERDUE = PseudoClass.getPseudoClass("overdue");
 
-    private final Clock clock;
+    private final UiDateTracker uiDate;
     private final DoubleBinding contentWidth;
+    private FollowUp displayedFollowUp;
 
     @FXML
     private Label emptyState;
@@ -67,8 +67,13 @@ public class PersonDetailsPanel extends UiPart<Region> {
      * Creates an empty panel with a clock for deterministic overdue checks.
      */
     PersonDetailsPanel(Clock clock) {
+        this(new UiDateTracker(clock));
+    }
+
+    PersonDetailsPanel(UiDateTracker uiDate) {
         super(FXML);
-        this.clock = requireNonNull(clock);
+        this.uiDate = requireNonNull(uiDate);
+        uiDate.dateProperty().addListener((observable, previous, today) -> updateFollowUpDate());
         contentWidth = Bindings.createDoubleBinding(() -> Math.max(0,
                 detailsScrollPane.getViewportBounds().getWidth()
                         - detailsContent.getInsets().getLeft() - detailsContent.getInsets().getRight()),
@@ -89,6 +94,7 @@ public class PersonDetailsPanel extends UiPart<Region> {
      */
     public void showPerson(Person person) {
         requireNonNull(person);
+        uiDate.refresh();
         clear();
         name.setText(person.getName().fullName);
         role.setText("Role: " + person.getRole().value);
@@ -112,6 +118,7 @@ public class PersonDetailsPanel extends UiPart<Region> {
      * Removes all contact content and displays the selection prompt.
      */
     public void clear() {
+        displayedFollowUp = null;
         for (Label label : new Label[] {name, role, phone, email, address, followUpDueDate, followUpDescription}) {
             label.setText("");
         }
@@ -126,11 +133,19 @@ public class PersonDetailsPanel extends UiPart<Region> {
     }
 
     private void showFollowUp(FollowUp followUp) {
-        boolean overdue = followUp.getDueDate().isBefore(LocalDate.now(clock));
-        followUpDueDate.setText((overdue ? "Overdue - due: " : "Due: ") + followUp.getDueDate());
-        followUpDueDate.pseudoClassStateChanged(OVERDUE, overdue);
+        displayedFollowUp = followUp;
+        updateFollowUpDate();
         followUpDescription.setText(followUp.getDescription());
         setSectionVisible(followUpSection, true);
+    }
+
+    private void updateFollowUpDate() {
+        if (displayedFollowUp == null) {
+            return;
+        }
+        boolean overdue = displayedFollowUp.getDueDate().isBefore(uiDate.getDate());
+        followUpDueDate.setText((overdue ? "Overdue - due: " : "Due: ") + displayedFollowUp.getDueDate());
+        followUpDueDate.pseudoClassStateChanged(OVERDUE, overdue);
     }
 
     private static void configureWrapping(Label label) {

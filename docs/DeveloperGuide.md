@@ -90,20 +90,37 @@ The `UI` component,
 The minimum height is 600 pixels. `MainWindow` clamps smaller restored dimensions in the UI without changing the
 preferences data structure.
 
-`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, and sorted tags.
-Email, address, and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
-tags are hidden and unmanaged. Long names use a single line with an ellipsis and a full-name tooltip; tags wrap.
-The name and role badge share the header row, retaining the merged theme's role-colour styling.
+`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, email, and sorted tags.
+The header contains one name, one coloured role badge, and an optional follow-up indicator. Phone and email appear
+beneath the header, followed by a single tag container. A small minimum name width keeps an ellipsis visible when
+long roles and follow-up badges share the header. Names and emails use single-line ellipses with full-text tooltips;
+roles and tags wrap. Address and complete follow-up content appear in the right details panel. Empty tags and absent
+follow-up indicators are hidden and unmanaged.
+
+The follow-up indicator displays `Follow-up` for future dates, `Due today` for the shared local date, or `Overdue`
+for past dates. It measures all three labels in the resolved font and regular/bold variants, including padding and
+borders, to reserve stable dimensions. All urgency states share a bold font; overdue text is also underlined.
+Font and inset changes update the reserved size, while date changes retain the same dimensions and resolved font.
 `PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
 preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
 remain visible when keyboard focus moves to command input. Selected and unselected cards reserve the same border
-width so selection does not change measured row dimensions or tag wrapping.
+width, so selection does not change row heights or tag wrapping and invalidate the virtual list's cached geometry.
 
 `MainWindow#fillInnerParts()` mounts `PersonDetailsPanel` in the right placeholder. The panel extends `UiPart<Region>`
 and exposes `showPerson(Person)` and `clear()`. A fit-to-width `ScrollPane`, viewport-based label width bindings,
 and a wrapping tag `FlowPane` keep long details accessible through vertical scrolling. Empty tags and absent follow-ups
-are hidden and unmanaged. The panel uses a clock to mark follow-ups strictly before the local date as overdue;
+are hidden and unmanaged. The panel marks follow-ups strictly before the shared local date as overdue;
 the package-private clock constructor supports deterministic tests.
+
+`MainWindow` owns one `UiDateTracker`, backed by `Clock.systemDefaultZone()`, and passes it to the list and details
+panels. A single JavaFX `Timeline` checks the local date once per minute while the window is shown, stops when hidden,
+and refreshes immediately on showing or regaining focus. Only calendar-day changes notify observers, including when
+the clock moves backwards. A package-private interval constructor allows timer tests without a one-minute wait.
+The date refresh changes badge text/pseudo-classes and the details due-date label directly, preserving selection,
+scroll positions, and command drafts. It does not rerun filters, execute commands, or modify Model/Storage data.
+`PersonCard` uses a weak date listener; each list cell retains its current card controller so it remains subscribed
+while displayed and can be collected after replacement. `PersonDetailsPanel` clears its retained follow-up on
+`clear()` so subsequent date notifications cannot restore stale content.
 
 `PersonListPanel#selectedPersonProperty()` exposes a read-only property for the displayed contact selection.
 `MainWindow` observes it and calls `showPerson()` for a selected contact or `clear()` for null selection.
@@ -125,9 +142,10 @@ During command execution, `LogicManager` temporarily listens to the underlying a
 replacement supplies the exact old and new `Person` references. The listener is removed in a `finally` block, and an
 immutable `CommandSelectionChange` copies these relationships into an identity-based map. Successful undo and redo
 request a selection reset, including when snapshots contain equal contact data. The information is available through
-`Logic#getSelectionChange()` before saving. If a save failure rolls back a committed change, the failed command's
-replacement mappings are discarded. The original selected contact is then retained when it exists in the restored
-list, or cleared otherwise. Save failures after undo/redo still clear selection while retaining the restored snapshot.
+`Logic#getSelectionChange()` before saving. If a storage failure rolls back a committed change, `LogicManager`
+discards the failed command's replacement and selection requests. The panel then reconciles the original selected
+contact against the restored list by identity, retaining it when present or clearing it otherwise. A save failure
+without a rollback, including after `select`, retains the command's selection information.
 Each command attempt resets this information before parsing; failed parsing or validation therefore preserves selection.
 
 `MainWindow` snapshots selection and calls `PersonListPanel#beginCommand()` before executing a command. The panel
@@ -135,13 +153,16 @@ suppresses native ListView selection notifications during that execution, preven
 from being published. In a `finally` block, `MainWindow` applies the command's selection change and calls
 `PersonListPanel#endCommand(Person)`. The panel searches the current displayed list by object identity and selects the
 resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
-equal but distinct replacement objects. It resolves pending styling/layout and scrolls immediately, then checks the
-actual live row against the clipped viewport after layout. A request finishes after two consecutive visible layout
-passes and makes at most three corrective scrolls. Each pulse performs one scrolling operation: a stale native item
-count uses the list's index-scroll event; otherwise first/last rows use the viewport's start/end position and other
-rows use measured native scrolling. Requests retain the exact contact reference and re-find its current index.
-Later commands, selection changes, mouse/key/wheel interaction, scene changes, and window closure cancel pending
-scrolling, removing the scene and window listeners. This retains visible contacts across filtering, sorting, and unrelated changes;
+equal but distinct replacement objects. It first resolves pending styling/layout and scrolls immediately, then verifies
+visibility after the scene's layout pass. Visibility is checked against the live `VirtualFlow` row and clipped viewport,
+excluding cells retained only for measurement or reuse. A request finishes after two consecutive visible layout passes.
+If needed, it makes up to three corrective scrolls, with one scrolling operation per pulse. While the native item count
+is stale, an index-scroll event lets the skin synchronize it. Once the count matches, the first and last rows use the
+native start/end position; other rows use `VirtualFlow.scrollTo(index)` with measured geometry. A correction does not
+also repeat an index-scroll event in the same pulse. Each request retains the exact contact reference and resolves its current
+index again. A later command, selection change, mouse/key/wheel interaction, scene change,
+or window closure cancels pending scrolling. Scene listeners and window handlers are removed when a request finishes
+or is cancelled, and stale callbacks cannot affect a newer request. This retains visible contacts across filtering, sorting, and unrelated changes;
 it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
 path still conservatively clear selection. Model and Storage data structures remain unchanged.
 `CommandResult` supports an optional exact-contact selection request. `SelectCommand` supplies the contact resolved
@@ -153,9 +174,36 @@ commands, equal replacements, contacts sharing a name, undo/redo, and saving fai
 Save-failure fixtures commit their initial contacts to model history and verify restored selection for both I/O and
 access-denied errors. Compact-card tests compare tag-row spacing and the last visible field's bottom gap across font
 sizes, and verify that focus changes preserve the actual themed selection border rather than assuming a pixel width.
+Saving-failure fixtures commit their starting contacts to model history. Regression tests verify restored data, filters,
+selection, and history after edit/delete failures, including both I/O and access-denied errors.
 `PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
-`MainWindowTest` also verifies compact card height, empty-tag spacing, long-name tooltips, tag wrapping, selected-card
-styling without list focus, and access to the complete selected contact details.
+`MainWindowTest` also verifies compact card height, empty-tag spacing, long-name/email tooltips, tag wrapping,
+follow-up badge updates through commands and undo/redo, badge/role layout at divider limits, selected-card styling
+without list focus, and access to the complete selected contact details. Date-transition tests check that all three
+badge states preserve card dimensions, selection, both scroll positions, and draft text/cursor selection.
+Badge layout tests also exercise different font families, sizes, and padding, and report rendered text, font, and
+available dimensions when clipping occurs.
+Compact-card checks compare the space occupied by the tags and the gap below the last field at different font sizes,
+instead of imposing a platform-dependent pixel-height limit. Off-screen selection tests wait up to ten seconds for
+the requested row to fit in the list for two consecutive frames, retaining full-visibility checks without issuing
+another scroll. Timeouts report the selected index, window/list bounds, and visible rows. Gradle logs full exception
+details on test failure so CI diagnostics include assertion messages and stack traces.
+Temporary Windows CI instrumentation is enabled only by the select/new-contact UI test. Its trace records native
+row counts, scroll positions, selection identities, retry numbers, and cancellation/stop reasons under
+`build/ui-diagnostics/select-new-contact/`. A failed test also captures the scene before cleanup hides the window.
+CI uploads these files and the test reports with a three-day retention period; diagnostic files are not committed.
+Remove the diagnostic hooks, capture callback, upload step, and temporary `fail-fast: false` setting after diagnosis.
+The newly added-row regression deliberately drops scroll requests made before the first layout pass, exercising
+early-request loss without relying on a particular operating system. Additional regressions discard all index-scroll
+events and move a briefly visible row away during the next layout pass, verifying viewport correction and stable
+visibility respectively. An endpoint regression simulates stale layout offsets after index-scroll events and verifies
+recovery without repeating those events. Tests inspect live rows inside the clipped viewport, without accepting
+measurement cells. Selection tests also verify unchanged card dimensions, and urgency tests retain the same resolved
+font across all three badge states.
+Further checks ensure delayed requests respect later commands, changed
+selection, and manual scrolling without moving keyboard focus or resetting the details panel's reading position.
+`UiDateTrackerTest` covers local midnight, unchanged days, clock corrections, periodic refresh, hidden/shown windows,
+and focus return. `PersonDetailsPanelTest` checks that date refresh cannot revive a cleared follow-up section.
 Further UI tests cover Escape from the list, details, and feedback, draft/cursor preservation after focus settles,
 independent mouse-wheel scrolling, access to the bottom of long details, and long content at divider limits after
 resizing between minimum and larger windows.
@@ -178,8 +226,9 @@ Each command attempt resets this information before parsing. Selection precedenc
 
 `MainWindow` applies the result through its existing `finally` block and `PersonListPanel#endCommand(Person)`.
 The panel resolves the current index by object identity, updates the highlight, and scrolls to the contact without
-moving focus out of command input. It resolves pending styling and list layout before scrolling so freshly added
-rows are positioned correctly. Repeated selection of the same object retains the details panel's reading position.
+moving focus out of command input. It resolves pending styling/layout and completes any required scroll after the
+scene's layout pass so freshly added rows are positioned correctly. Repeated selection of the same object retains
+the details panel's reading position.
 There are no new Model or Storage fields and no selection data is persisted.
 
 The existing automatic saving flow still runs after selection. Because the explicit request is recorded before
@@ -507,7 +556,11 @@ Queries do not commit snapshots or alter contact data. An empty result displays 
 #### UI integration
 `PersonDetailsPanel` populates the follow-up date and description defined in `PersonDetailsPanel.fxml` when a contact
 is selected. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
-The compact `PersonCard` does not repeat follow-up information.
+The compact `PersonCard` shows only a `Follow-up`, `Due today`, or `Overdue` badge beside the role when a follow-up is
+present, leaving its date and description in the details panel. Replacement contacts rebuild the card through the
+existing list-cell factory, so setting, replacing, clearing, undoing, or redoing a follow-up refreshes the badge without
+new model state. The shared `UiDateTracker` also updates badge urgency and the selected details panel as the day changes.
+The `followups overdue` query keeps the date captured when the command executes; rerun it to update result membership.
 
 The command selection handling described under contact details and selection tracks replacement contacts and refreshes
 the details panel after follow-up changes. A contact that no longer matches a follow-up filter clears selection.
@@ -700,6 +753,11 @@ The following activity diagram summarizes what happens when a user executes a ne
 After successful command execution, `LogicManager` saves the current contact
 data through `Storage`. Only contact data is serialized; snapshots and the
 history pointer remain in memory.
+
+If saving a modifying command fails after it commits a new state, `LogicManager` uses `Model#rollbackAddressBook()`
+to discard that state and restore the previous committed snapshot. The displayed filter resets to show all contacts.
+Selection metadata from the discarded change is reset before the UI reconciles the restored list. Failed saves for
+commands that do not advance the history pointer do not roll back an earlier successful change.
 
 If saving after undo or redo throws `IOException`, `LogicManager` reports a
 `CommandException`. The restored contact data and moved history pointer remain
@@ -1174,17 +1232,19 @@ Create a contact with a unique name, phone number, and email. Run `find` with th
 
 Action | Expected result
 -------|----------------
-Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The details panel shows the date and description.
-Set another follow-up with a different date and description. | Both values replace the existing follow-up.
+Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The appropriate Follow-up, Due today, or Overdue badge appears; the details panel shows the date and description.
+Set another follow-up with a different date and description. | Both values replace the existing follow-up; the badge remains.
 Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is preserved.
 Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
 Run `followups by/DATE` using the follow-up's exact due date. | The contact appears because the cutoff is inclusive.
 Run `followups by/DATE overdue` or `followups by/DATE extra`. | An invalid command format error appears without changing the view.
-Find the test contact and run `followup 1 clear`. | The follow-up disappears; the contact remains.
-Run `undo`, then `redo`. | The follow-up is restored, then removed again.
+Find the test contact and run `followup 1 clear`. | The badge and follow-up details disappear; the contact remains, with no reserved badge space.
+Run `undo`, then `redo`. | The follow-up and badge are restored, then removed again.
 Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
 Restart after setting a follow-up. | The saved follow-up is restored.
 Display a long description and resize the window. | Verify the full text remains accessible through vertical scrolling in the details panel.
+Set due dates for yesterday, today, and tomorrow. | The cards show Overdue, Due today, and Follow-up respectively, including at the minimum pane width.
+Leave the window open across local midnight, or return focus after sleep. | Within the next minute, or immediately on focus return, badge urgency and selected overdue details update while selection, scrolling, and draft input remain intact. Rerun any overdue query to refresh which contacts it includes.
 
 ### Sorting contacts
 

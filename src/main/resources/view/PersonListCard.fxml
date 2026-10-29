@@ -26,12 +26,17 @@
             <Region fx:constant="USE_PREF_SIZE" />
           </minWidth>
         </Label>
-        <Label fx:id="name" styleClass="cell_big_label" minWidth="0" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
+        <Label fx:id="name" styleClass="cell_big_label" minWidth="64" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
         <Label fx:id="role" styleClass="role-badge" wrapText="true" minWidth="0"
                minHeight="-Infinity" />
+        <Label fx:id="followUpBadge" text="Follow-up" styleClass="person-follow-up-badge"
+               minWidth="-Infinity" minHeight="-Infinity" maxHeight="-Infinity"
+               accessibleText="Has a follow-up. Select this contact to view details." />
       </HBox>
       <Label fx:id="phone" styleClass="cell_small_label" wrapText="true" minWidth="0"
              minHeight="-Infinity" maxWidth="Infinity" />
+      <Label fx:id="email" styleClass="cell_small_label" wrapText="false" textOverrun="ELLIPSIS"
+             minWidth="0" minHeight="-Infinity" maxWidth="Infinity" />
       <FlowPane fx:id="tags" minWidth="0">
         <padding>
           <Insets top="6" bottom="6" />

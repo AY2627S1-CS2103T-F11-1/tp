@@ -462,6 +462,21 @@
     -fx-shape: " ";
 }
 
+.person-follow-up-badge {
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-padding: 1 6;
+    -fx-border-color: #3e7b91;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+}
+
+.person-follow-up-badge:overdue {
+    -fx-underline: true;
+}
+
 .person-details-panel .label {
     -fx-text-fill: white;
 }

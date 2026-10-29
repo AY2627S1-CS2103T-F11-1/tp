@@ -1,6 +1,7 @@
 package seedu.address.ui;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.logging.Logger;
 
 import javafx.animation.PauseTransition;
@@ -31,6 +32,7 @@ public class MainWindow extends UiPart<Stage> {
     private static final KeyCombination FOCUS_COMMAND_BOX = KeyCombination.valueOf("ESC");
 
     private final Logger logger = LogsCenter.getLogger(getClass());
+    private final UiDateTracker uiDate;
 
     private Stage primaryStage;
     private Logic logic;
@@ -75,6 +77,10 @@ public class MainWindow extends UiPart<Stage> {
      * the data file path to show in the status bar, and an initial status message.
      */
     public MainWindow(Stage primaryStage, Logic logic, Path dataFilePath, String initialStatusMessage) {
+        this(primaryStage, logic, dataFilePath, initialStatusMessage, new UiDateTracker(Clock.systemDefaultZone()));
+    }
+
+    MainWindow(Stage primaryStage, Logic logic, Path dataFilePath, String initialStatusMessage, UiDateTracker uiDate) {
         super(FXML, primaryStage);
 
         // Set dependencies
@@ -82,6 +88,8 @@ public class MainWindow extends UiPart<Stage> {
         this.logic = logic;
         this.dataFilePath = dataFilePath;
         this.initialStatusMessage = initialStatusMessage;
+        this.uiDate = uiDate;
+        uiDate.track(primaryStage);
 
         // Configure the UI
         setWindowDefaultSize(logic.getGuiSettings());
@@ -133,10 +141,10 @@ public class MainWindow extends UiPart<Stage> {
      * Fills up all the placeholders of this window.
      */
     void fillInnerParts() {
-        personListPanel = new PersonListPanel(logic.getFilteredPersonList());
+        personListPanel = new PersonListPanel(logic.getFilteredPersonList(), uiDate);
         personListPanelPlaceholder.getChildren().add(personListPanel.getRoot());
 
-        personDetailsPanel = new PersonDetailsPanel();
+        personDetailsPanel = new PersonDetailsPanel(uiDate);
         personDetailsPanelPlaceholder.getChildren().add(personDetailsPanel.getRoot());
         personListPanel.selectedPersonProperty().addListener((observable, previous, selected) -> {
             if (selected == null) {
