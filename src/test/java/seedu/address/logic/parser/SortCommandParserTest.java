@@ -1,5 +1,6 @@
 package seedu.address.logic.parser;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseSuccess;
@@ -82,5 +83,12 @@ public class SortCommandParserTest {
         assertParseFailure(parser, "n/ Alice", String.format(SortCommand.MESSAGE_UNEXPECTED_TOKEN, "Alice"));
 
         assertParseFailure(parser, "r/ n/ extra", String.format(SortCommand.MESSAGE_UNEXPECTED_TOKEN, "extra"));
+    }
+
+    @Test
+    public void messages_useLowercaseCommandWord() {
+        assertEquals("sort accepts each field only once: %s.", SortCommand.MESSAGE_DUPLICATE_FIELD);
+        assertEquals("sort does not accept values after %s.", SortCommand.MESSAGE_UNEXPECTED_VALUE);
+        assertEquals("sort expects n/ or r/, but received: %s.", SortCommand.MESSAGE_UNEXPECTED_TOKEN);
     }
 }

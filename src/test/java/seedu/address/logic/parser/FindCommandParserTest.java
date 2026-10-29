@@ -1,5 +1,6 @@
 package seedu.address.logic.parser;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_PHONE;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseFailure;
 import static seedu.address.logic.parser.CommandParserTestUtil.assertParseSuccess;
@@ -182,6 +183,15 @@ public class FindCommandParserTest {
         assertParseFailure(parser, "Alice r/Employee", FindCommand.MESSAGE_MIXED_SEARCH_MODE);
 
         assertParseFailure(parser, "Alice  Bob n/Tan", FindCommand.MESSAGE_MIXED_SEARCH_MODE);
+    }
+
+    @Test
+    public void messages_useLowercaseCommandWord() {
+        assertEquals("find requires at least one search criterion.", FindCommand.MESSAGE_MISSING_CRITERIA);
+        assertEquals("find cannot mix unprefixed keywords with prefixed search values.",
+                FindCommand.MESSAGE_MIXED_SEARCH_MODE);
+        assertEquals("find requires a non-blank value after n/, r/, t/.",
+                FindCommand.MESSAGE_EMPTY_PREFIX_VALUE);
     }
 
     @Test

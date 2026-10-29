@@ -51,6 +51,12 @@ public class ListCommandTest {
     }
 
     @Test
+    public void message_ignoredArguments_usesLowercaseCommandWord() {
+        assertEquals("Warning: additional arguments after list were ignored.",
+                ListCommand.MESSAGE_IGNORED_ARGUMENTS);
+    }
+
+    @Test
     public void execute_listWithExtraArguments_doesNotModifyAddressBook() throws Exception {
         AddressBook addressBookBeforeExecution = new AddressBook(model.getAddressBook());
 

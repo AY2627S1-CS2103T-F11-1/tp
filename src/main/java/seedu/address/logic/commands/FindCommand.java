@@ -28,13 +28,13 @@ public class FindCommand extends Command {
             + COMMAND_PARAMETERS + "\nExample: " + COMMAND_EXAMPLE;
 
     public static final String MESSAGE_MISSING_CRITERIA =
-            "FIND requires at least one search criterion.";
+            "find requires at least one search criterion.";
 
     public static final String MESSAGE_MIXED_SEARCH_MODE =
-            "FIND cannot mix unprefixed keywords with prefixed search values.";
+            "find cannot mix unprefixed keywords with prefixed search values.";
 
     public static final String MESSAGE_EMPTY_PREFIX_VALUE =
-            "FIND requires a non-blank value after n/, r/, t/.";
+            "find requires a non-blank value after n/, r/, t/.";
 
     private final List<Predicate<Person>> predicates;
 
