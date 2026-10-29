@@ -30,13 +30,13 @@ public class SortCommand extends Command {
     public static final String MESSAGE_EMPTY_ADDRESS_BOOK = "There are no contacts to sort.";
 
     public static final String MESSAGE_DUPLICATE_FIELD =
-            "SORT accepts each field only once: %s.";
+            "sort accepts each field only once: %s.";
 
     public static final String MESSAGE_UNEXPECTED_VALUE =
-            "SORT does not accept values after %s.";
+            "sort does not accept values after %s.";
 
     public static final String MESSAGE_UNEXPECTED_TOKEN =
-            "SORT expects n/ or r/, but received: %s.";
+            "sort expects n/ or r/, but received: %s.";
 
     /**
      * Fields supported for sorting contacts.

@@ -29,7 +29,7 @@ public class DeleteCommand extends Command {
 
     public static final String MESSAGE_INDEX_REQUIRED = Messages.MESSAGE_INDEX_REQUIRED;
 
-    public static final String MESSAGE_EXTRA_ARGUMENTS = "DELETE accepts only one INDEX.";
+    public static final String MESSAGE_EXTRA_ARGUMENTS = "delete accepts only one INDEX.";
 
     public static final String MESSAGE_NO_CONTACTS_TO_DELETE = Messages.MESSAGE_NO_CONTACTS_DISPLAYED;
 
