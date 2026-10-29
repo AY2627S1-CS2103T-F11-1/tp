@@ -29,6 +29,7 @@ import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.RedoCommand;
+import seedu.address.logic.commands.SelectCommand;
 import seedu.address.logic.commands.SortCommand;
 import seedu.address.logic.commands.UndoCommand;
 
@@ -63,6 +64,8 @@ public class HelpWindow extends UiPart<Stage> {
             formatCommandUsage(FindCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
             formatCommandUsage(SortCommand.COMMAND_USAGE),
+            COMMAND_DIVIDER,
+            formatCommandUsage(SelectCommand.COMMAND_USAGE),
             COMMAND_DIVIDER,
             formatCommandUsage(FollowUpsCommand.COMMAND_USAGE),
             "",

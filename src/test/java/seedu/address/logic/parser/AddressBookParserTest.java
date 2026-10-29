@@ -31,6 +31,7 @@ import seedu.address.logic.commands.FollowUpsCommand;
 import seedu.address.logic.commands.HelpCommand;
 import seedu.address.logic.commands.ListCommand;
 import seedu.address.logic.commands.RedoCommand;
+import seedu.address.logic.commands.SelectCommand;
 import seedu.address.logic.commands.SetFollowUpCommand;
 import seedu.address.logic.commands.SortCommand;
 import seedu.address.logic.commands.SortCommand.SortField;
@@ -75,6 +76,18 @@ public class AddressBookParserTest {
         DeleteCommand command = (DeleteCommand) parser.parseCommand(
                 DeleteCommand.COMMAND_WORD + " " + INDEX_FIRST_PERSON.getOneBased());
         assertEquals(new DeleteCommand(INDEX_FIRST_PERSON), command);
+    }
+
+    @Test
+    public void parseCommand_select_dispatchesToSelectParser() throws Exception {
+        assertEquals(new SelectCommand(INDEX_FIRST_PERSON), parser.parseCommand(" select \t1 "));
+    }
+
+    @Test
+    public void parseCommand_selectInvalidArguments_throwsSelectParseErrors() {
+        assertThrows(ParseException.class, SelectCommand.MESSAGE_INDEX_REQUIRED, () -> parser.parseCommand("select"));
+        assertThrows(ParseException.class, SelectCommand.MESSAGE_EXTRA_ARGUMENTS, () ->
+                parser.parseCommand("select 1 2"));
     }
 
     @Test

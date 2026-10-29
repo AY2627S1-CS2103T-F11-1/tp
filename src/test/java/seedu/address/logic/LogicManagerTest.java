@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import seedu.address.logic.commands.AddCommand;
+import seedu.address.logic.commands.Command;
 import seedu.address.logic.commands.CommandResult;
 import seedu.address.logic.commands.DeleteCommand;
 import seedu.address.logic.commands.ListCommand;
@@ -38,7 +39,9 @@ import seedu.address.logic.commands.RedoCommand;
 import seedu.address.logic.commands.SortCommand;
 import seedu.address.logic.commands.UndoCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
+import seedu.address.logic.parser.AddressBookParser;
 import seedu.address.logic.parser.exceptions.ParseException;
+import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
@@ -60,14 +63,168 @@ public class LogicManagerTest {
 
     private Model model = new ModelManager();
     private Logic logic;
+    private StorageManager storage;
 
     @BeforeEach
     public void setUp() {
         JsonAddressBookStorage addressBookStorage =
                 new JsonAddressBookStorage(temporaryFolder.resolve("addressBook.json"));
         JsonUserPrefsStorage userPrefsStorage = new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json"));
-        StorageManager storage = new StorageManager(addressBookStorage, userPrefsStorage);
+        storage = new StorageManager(addressBookStorage, userPrefsStorage);
         logic = new LogicManager(model, storage);
+    }
+
+    /**
+     * Injects a request-producing test command without registering a production select command.
+     */
+    private void useSelectionRequest(Person requestedPerson) {
+        AddressBookParser parser = new AddressBookParser() {
+            @Override
+            public Command parseCommand(String commandText) throws ParseException {
+                if (commandText.equals("test-selection")) {
+                    return new Command() {
+                        @Override
+                        public CommandResult execute(Model commandModel) {
+                            return new CommandResult("Selection requested", requestedPerson);
+                        }
+                    };
+                }
+                return super.parseCommand(commandText);
+            }
+        };
+        logic = new LogicManager(model, storage, parser);
+    }
+
+    @Test
+    public void execute_selectionRequest_forwardsExactContactIncludingFromEmptySelection() throws Exception {
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        useSelectionRequest(BENSON);
+        CommandResult result = logic.execute("test-selection");
+        assertSame(BENSON, result.getSelectedPerson().orElseThrow());
+        assertSame(BENSON, logic.getSelectionChange().applyTo(null));
+        assertSame(BENSON, logic.getSelectionChange().applyTo(ALICE));
+    }
+
+    @Test
+    public void execute_select_preservesStoredContactsAndFilteredSortedView() throws Exception {
+        model.addPerson(CARL);
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        logic.execute("sort");
+        logic.execute("find Alice Carl");
+        AddressBook storedBefore = new AddressBook(model.getAddressBook());
+        List<Person> displayedBefore = List.copyOf(model.getFilteredPersonList());
+        String jsonBefore = Files.readString(storage.getAddressBookFilePath());
+
+        CommandResult result = logic.execute("select 2");
+        assertSame(CARL, result.getSelectedPerson().orElseThrow());
+        assertSame(CARL, logic.getSelectionChange().applyTo(null));
+        assertEquals(storedBefore, model.getAddressBook());
+        assertEquals(displayedBefore, model.getFilteredPersonList());
+        assertEquals(jsonBefore, Files.readString(storage.getAddressBookFilePath()));
+        assertFalse(model.canUndoAddressBook());
+        assertFalse(model.canRedoAddressBook());
+    }
+
+    @Test
+    public void execute_selectBetweenUndoAndRedo_preservesHistoryAndAddsNoUndoStep() throws Exception {
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        model.commitAddressBook();
+        logic.execute("edit 2 n/Updated Supplier");
+        Person edited = model.getFilteredPersonList().get(1);
+        logic.execute("undo");
+        assertTrue(model.canRedoAddressBook());
+
+        logic.execute("select 2");
+        logic.execute("select 1");
+        assertTrue(model.canRedoAddressBook());
+        logic.execute("redo");
+        assertSame(edited, model.getFilteredPersonList().get(1));
+        assertNull(logic.getSelectionChange().applyTo(ALICE));
+
+        logic.execute("select 2");
+        assertSame(edited, logic.getSelectionChange().applyTo(null));
+        logic.execute("undo");
+        assertSame(BENSON, model.getFilteredPersonList().get(1));
+        assertNull(logic.getSelectionChange().applyTo(edited));
+    }
+
+    @Test
+    public void execute_realSelectSavingFailures_retainTargetAndResetBeforeInvalidAttempt() {
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        AddressBook storedBefore = new AddressBook(model.getAddressBook());
+        for (IOException failure : List.of(DUMMY_IO_EXCEPTION, DUMMY_AD_EXCEPTION)) {
+            Path failingPath = temporaryFolder.resolve("real-selection-failure.json");
+            JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(failingPath) {
+                @Override
+                public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                    assertSame(BENSON, logic.getSelectionChange().applyTo(ALICE));
+                    throw failure;
+                }
+            };
+            StorageManager failingManager = new StorageManager(failingStorage,
+                    new JsonUserPrefsStorage(temporaryFolder.resolve("preferences.json")));
+            logic = new LogicManager(model, failingManager);
+            CommandException exception = Assertions.assertThrows(
+                    CommandException.class, () -> logic.execute("select 2"));
+            assertSame(failure, exception.getCause());
+            assertSame(BENSON, logic.getSelectionChange().applyTo(null));
+            assertEquals(storedBefore, model.getAddressBook());
+            assertFalse(model.canUndoAddressBook());
+            assertFalse(model.canRedoAddressBook());
+
+            assertThrows(ParseException.class, () -> logic.execute("select 0"));
+            assertSame(ALICE, logic.getSelectionChange().applyTo(ALICE));
+            assertNull(logic.getSelectionChange().applyTo(null));
+        }
+    }
+
+    @Test
+    public void execute_afterSelectionRequest_clearsRequestForSuccessAndFailures() throws Exception {
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        useSelectionRequest(BENSON);
+        logic.execute("test-selection");
+        logic.execute("list");
+        assertSame(ALICE, logic.getSelectionChange().applyTo(ALICE));
+        assertNull(logic.getSelectionChange().applyTo(null));
+
+        logic.execute("test-selection");
+        assertThrows(ParseException.class, () -> logic.execute("unknowncommand"));
+        assertSame(ALICE, logic.getSelectionChange().applyTo(ALICE));
+        assertNull(logic.getSelectionChange().applyTo(null));
+
+        logic.execute("test-selection");
+        assertThrows(CommandException.class, () -> logic.execute("delete 9"));
+        assertSame(ALICE, logic.getSelectionChange().applyTo(ALICE));
+        assertNull(logic.getSelectionChange().applyTo(null));
+    }
+
+    @Test
+    public void execute_savingFailure_retainsRequestBeforeAndAfterSaving() {
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        for (IOException failure : List.of(DUMMY_IO_EXCEPTION, DUMMY_AD_EXCEPTION)) {
+            Path failingPath = temporaryFolder.resolve("failure.json");
+            JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(failingPath) {
+                @Override
+                public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                    assertSame(BENSON, logic.getSelectionChange().applyTo(ALICE));
+                    throw failure;
+                }
+            };
+            storage = new StorageManager(failingStorage,
+                    new JsonUserPrefsStorage(temporaryFolder.resolve("preferences.json")));
+            useSelectionRequest(BENSON);
+            CommandException exception = Assertions.assertThrows(
+                    CommandException.class, () -> logic.execute("test-selection"));
+            assertSame(failure, exception.getCause());
+            assertSame(BENSON, logic.getSelectionChange().applyTo(null));
+            assertSame(BENSON, logic.getSelectionChange().applyTo(ALICE));
+        }
     }
 
     @Test

@@ -135,9 +135,17 @@ suppresses native ListView selection notifications during that execution, preven
 from being published. In a `finally` block, `MainWindow` applies the command's selection change and calls
 `PersonListPanel#endCommand(Person)`. The panel searches the current displayed list by object identity and selects the
 resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
-equal but distinct replacement objects. This retains visible contacts across filtering, sorting, and unrelated changes;
+equal but distinct replacement objects. It resolves pending styling/layout and scrolls immediately, then checks the
+actual live row against the clipped viewport after layout. A request finishes after two consecutive visible layout
+passes and makes at most three corrective scrolls. Each pulse performs one scrolling operation: a stale native item
+count uses the list's index-scroll event; otherwise first/last rows use the viewport's start/end position and other
+rows use measured native scrolling. Requests retain the exact contact reference and re-find its current index.
+Later commands, selection changes, mouse/key/wheel interaction, scene changes, and window closure cancel pending
+scrolling, removing the scene and window listeners. This retains visible contacts across filtering, sorting, and unrelated changes;
 it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
-path still conservatively clear selection. Model, Storage, and `CommandResult` data structures remain unchanged.
+path still conservatively clear selection. Model and Storage data structures remain unchanged.
+`CommandResult` supports an optional exact-contact selection request. `SelectCommand` supplies the contact resolved
+from the displayed list; commands without an explicit request retain their existing selection policy.
 
 `MainWindowTest` covers mouse and arrow-key events, null selection, actual edit/delete/filter/list/sort/clear/follow-up
 commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
@@ -152,49 +160,57 @@ Further UI tests cover Escape from the list, details, and feedback, draft/cursor
 independent mouse-wheel scrolling, access to the bottom of long details, and long content at divider limits after
 resizing between minimum and larger windows.
 
-#### Proposed `select INDEX` command (not implemented)
+#### Selecting contacts with `select INDEX`
 
-This proposal would let users select a contact entirely through command input. `INDEX` would be a positive,
-one-based index into the currently displayed filtered and sorted list. Missing, zero, negative, extra, non-numeric,
-and out-of-range arguments would be rejected without changing selection. A valid selection would scroll the list
-to the contact and display its details while keeping focus in command input. It would not change contact data,
-filters, sorting, or undo/redo history, and would not persist selection across restarts.
+`AddressBookParser` dispatches `select` to `SelectCommandParser`, which accepts exactly one positive integer using
+`ParserUtil.parseIndex()`. `SelectCommand#execute()` resolves the index against `Model#getFilteredPersonList()`, the
+current filtered and sorted view. It returns feedback and the exact `Person` reference without modifying data,
+filter predicates, comparators, or history. The command does not call `commitAddressBook()`.
 
-`SelectCommand` would resolve the current `Person` reference during execution and return it as an optional selection
-request in `CommandResult`. Existing constructors would default to no request. `LogicManager` would copy this request
-into `CommandSelectionChange` before saving. An explicit request would take precedence over retaining the previous
-selection; undo/redo would continue to clear it. This uses the existing `MainWindow` finally block and
-`PersonListPanel#endCommand(Person)`, including reconciliation after saving errors, without Model or Storage changes.
+`CommandResult#getSelectedPerson()` carries an optional explicit selection request. Existing constructors default to
+no request; `CommandResult(String, Person)` retains the exact immutable contact reference. Equality, hashing, and the
+string representation include the request. `LogicManager` forwards it into `CommandSelectionChange` before saving.
+Each command attempt resets this information before parsing. Selection precedence is:
 
-The complete proposed file list is below; these changes are not part of the current implementation.
-Paths are relative to the repository root.
+1. Successful undo/redo resets clear selection.
+2. An explicit selection request chooses its target, even when there was no previous selection.
+3. Otherwise, retain the previous contact or its recorded replacement when it remains visible.
 
-File | Proposed change
------|----------------
-`src/main/java/seedu/address/logic/commands/SelectCommand.java` (new) | Validate the displayed index and return selection feedback and the exact contact reference; do not commit history.
-`src/main/java/seedu/address/logic/parser/SelectCommandParser.java` (new) | Parse exactly one positive index using the existing index validation.
-`src/main/java/seedu/address/logic/parser/AddressBookParser.java` | Dispatch `select` to its parser.
-`src/main/java/seedu/address/logic/commands/CommandResult.java` | Add an optional selected-contact request, preserving existing constructor defaults and updating equality, hashing, and string representation.
-`src/main/java/seedu/address/logic/CommandSelectionChange.java` | Apply an explicit selection request, including when there was no previous selection.
-`src/main/java/seedu/address/logic/LogicManager.java` | Forward the result's selection request into the reconciliation information before saving.
-`src/main/java/seedu/address/logic/commands/HelpCommand.java` | Register targeted `help select` usage.
-`src/main/java/seedu/address/ui/HelpWindow.java` | Include the command in the browse-contacts help section.
-`src/test/java/seedu/address/logic/commands/SelectCommandTest.java` (new) | Cover valid/invalid displayed indexes, exact target references, unchanged data/filter/sort/history, and filtered/sorted views.
-`src/test/java/seedu/address/logic/parser/SelectCommandParserTest.java` (new) | Cover missing, malformed, extra, zero, negative, and valid arguments.
-`src/test/java/seedu/address/logic/parser/AddressBookParserTest.java` | Verify command dispatch.
-`src/test/java/seedu/address/logic/commands/CommandResultTest.java` | Test selection-request defaults and value methods.
-`src/test/java/seedu/address/logic/LogicManagerTest.java` | Verify request forwarding, resetting between attempts, and behaviour when saving fails.
-`src/test/java/seedu/address/ui/MainWindowTest.java` | Cover selection from the empty state, scrolling, repeated selection, filtered/sorted indexes, invalid requests, focus, and saving failures.
-`src/test/java/seedu/address/logic/commands/HelpCommandTest.java` | Cover targeted help and the supported-command list.
-`src/test/java/seedu/address/ui/HelpWindowTest.java` | Verify that browse help includes `select`.
-`docs/UserGuide.md` | Document syntax, displayed-index rules, examples, errors, and command-summary entry after implementation.
-`docs/DeveloperGuide.md` | Replace this proposal with the implemented request flow and its tests.
-`docs/images/help.png` | Refresh the help screenshot to include the new browse command.
-`docs/images/help-continued.png` | Refresh the continuation screenshot after the additional help text changes scrolling positions.
+`MainWindow` applies the result through its existing `finally` block and `PersonListPanel#endCommand(Person)`.
+The panel resolves the current index by object identity, updates the highlight, and scrolls to the contact without
+moving focus out of command input. It resolves pending styling and list layout before scrolling so freshly added
+rows are positioned correctly. Repeated selection of the same object retains the details panel's reading position.
+There are no new Model or Storage fields and no selection data is persisted.
 
-No `Logic` API, FXML, `MainWindow`, `PersonListPanel`, `PersonDetailsPanel`, Model, or Storage changes are required by
-this proposed approach. The existing generic command/parser diagrams already cover an additional command; their
-class structure would not change.
+The existing automatic saving flow still runs after selection. Because the explicit request is recorded before
+saving, a storage exception does not discard a valid selection. Rejected parsing or index validation leaves no
+new request, so the UI preserves the previous selection. `help select` returns usage with no selection request;
+it neither executes a selection nor opens the full Help window.
+
+Condition | Handling
+----------|---------
+Missing index | `ParseException` with `SelectCommand.MESSAGE_INDEX_REQUIRED`.
+Extra arguments | `ParseException` with `SelectCommand.MESSAGE_EXTRA_ARGUMENTS`.
+Malformed, non-positive, or overflowing integer | `ParseException` with `ParserUtil.MESSAGE_INVALID_INDEX`.
+Empty displayed list | `CommandException` with `SelectCommand.MESSAGE_NO_CONTACTS_TO_SELECT`.
+Index outside the current view | `CommandException` with the range message, or the single-valid-index variant.
+
+Tests cover the command through the real parser, logic, storage, and JavaFX UI pipeline:
+
+* `SelectCommandParserTest` and `AddressBookParserTest`: argument validation, integer boundaries, and dispatch.
+* `SelectCommandTest`: exact targets, filtered/sorted indexes, unchanged model state, and invalid displayed indexes.
+* `CommandResultTest` and `CommandSelectionChangeTest`: request defaults, value methods, identity, and reset precedence.
+* `LogicManagerTest`: request forwarding/reset, unchanged saved contact JSON, undo/redo preservation, and storage failures.
+  A package-private parser-injection constructor also supports isolated command-result tests.
+* `MainWindowTest`: focus, duplicate names, invalid-input recovery, empty results, edits/deletion after selection,
+  saving errors, off-screen and newly added rows, and repeated selection retaining the details scroll position.
+  Visibility checks wait for the real viewport row rather than a fixed number of frames, without issuing extra scrolls.
+  Regression tests cover dropped index-scroll events, stale endpoint offsets, transient visibility, and cancellation
+  after another command, selection, or manual scroll. Failures report the target/selected indexes and visible row bounds.
+* `HelpCommandTest` and `HelpWindowTest`: targeted usage, supported-command guidance, browse-category placement,
+  formatting, and absence of a selection side effect.
+
+The existing generic command/parser class diagrams cover `SelectCommand` without additional class boxes.
 
 ### Logic component
 
@@ -394,11 +410,11 @@ Each user command defines its help text in the command class. `COMMAND_USAGE` is
 | Category | Commands |
 | --- | --- |
 | Manage contacts | `add`, `edit`, `delete`, `clear`, `followup` |
-| Browse contacts | `list`, `find`, `sort`, `followups` |
+| Browse contacts | `list`, `find`, `sort`, `select`, `followups` |
 | Undo and redo | `undo`, `redo` |
 | Application | `help`, `exit` |
 
-`followup` belongs under Manage contacts because it changes contact data. `followups` belongs under Browse contacts because it filters the displayed contacts without modifying their data.
+`select` belongs under Browse contacts because it changes only the displayed selection. `followup` belongs under Manage contacts because it changes contact data. `followups` belongs under Browse contacts because it filters the displayed contacts without modifying their data.
 
 When adding a user command, define its help constants, register its `COMMAND_USAGE` in `HelpCommand.COMMAND_USAGE_BY_NAME`, and add it to the appropriate category in `HelpWindow.HELP_MESSAGE`. Update `HelpCommandTest` and `HelpWindowTest` to cover targeted help, category placement, and formatting. Update parser tests when usage text changes, and keep the User Guide's command list, categories, and help screenshot consistent with the implementation.
 
@@ -1081,6 +1097,23 @@ testers are expected to do more *exploratory* testing.
        Expected: The most recent window size and location are retained.
 
 1. _{ more test cases …​ }_
+
+### Selecting a contact
+
+Start with at least two sample/test contacts. Use the current displayed numbers after each search or sort.
+
+Action | Expected result
+-------|----------------
+Run `select 2`. | Contact 2 is highlighted, scrolled into view, and shown in the right panel; command input keeps focus.
+Scroll the list away, then repeat `select 2`. | The same contact is revealed; the details panel keeps its reading position.
+Run `find` with a matching name, then `select 1`. | The first current search result is selected.
+Run `sort n/`, then `select 1`. | The first contact in the sorted view is selected.
+Try `select`, `select 0`, `select -1`, `select abc`, `select 1 2`, and an index beyond the list size. | An appropriate error appears; selection and details remain unchanged.
+Run a search with no matches, then `select 1`. | The empty-state prompt remains and feedback explains that no contacts are displayed.
+With enough contacts to scroll, add a contact with wrapping tags and immediately select its displayed number. | Its selected card is scrolled into view using the updated layout.
+Run `help select` while a contact is selected. | Usage appears in command feedback; selection stays unchanged and no Help window opens.
+Make one edit, undo it, run `select 1`, then redo. | Redo is still available and reapplies the edit; undo/redo clear selection.
+Restart the application. | Contact data remains available and the details panel starts in its empty state.
 
 ### Deleting a person
 
