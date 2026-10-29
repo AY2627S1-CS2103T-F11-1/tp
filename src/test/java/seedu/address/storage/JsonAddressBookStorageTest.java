@@ -70,6 +70,21 @@ public class JsonAddressBookStorageTest {
     }
 
     @Test
+    public void readAddressBook_blankUnicodeAddress_throwsDataLoadingException() throws Exception {
+        Path filePath = testFolder.resolve("blankAddress.json");
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(filePath);
+        AddressBook addressBook = new AddressBook();
+        addressBook.addPerson(ALICE);
+        String json = JsonUtil.toJsonString(new JsonSerializableAddressBook(addressBook));
+        String[] addresses = {"", " ", "\u200B", "\u00A0", "\u2060", "\u2003", "\u200B\u00A0\u2060\u2003"};
+
+        for (String address : addresses) {
+            Files.writeString(filePath, json.replace(ALICE.getAddress().value, address));
+            assertThrows(DataLoadingException.class, storage::readAddressBook);
+        }
+    }
+
+    @Test
     public void readAndSaveAddressBook_allInOrder_success() throws Exception {
         Path filePath = testFolder.resolve("TempAddressBook.json");
         AddressBook original = getTypicalAddressBook();

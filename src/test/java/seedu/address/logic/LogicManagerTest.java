@@ -39,11 +39,13 @@ import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
+import seedu.address.model.person.Address;
 import seedu.address.model.person.Person;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
 import seedu.address.testutil.PersonBuilder;
+import seedu.address.testutil.PersonUtil;
 
 public class LogicManagerTest {
     private static final IOException DUMMY_IO_EXCEPTION = new IOException("dummy IO exception");
@@ -158,6 +160,52 @@ public class LogicManagerTest {
 
         logic.execute(RedoCommand.COMMAND_WORD);
         assertFalse(model.hasPerson(AMY));
+    }
+
+    @Test
+    public void execute_addBlankUnicodeAddress_preservesContactsStorageAndHistory() throws Exception {
+        logic.execute(PersonUtil.getAddCommand(AMY));
+        logic.execute(PersonUtil.getAddCommand(BENSON));
+        logic.execute(UndoCommand.COMMAND_WORD);
+        Path savedFile = temporaryFolder.resolve("addressBook.json");
+        String savedContents = Files.readString(savedFile);
+        String[] addresses = {
+            "", " ", "   ", "\u200B", "\u00A0", "\u2060", "\u2003",
+            "\u200B\u00A0\u2060\u2003", " \u200B \u00A0\t\u2060 \u2003 "
+        };
+
+        for (String address : addresses) {
+            String command = "add n/Blank Address p/123 e/blank@example.com a/" + address + " r/Customer";
+            assertThrows(ParseException.class, Address.MESSAGE_CONSTRAINTS, () -> logic.execute(command));
+            assertEquals(List.of(AMY), model.getAddressBook().getPersonList());
+            assertEquals(List.of(AMY), logic.getFilteredPersonList());
+            assertTrue(model.canUndoAddressBook());
+            assertTrue(model.canRedoAddressBook());
+            assertEquals(savedContents, Files.readString(savedFile));
+        }
+
+        logic.execute(UndoCommand.COMMAND_WORD);
+        assertTrue(model.getAddressBook().getPersonList().isEmpty());
+        assertFalse(model.canUndoAddressBook());
+
+        logic.execute(RedoCommand.COMMAND_WORD);
+        assertEquals(List.of(AMY), model.getAddressBook().getPersonList());
+        logic.execute(RedoCommand.COMMAND_WORD);
+        assertEquals(List.of(AMY, BENSON), model.getAddressBook().getPersonList());
+        assertFalse(model.canRedoAddressBook());
+    }
+
+    @Test
+    public void execute_addVisibleAddressWithUnicodeCharacters_savesAndReloads() throws Exception {
+        String address = "\u200B\u00A0123\u2060 Main\u2003St";
+        Person person = new PersonBuilder().withAddress(address).build();
+
+        logic.execute(PersonUtil.getAddCommand(person));
+
+        assertEquals(List.of(person), model.getAddressBook().getPersonList());
+        JsonAddressBookStorage storage =
+                new JsonAddressBookStorage(temporaryFolder.resolve("addressBook.json"));
+        assertEquals(List.of(person), storage.readAddressBook().orElseThrow().getPersonList());
     }
 
     @Test

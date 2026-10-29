@@ -105,6 +105,20 @@ public class JsonAdaptedPersonTest {
     }
 
     @Test
+    public void toModelType_blankUnicodeAddress_throwsIllegalValueException() {
+        String[] addresses = {
+            "", " ", "   ", "\u200B", "\u00A0", "\u2060", "\u2003",
+            "\u200B\u00A0\u2060\u2003", " \u200B \u00A0\t\u2060 \u2003 "
+        };
+
+        for (String address : addresses) {
+            JsonAdaptedPerson person = new JsonAdaptedPerson(
+                    VALID_NAME, VALID_PHONE, VALID_EMAIL, address, VALID_ROLE, VALID_TAGS);
+            assertThrows(IllegalValueException.class, Address.MESSAGE_CONSTRAINTS, person::toModelType);
+        }
+    }
+
+    @Test
     public void toModelType_nullAddress_throwsIllegalValueException() {
         JsonAdaptedPerson person = new JsonAdaptedPerson(VALID_NAME, VALID_PHONE, VALID_EMAIL, null,
                 VALID_ROLE, VALID_TAGS);
