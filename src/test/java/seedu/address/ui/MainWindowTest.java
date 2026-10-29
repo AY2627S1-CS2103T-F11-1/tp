@@ -140,11 +140,14 @@ public class MainWindowTest {
      * Creates a window with injectable address book storage for saving-failure tests.
      */
     private void initializeMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage) {
-        initializeMainWindow(model, addressBookStorage, new UiDateTracker(CLOCK));
+        createMainWindow(model, addressBookStorage);
+        mainWindow.show();
     }
 
-    private void initializeMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage,
-            UiDateTracker uiDate) {
+    /**
+     * Creates a window without showing it, allowing requested sizes to be checked before the OS adjusts them.
+     */
+    private void createMainWindow(ModelManager model, JsonAddressBookStorage addressBookStorage) {
         Path addressBookPath = addressBookStorage.getAddressBookFilePath();
         StorageManager storage = new StorageManager(
                 addressBookStorage,
@@ -182,6 +185,10 @@ public class MainWindowTest {
      * Must be called on the JavaFX application thread after layout.
      */
     private void assertContactPanesFit() {
+        assertTrue(stage.getWidth() >= stage.getMinWidth() - 1,
+                "Window width " + stage.getWidth() + " is below minimum " + stage.getMinWidth());
+        assertTrue(stage.getHeight() >= stage.getMinHeight() - 1,
+                "Window height " + stage.getHeight() + " is below minimum " + stage.getMinHeight());
         SplitPane splitPane = (SplitPane) stage.getScene().lookup("#contactSplitPane");
         Region list = (Region) splitPane.getItems().get(0);
         Region details = (Region) splitPane.getItems().get(1);
@@ -208,11 +215,14 @@ public class MainWindowTest {
 
     @Test
     public void layout_defaultWindow_showsTwoPanesAtMinimumWidth() throws Exception {
-        runOnFxThread(this::initializeMainWindow);
+        runOnFxThread(() -> {
+            createMainWindow(new ModelManager(), new JsonAddressBookStorage(testFolder.resolve("addressbook.json")));
+            assertEquals(800, stage.getWidth(), 1);
+            mainWindow.show();
+        });
         awaitLayout();
 
         runOnFxThread(() -> {
-            assertEquals(800, stage.getWidth(), 1);
             SplitPane splitPane = (SplitPane) stage.getScene().lookup("#contactSplitPane");
             assertEquals(0.45, splitPane.getDividerPositions()[0], 0.02);
             StackPane details = (StackPane) stage.getScene().lookup("#personDetailsPanelPlaceholder");
@@ -226,26 +236,38 @@ public class MainWindowTest {
     }
 
     @Test
-    public void layout_savedWindowWidth_clampsSmallWidthsAndPreservesLargerWidths() throws Exception {
-        ModelManager model = new ModelManager();
-        model.setGuiSettings(new GuiSettings(450, 400, 0, 0));
-        runOnFxThread(() -> initializeMainWindow(model));
-        awaitLayout();
+    public void layout_savedWindowSize_requestsClampedOrPreservedDimensionsBeforeShowing() throws Exception {
         runOnFxThread(() -> {
-            assertEquals(800, stage.getWidth(), 1);
-            assertEquals(600, stage.getHeight(), 1);
-            assertContactPanesFit();
-            stage.hide();
-        });
+            ModelManager model = new ModelManager();
+            model.setGuiSettings(new GuiSettings(450, 400, 0, 0));
+            createMainWindow(model, new JsonAddressBookStorage(testFolder.resolve("addressbook.json")));
+            assertFalse(stage.isShowing());
+            assertEquals(800, stage.getWidth(), 0.001);
+            assertEquals(600, stage.getHeight(), 0.001);
 
-        model.setGuiSettings(new GuiSettings(1100, 720, 0, 0));
-        runOnFxThread(() -> initializeMainWindow(model));
-        awaitLayout();
-        runOnFxThread(() -> {
-            assertEquals(1100, stage.getWidth(), 1);
-            assertEquals(720, stage.getHeight(), 1);
-            assertContactPanesFit();
+            model.setGuiSettings(new GuiSettings(1100, 720, 0, 0));
+            createMainWindow(model, new JsonAddressBookStorage(testFolder.resolve("addressbook.json")));
+            assertFalse(stage.isShowing());
+            assertEquals(1100, stage.getWidth(), 0.001);
+            assertEquals(720, stage.getHeight(), 0.001);
         });
+    }
+
+    @Test
+    public void layout_savedWindowSize_keepsPanesUsableAfterShowing() throws Exception {
+        for (GuiSettings settings : List.of(new GuiSettings(450, 400, 0, 0), new GuiSettings(1100, 720, 0, 0))) {
+            runOnFxThread(() -> {
+                ModelManager model = new ModelManager();
+                model.setGuiSettings(settings);
+                initializeMainWindow(model);
+            });
+            awaitLayout();
+            runOnFxThread(() -> {
+                // Native window managers may constrain the requested size to the runner's desktop.
+                assertContactPanesFit();
+                stage.hide();
+            });
+        }
     }
 
     @Test
