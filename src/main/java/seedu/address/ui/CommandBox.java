@@ -17,6 +17,9 @@ public class CommandBox extends UiPart<Region> {
     private static final String FXML = "CommandBox.fxml";
 
     private final CommandExecutor commandExecutor;
+    private int draftAnchor;
+    private int draftCaret;
+    private boolean restoringFocus;
 
     @FXML
     private TextField commandTextField;
@@ -29,6 +32,31 @@ public class CommandBox extends UiPart<Region> {
         this.commandExecutor = commandExecutor;
         // calls #setStyleToDefault() whenever there is a change to the text of the command box.
         commandTextField.textProperty().addListener((unused1, unused2, unused3) -> setStyleToDefault());
+        commandTextField.anchorProperty().addListener((observable, previous, current) -> rememberCaret());
+        commandTextField.caretPositionProperty().addListener((observable, previous, current) -> rememberCaret());
+    }
+
+    /**
+     * Returns keyboard focus to command input without changing the draft or its text selection.
+     */
+    void focus() {
+        restoringFocus = true;
+        try {
+            commandTextField.requestFocus();
+            commandTextField.selectRange(draftAnchor, draftCaret);
+        } finally {
+            restoringFocus = false;
+        }
+        rememberCaret();
+    }
+
+    private void rememberCaret() {
+        // Ignore JavaFX's selection reset when focus leaves the field, and its select-all on focus gain.
+        if (!restoringFocus && commandTextField.getScene() != null
+                && commandTextField.getScene().getFocusOwner() == commandTextField) {
+            draftAnchor = commandTextField.getAnchor();
+            draftCaret = commandTextField.getCaretPosition();
+        }
     }
 
     /**

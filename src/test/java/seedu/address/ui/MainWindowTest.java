@@ -45,6 +45,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -212,11 +213,12 @@ public class MainWindowTest {
     @Test
     public void layout_savedWindowWidth_clampsSmallWidthsAndPreservesLargerWidths() throws Exception {
         ModelManager model = new ModelManager();
-        model.setGuiSettings(new GuiSettings(450, 600, 0, 0));
+        model.setGuiSettings(new GuiSettings(450, 400, 0, 0));
         runOnFxThread(() -> initializeMainWindow(model));
         awaitLayout();
         runOnFxThread(() -> {
             assertEquals(800, stage.getWidth(), 1);
+            assertEquals(600, stage.getHeight(), 1);
             assertContactPanesFit();
             stage.hide();
         });
@@ -784,6 +786,153 @@ public class MainWindowTest {
             }
             assertContactPanesFit();
         });
+    }
+
+    @Test
+    public void keyboard_escapeReturnsToCommandInput_preservesDraftSelectionAndContact() throws Exception {
+        runOnFxThread(this::initializeContactWindow);
+        awaitLayout();
+        runOnFxThread(() -> {
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            command.setText("edit 1 n/Draft Supplier");
+            command.selectRange(2, 6);
+            contactList().getSelectionModel().select(0);
+            contactList().requestFocus();
+            contactList().fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.DOWN,
+                    false, false, false, false));
+            assertSame(contactList(), stage.getScene().getFocusOwner());
+            assertSelected(BENSON);
+            contactList().fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE,
+                    false, false, false, false));
+            assertSame(command, stage.getScene().getFocusOwner());
+            assertEquals("edit 1 n/Draft Supplier", command.getText());
+            assertEquals(2, command.getAnchor());
+            assertEquals(6, command.getCaretPosition());
+            assertSelected(BENSON);
+
+            for (String id : List.of("detailsScrollPane", "resultDisplay")) {
+                Node source = stage.getScene().lookup("#" + id);
+                source.requestFocus();
+                source.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE,
+                        false, false, false, false));
+                assertSame(command, stage.getScene().getFocusOwner());
+                assertEquals("edit 1 n/Draft Supplier", command.getText());
+                assertSelected(BENSON);
+            }
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            assertSame(command, stage.getScene().getFocusOwner());
+            assertEquals(2, command.getAnchor());
+            assertEquals(6, command.getCaretPosition());
+        });
+    }
+
+    private Person initializeLongContentWindow() {
+        String[] tags = IntStream.range(0, 36).mapToObj(i -> "Component " + i).toArray(String[]::new);
+        tags[0] = "X".repeat(50);
+        Person person = new PersonBuilder(ALICE).withName("Mechanical Keyboard Supplier ".repeat(10).strip())
+                .withRole("Keyboard component supplier ".repeat(8).strip())
+                .withEmail("supplier".repeat(18) + "@keyboard.example.com")
+                .withAddress("Unit 08 Artisan Keyboard Business Park, ".repeat(16)).withTags(tags)
+                .withFollowUp("2026-11-01", "Confirm switch order and delivery date ".repeat(5).strip()).build();
+        ModelManager model = new ModelManager();
+        model.addPerson(person);
+        for (int i = 0; i < 40; i++) {
+            model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                    .withEmail("supplier" + i + "@example.com").build());
+        }
+        initializeMainWindow(model);
+        contactList().getSelectionModel().select(0);
+        return person;
+    }
+
+    private ScrollBar scrollBar(Node control, Orientation orientation) {
+        return (ScrollBar) control.lookupAll(".scroll-bar").stream()
+                .filter(node -> node instanceof ScrollBar bar && bar.getOrientation() == orientation)
+                .findFirst().orElseThrow();
+    }
+
+    private void scrollDown(Node target) {
+        Bounds bounds = target.localToScene(target.getLayoutBounds());
+        double x = bounds.getCenterX();
+        double y = bounds.getCenterY();
+        target.fireEvent(new ScrollEvent(ScrollEvent.SCROLL, x, y, x, y,
+                false, false, false, false, false, false, 0, -180, 0, -180,
+                ScrollEvent.HorizontalTextScrollUnits.NONE, 0,
+                ScrollEvent.VerticalTextScrollUnits.LINES, -6, 0, new PickResult(target, x, y)));
+    }
+
+    @Test
+    public void scrolling_listAndDetails_scrollIndependentlyAtMinimumSize() throws Exception {
+        double[] positions = new double[2];
+        runOnFxThread(this::initializeLongContentWindow);
+        awaitLayout();
+        runOnFxThread(() -> {
+            ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            assertTrue(scrollBar(details, Orientation.VERTICAL).isVisible());
+            assertTrue(scrollBar(contactList(), Orientation.VERTICAL).isVisible());
+            positions[0] = scrollBar(contactList(), Orientation.VERTICAL).getValue();
+            scrollDown(details.lookup(".viewport"));
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            assertTrue(details.getVvalue() > 0, "Mouse-wheel input should scroll details");
+            assertEquals(positions[0], scrollBar(contactList(), Orientation.VERTICAL).getValue(), 0.001);
+            positions[1] = details.getVvalue();
+            scrollDown(contactList().lookup(".virtual-flow"));
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            assertTrue(scrollBar(contactList(), Orientation.VERTICAL).getValue() > positions[0],
+                    "Mouse-wheel input should scroll the contact list");
+            assertEquals(positions[1], details.getVvalue(), 0.001);
+            assertSame(contactList().getItems().get(0), mainWindow.getPersonListPanel().selectedPersonProperty().get());
+            details.setVvalue(1);
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            Node viewport = details.lookup(".viewport");
+            Node lastField = details.getContent().lookup("#followUpDescription");
+            Bounds viewportBounds = viewport.localToScene(viewport.getLayoutBounds());
+            Bounds lastBounds = lastField.localToScene(lastField.getLayoutBounds());
+            assertTrue(lastBounds.getMinY() >= viewportBounds.getMinY() - 1);
+            assertTrue(lastBounds.getMaxY() <= viewportBounds.getMaxY() + 1,
+                    "The bottom of long details should remain accessible");
+        });
+    }
+
+    @Test
+    public void layout_longContentAtDividerLimits_fitsAfterResizing() throws Exception {
+        runOnFxThread(this::initializeLongContentWindow);
+        awaitLayout();
+        for (double width : new double[] {1100, 800}) {
+            for (double position : new double[] {0, 1}) {
+                runOnFxThread(() -> {
+                    stage.setWidth(width);
+                    SplitPane split = (SplitPane) stage.getScene().lookup("#contactSplitPane");
+                    split.setDividerPositions(position);
+                });
+                awaitLayout();
+                runOnFxThread(() -> {
+                    assertContactPanesFit();
+                    ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+                    assertFalse(scrollBar(contactList(), Orientation.HORIZONTAL).isVisible());
+                    assertFalse(scrollBar(details, Orientation.HORIZONTAL).isVisible());
+                    Bounds contentBounds = details.getContent().localToScene(details.getContent().getLayoutBounds());
+                    for (Node node : details.getContent().lookupAll(".label")) {
+                        Bounds bounds = node.localToScene(node.getLayoutBounds());
+                        assertTrue(bounds.getMinX() >= contentBounds.getMinX() - 1);
+                        assertTrue(bounds.getMaxX() <= contentBounds.getMaxX() + 1);
+                    }
+                });
+            }
+        }
     }
 
     @Test

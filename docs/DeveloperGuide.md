@@ -87,7 +87,8 @@ The `UI` component,
 
 `MainWindow.fxml` places the contact list and details placeholder in a horizontal `SplitPane`, initially around
 45% list and 55% details. The minimum window width is 800 pixels, with minimum pane widths of 340 and 400 pixels.
-`MainWindow` clamps smaller restored window widths in the UI without changing the preferences data structure.
+The minimum height is 600 pixels. `MainWindow` clamps smaller restored dimensions in the UI without changing the
+preferences data structure.
 
 `PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, and sorted tags.
 Email, address, and follow-up content appear in the details panel. The card has no fixed minimum height, and empty
@@ -106,6 +107,12 @@ the package-private clock constructor supports deterministic tests.
 `MainWindow` observes it and calls `showPerson()` for a selected contact or `clear()` for null selection.
 Mouse selection and arrow-key navigation use the existing JavaFX ListView behaviour, and displaying details does not
 request keyboard focus.
+
+An unmodified Escape key press in the main window returns focus to `CommandBox`, retaining its draft, anchor, and
+caret position. A Stage event filter handles Escape before a text control can consume it; disabled command input
+during exit is excluded. `CommandBox` remembers caret and anchor changes while command input owns focus, ignoring
+JavaFX's selection reset on focus loss and select-all during explicit focus restoration. Arrow keys in the list continue to
+navigate contacts without automatically focusing input. The list and details ScrollPane handle scrolling separately.
 
 The displayed list is the model's `SortedList` over a `FilteredList`. Its events alone cannot reliably associate
 contacts across edits: replacing a contact that no longer matches a filter can emit only a removal, followed by an
@@ -134,6 +141,53 @@ commands, equal replacements, contacts sharing a name, undo/redo, and saving fai
 `PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
 `MainWindowTest` also verifies compact card height, empty-tag spacing, long-name tooltips, tag wrapping, selected-card
 styling without list focus, and access to the complete selected contact details.
+Further UI tests cover Escape from the list, details, and feedback, draft/cursor preservation after focus settles,
+independent mouse-wheel scrolling, access to the bottom of long details, and long content at divider limits after
+resizing between minimum and larger windows.
+
+#### Proposed `select INDEX` command (not implemented)
+
+This proposal would let users select a contact entirely through command input. `INDEX` would be a positive,
+one-based index into the currently displayed filtered and sorted list. Missing, zero, negative, extra, non-numeric,
+and out-of-range arguments would be rejected without changing selection. A valid selection would scroll the list
+to the contact and display its details while keeping focus in command input. It would not change contact data,
+filters, sorting, or undo/redo history, and would not persist selection across restarts.
+
+`SelectCommand` would resolve the current `Person` reference during execution and return it as an optional selection
+request in `CommandResult`. Existing constructors would default to no request. `LogicManager` would copy this request
+into `CommandSelectionChange` before saving. An explicit request would take precedence over retaining the previous
+selection; undo/redo would continue to clear it. This uses the existing `MainWindow` finally block and
+`PersonListPanel#endCommand(Person)`, including reconciliation after saving errors, without Model or Storage changes.
+
+The complete proposed file list is below; these changes are not part of the current implementation.
+Paths are relative to the repository root.
+
+File | Proposed change
+-----|----------------
+`src/main/java/seedu/address/logic/commands/SelectCommand.java` (new) | Validate the displayed index and return selection feedback and the exact contact reference; do not commit history.
+`src/main/java/seedu/address/logic/parser/SelectCommandParser.java` (new) | Parse exactly one positive index using the existing index validation.
+`src/main/java/seedu/address/logic/parser/AddressBookParser.java` | Dispatch `select` to its parser.
+`src/main/java/seedu/address/logic/commands/CommandResult.java` | Add an optional selected-contact request, preserving existing constructor defaults and updating equality, hashing, and string representation.
+`src/main/java/seedu/address/logic/CommandSelectionChange.java` | Apply an explicit selection request, including when there was no previous selection.
+`src/main/java/seedu/address/logic/LogicManager.java` | Forward the result's selection request into the reconciliation information before saving.
+`src/main/java/seedu/address/logic/commands/HelpCommand.java` | Register targeted `help select` usage.
+`src/main/java/seedu/address/ui/HelpWindow.java` | Include the command in the browse-contacts help section.
+`src/test/java/seedu/address/logic/commands/SelectCommandTest.java` (new) | Cover valid/invalid displayed indexes, exact target references, unchanged data/filter/sort/history, and filtered/sorted views.
+`src/test/java/seedu/address/logic/parser/SelectCommandParserTest.java` (new) | Cover missing, malformed, extra, zero, negative, and valid arguments.
+`src/test/java/seedu/address/logic/parser/AddressBookParserTest.java` | Verify command dispatch.
+`src/test/java/seedu/address/logic/commands/CommandResultTest.java` | Test selection-request defaults and value methods.
+`src/test/java/seedu/address/logic/LogicManagerTest.java` | Verify request forwarding, resetting between attempts, and behaviour when saving fails.
+`src/test/java/seedu/address/ui/MainWindowTest.java` | Cover selection from the empty state, scrolling, repeated selection, filtered/sorted indexes, invalid requests, focus, and saving failures.
+`src/test/java/seedu/address/logic/commands/HelpCommandTest.java` | Cover targeted help and the supported-command list.
+`src/test/java/seedu/address/ui/HelpWindowTest.java` | Verify that browse help includes `select`.
+`docs/UserGuide.md` | Document syntax, displayed-index rules, examples, errors, and command-summary entry after implementation.
+`docs/DeveloperGuide.md` | Replace this proposal with the implemented request flow and its tests.
+`docs/images/help.png` | Refresh the help screenshot to include the new browse command.
+`docs/images/help-continued.png` | Refresh the continuation screenshot after the additional help text changes scrolling positions.
+
+No `Logic` API, FXML, `MainWindow`, `PersonListPanel`, `PersonDetailsPanel`, Model, or Storage changes are required by
+this proposed approach. The existing generic command/parser diagrams already cover an additional command; their
+class structure would not change.
 
 ### Logic component
 

@@ -73,12 +73,17 @@ List cards show the name, role, phone number, and tags. Long names use an ellips
 While the contact list has keyboard focus, use the Up and Down arrow keys to move between contacts.
 The details panel updates immediately without moving keyboard focus.
 
+Press **Esc** from the contact list, details panel, or command feedback to return to command input.
+Your draft command, its cursor position and text selection, and the selected contact are preserved.
+
+![Selected contact and full details in the two-panel interface](images/contact-details.png)
+
 * Details include the contact's name, role, tags, phone number, email address, address, and follow-up when present.
 * Empty tags and absent follow-ups do not leave blank sections.
 * A follow-up due before today is marked **Overdue**. A follow-up due today is not overdue.
   The overdue state is checked when the contact is displayed, using your computer's local date.
 * Scroll the details panel independently to read long content. Drag the divider to adjust the two panel widths.
-  The window has a minimum width of 800 pixels.
+  The window has a minimum size of 800 by 600 pixels. Each panel scrolls independently.
 * On startup or when no contact is selected, the panel shows `Select a contact to view details.`
 * Commands keep the selected contact when it remains visible, even if its list position changes. Editing that
   contact or changing its follow-up refreshes its details. Changing another contact keeps your current selection.

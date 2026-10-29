@@ -28,6 +28,7 @@ import seedu.address.model.person.Person;
 public class MainWindow extends UiPart<Stage> {
 
     private static final String FXML = "MainWindow.fxml";
+    private static final KeyCombination FOCUS_COMMAND_BOX = KeyCombination.valueOf("ESC");
 
     private final Logger logger = LogsCenter.getLogger(getClass());
 
@@ -156,14 +157,20 @@ public class MainWindow extends UiPart<Stage> {
 
         CommandBox commandBox = new CommandBox(this::executeCommand);
         commandBoxPlaceholder.getChildren().add(commandBox.getRoot());
+        getRoot().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (FOCUS_COMMAND_BOX.match(event) && !commandBox.getRoot().isDisabled()) {
+                commandBox.focus();
+                event.consume();
+            }
+        });
     }
 
     /**
      * Sets the default size based on {@code guiSettings}.
      */
     private void setWindowDefaultSize(GuiSettings guiSettings) {
-        primaryStage.setHeight(guiSettings.getWindowHeight());
-        // Older preferences may contain a width that cannot fit both contact panes.
+        // Older preferences may contain dimensions that cannot fit both contact panes.
+        primaryStage.setHeight(Math.max(guiSettings.getWindowHeight(), primaryStage.getMinHeight()));
         primaryStage.setWidth(Math.max(guiSettings.getWindowWidth(), primaryStage.getMinWidth()));
         if (guiSettings.getWindowCoordinates() != null) {
             primaryStage.setX(guiSettings.getWindowCoordinates().getX());
