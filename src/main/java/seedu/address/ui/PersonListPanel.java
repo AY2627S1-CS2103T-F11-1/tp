@@ -78,6 +78,9 @@ public class PersonListPanel extends UiPart<Region> {
             personListView.getSelectionModel().clearSelection();
             if (index != -1) {
                 personListView.getSelectionModel().select(index);
+                // Process newly added rows and selected-card styling before resolving the scroll position.
+                personListView.applyCss();
+                personListView.layout();
                 personListView.scrollTo(index);
             }
         } finally {

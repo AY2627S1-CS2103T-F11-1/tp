@@ -131,7 +131,8 @@ suppresses native ListView selection notifications during that execution, preven
 from being published. In a `finally` block, `MainWindow` applies the command's selection change and calls
 `PersonListPanel#endCommand(Person)`. The panel searches the current displayed list by object identity and selects the
 resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
-equal but distinct replacement objects. This retains visible contacts across filtering, sorting, and unrelated changes;
+equal but distinct replacement objects. Before scrolling, it resolves pending list styling and layout so newly added
+rows are positioned using current dimensions. This retains visible contacts across filtering, sorting, and unrelated changes;
 it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
 path still conservatively clear selection. Model and Storage data structures remain unchanged.
 `CommandResult` supports an optional exact-contact selection request. `SelectCommand` supplies the contact resolved
@@ -161,9 +162,15 @@ into `CommandSelectionChange` before saving. An explicit request takes precedenc
 selection; undo/redo continue to clear it. This uses the existing `MainWindow` finally block and
 `PersonListPanel#endCommand(Person)`, including reconciliation after saving errors, without Model or Storage changes.
 
-The complete planned file list is below. The selection-request plumbing, command, parser, and basic end-to-end GUI
-selection are implemented with core validation tests. Additional integration cases, help registration, and final
-user-facing documentation remain for later iterations. `LogicManager` also has a package-private parser-injection
+The complete planned file list is below. The selection-request plumbing, command, parser, and end-to-end GUI selection
+are implemented and verified. Integration tests cover filtered and sorted indexes, duplicate names, invalid input and
+recovery, empty results, edits/deletion after selection, saving errors, and repeated off-screen selection. They also
+verify that selection leaves saved contact JSON unchanged, preserves redo history, and creates no undo step.
+The off-screen test checks that wrapped-tag cards are fully revealed, including when selected immediately after `add`,
+and that repeated selection retains the details scroll position. It exposed clipped scrolling for a newly added row;
+`PersonListPanel` now resolves pending styling and layout before scrolling to fix that case.
+Help registration and final user-facing documentation
+remain for Iteration 4. `LogicManager` also has a package-private parser-injection
 constructor for testing command results independently of production command registration.
 Paths are relative to the repository root.
 

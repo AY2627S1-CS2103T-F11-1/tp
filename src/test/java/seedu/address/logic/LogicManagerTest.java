@@ -40,6 +40,7 @@ import seedu.address.logic.commands.UndoCommand;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.AddressBookParser;
 import seedu.address.logic.parser.exceptions.ParseException;
+import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
@@ -99,6 +100,82 @@ public class LogicManagerTest {
         assertSame(BENSON, result.getSelectedPerson().orElseThrow());
         assertSame(BENSON, logic.getSelectionChange().applyTo(null));
         assertSame(BENSON, logic.getSelectionChange().applyTo(ALICE));
+    }
+
+    @Test
+    public void execute_select_preservesStoredContactsAndFilteredSortedView() throws Exception {
+        model.addPerson(CARL);
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        logic.execute("sort");
+        logic.execute("find Alice Carl");
+        AddressBook storedBefore = new AddressBook(model.getAddressBook());
+        List<Person> displayedBefore = List.copyOf(model.getFilteredPersonList());
+        String jsonBefore = Files.readString(storage.getAddressBookFilePath());
+
+        CommandResult result = logic.execute("select 2");
+        assertSame(CARL, result.getSelectedPerson().orElseThrow());
+        assertSame(CARL, logic.getSelectionChange().applyTo(null));
+        assertEquals(storedBefore, model.getAddressBook());
+        assertEquals(displayedBefore, model.getFilteredPersonList());
+        assertEquals(jsonBefore, Files.readString(storage.getAddressBookFilePath()));
+        assertFalse(model.canUndoAddressBook());
+        assertFalse(model.canRedoAddressBook());
+    }
+
+    @Test
+    public void execute_selectBetweenUndoAndRedo_preservesHistoryAndAddsNoUndoStep() throws Exception {
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        model.commitAddressBook();
+        logic.execute("edit 2 n/Updated Supplier");
+        Person edited = model.getFilteredPersonList().get(1);
+        logic.execute("undo");
+        assertTrue(model.canRedoAddressBook());
+
+        logic.execute("select 2");
+        logic.execute("select 1");
+        assertTrue(model.canRedoAddressBook());
+        logic.execute("redo");
+        assertSame(edited, model.getFilteredPersonList().get(1));
+        assertNull(logic.getSelectionChange().applyTo(ALICE));
+
+        logic.execute("select 2");
+        assertSame(edited, logic.getSelectionChange().applyTo(null));
+        logic.execute("undo");
+        assertSame(BENSON, model.getFilteredPersonList().get(1));
+        assertNull(logic.getSelectionChange().applyTo(edited));
+    }
+
+    @Test
+    public void execute_realSelectSavingFailures_retainTargetAndResetBeforeInvalidAttempt() {
+        model.addPerson(ALICE);
+        model.addPerson(BENSON);
+        AddressBook storedBefore = new AddressBook(model.getAddressBook());
+        for (IOException failure : List.of(DUMMY_IO_EXCEPTION, DUMMY_AD_EXCEPTION)) {
+            Path failingPath = temporaryFolder.resolve("real-selection-failure.json");
+            JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(failingPath) {
+                @Override
+                public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                    assertSame(BENSON, logic.getSelectionChange().applyTo(ALICE));
+                    throw failure;
+                }
+            };
+            StorageManager failingManager = new StorageManager(failingStorage,
+                    new JsonUserPrefsStorage(temporaryFolder.resolve("preferences.json")));
+            logic = new LogicManager(model, failingManager);
+            CommandException exception = Assertions.assertThrows(
+                    CommandException.class, () -> logic.execute("select 2"));
+            assertSame(failure, exception.getCause());
+            assertSame(BENSON, logic.getSelectionChange().applyTo(null));
+            assertEquals(storedBefore, model.getAddressBook());
+            assertFalse(model.canUndoAddressBook());
+            assertFalse(model.canRedoAddressBook());
+
+            assertThrows(ParseException.class, () -> logic.execute("select 0"));
+            assertSame(ALICE, logic.getSelectionChange().applyTo(ALICE));
+            assertNull(logic.getSelectionChange().applyTo(null));
+        }
     }
 
     @Test

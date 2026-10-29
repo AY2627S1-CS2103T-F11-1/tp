@@ -319,7 +319,7 @@ public class MainWindowTest {
 
     private ListCell<?> contactCell(Person person) {
         return (ListCell<?>) contactList().lookupAll(".list-cell").stream()
-                .filter(node -> node instanceof ListCell<?> cell && cell.getItem() == person)
+                .filter(node -> node instanceof ListCell<?> cell && cell.getItem() == person && cell.isVisible())
                 .findFirst().orElseThrow();
     }
 
@@ -484,6 +484,201 @@ public class MainWindowTest {
             assertSelected(BENSON);
             assertSame(command, stage.getScene().getFocusOwner());
         });
+    }
+
+    @Test
+    public void selectCommand_filteredSortedView_usesDisplayedNumbersAndAllowsRepeatedSelection() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(CARL);
+            model.addPerson(ALICE);
+            model.addPerson(BENSON);
+            initializeMainWindow(model);
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            submitCommand("sort");
+            submitCommand("find Alice Carl");
+            List<Person> viewBefore = List.copyOf(model.getFilteredPersonList());
+            submitCommand("select 2");
+            assertSelected(CARL);
+            assertEquals(1, contactList().getSelectionModel().getSelectedIndex());
+            submitCommand("select 2");
+            assertSelected(CARL);
+            assertEquals(viewBefore, model.getFilteredPersonList());
+            assertEquals(List.of(CARL, ALICE, BENSON), model.getAddressBook().getPersonList());
+            assertSame(command, stage.getScene().getFocusOwner());
+        });
+    }
+
+    @Test
+    public void selectCommand_sameNames_selectsExactContactAfterSorting() throws Exception {
+        Person other = new PersonBuilder(ALICE).withPhone("81000001").withEmail("other@example.com")
+                .withAddress("Different supplier address").withRole("Employee").build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(ALICE);
+            model.addPerson(other);
+            initializeMainWindow(model);
+            submitCommand("select 1");
+            assertSelected(ALICE);
+            submitCommand("select 2");
+            assertSelected(other);
+            submitCommand("sort r/ n/");
+            assertSelected(other);
+            submitCommand("select 2");
+            assertSelected(ALICE);
+            submitCommand("select 1");
+            assertSelected(other);
+        });
+    }
+
+    @Test
+    public void selectCommand_invalidArguments_preserveDetailsFocusAndAllowRecovery() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow();
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            submitCommand("select 2");
+            for (String input : List.of("select", "select 0", "select -1", "select +1", "select text",
+                    "select 1.5", "select 2147483648", "select 1 2", "select 1 n/Alice", "select 3")) {
+                submitCommand(input, false);
+                assertSelected(BENSON);
+                assertSame(command, stage.getScene().getFocusOwner());
+                assertEquals(input, command.getText());
+            }
+            submitCommand("select 01");
+            assertSelected(ALICE);
+            assertEquals("", command.getText());
+            submitCommand("list");
+            assertSelected(ALICE);
+        });
+    }
+
+    @Test
+    public void selectCommand_emptyResults_preserveEmptyStateUntilAVisibleContactIsSelected() throws Exception {
+        runOnFxThread(() -> {
+            initializeContactWindow();
+            submitCommand("select 2");
+            submitCommand("find Nonexistent");
+            assertSelectionCleared();
+            submitCommand("select 1", false);
+            assertSelectionCleared();
+            submitCommand("list");
+            assertSelectionCleared();
+            submitCommand("select 2");
+            assertSelected(BENSON);
+        });
+    }
+
+    @Test
+    public void selectCommand_editAndDelete_doNotReuseEarlierSelectionRequests() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = initializeContactWindow();
+            submitCommand("select 1");
+            submitCommand("edit 1 n/Zed Supplier p/81000000 e/zed@example.com");
+            Person edited = model.getFilteredPersonList().get(0);
+            assertSelected(edited);
+            submitCommand("sort");
+            assertSelected(edited);
+            submitCommand("select 1");
+            assertSelected(BENSON);
+            submitCommand("delete 1");
+            assertSelectionCleared();
+            submitCommand("select 1");
+            assertSelected(edited);
+        });
+    }
+
+    @Test
+    public void selectCommand_savingFailure_updatesTargetWithoutLeakingRequestsToLaterCommands() throws Exception {
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            model.addPerson(ALICE);
+            model.addPerson(BENSON);
+            initializeFailingStorageWindow(model);
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            submitCommand("select 2", false);
+            assertSelected(BENSON);
+            TextArea feedback = (TextArea) stage.getScene().lookup("#resultDisplay");
+            assertTrue(feedback.getText().contains("Simulated saving failure"));
+            contactList().getSelectionModel().select(0);
+            assertSelected(ALICE);
+            submitCommand("select 0", false);
+            assertSelected(ALICE);
+            submitCommand("list", false);
+            assertSelected(ALICE);
+            submitCommand("select 2", false);
+            assertSelected(BENSON);
+            assertSame(command, stage.getScene().getFocusOwner());
+            assertEquals(List.of(ALICE, BENSON), model.getAddressBook().getPersonList());
+            assertFalse(model.canUndoAddressBook());
+            assertFalse(model.canRedoAddressBook());
+        });
+    }
+
+    @Test
+    public void selectCommand_offscreenAndRepeated_revealsContactWithoutResettingDetailsScroll() throws Exception {
+        Person target = new PersonBuilder().withName("Target Supplier").withPhone("81000999")
+                .withEmail("target@example.com").withTags("X".repeat(50), "switches", "lube")
+                .withAddress("Unit 08 Artisan Keyboard Business Park, ".repeat(16))
+                .withFollowUp("2026-11-01", "Confirm switch shipment ".repeat(8).strip()).build();
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            for (int i = 0; i < 40; i++) {
+                model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").build());
+            }
+            model.addPerson(target);
+            initializeMainWindow(model);
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            TextField command = (TextField) stage.getScene().lookup("#commandTextField");
+            command.requestFocus();
+            submitCommand("select 41");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertSelected(target);
+            assertContactRowVisible(target);
+            ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            details.setVvalue(1);
+            contactList().scrollTo(0);
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertSelected(target);
+            submitCommand("select 41");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            assertSelected(target);
+            assertContactRowVisible(target);
+            ScrollPane details = (ScrollPane) stage.getScene().lookup("#detailsScrollPane");
+            assertEquals(1, details.getVvalue(), 0.001);
+            assertSame(stage.getScene().lookup("#commandTextField"), stage.getScene().getFocusOwner());
+
+            // A freshly appended row has not yet been measured by the list's virtual layout.
+            submitCommand("add n/Appended Supplier p/81000998 e/appended@example.com a/Another supplier address "
+                    + "r/Supplier t/" + "Y".repeat(50) + " t/lube t/switches");
+            assertSelected(target);
+            submitCommand("select 42");
+        });
+        awaitLayout();
+        runOnFxThread(() -> {
+            Person appended = (Person) contactList().getItems().get(41);
+            assertEquals("Appended Supplier", appended.getName().fullName);
+            assertSelected(appended);
+            assertContactRowVisible(appended);
+        });
+    }
+
+    private void assertContactRowVisible(Person person) {
+        Bounds row = contactCell(person).localToScene(contactCell(person).getLayoutBounds());
+        Bounds list = contactList().localToScene(contactList().getLayoutBounds());
+        assertTrue(row.getMinY() >= list.getMinY() - 1, "The selected row should not be clipped at the top");
+        assertTrue(row.getMaxY() <= list.getMaxY() + 1, "The selected row should not be clipped at the bottom");
     }
 
     @Test
