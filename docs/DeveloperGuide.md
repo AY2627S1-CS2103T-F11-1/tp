@@ -150,9 +150,12 @@ from being published. In a `finally` block, `MainWindow` applies the command's s
 `PersonListPanel#endCommand(Person)`. The panel searches the current displayed list by object identity and selects the
 resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
 equal but distinct replacement objects. It first resolves pending styling/layout and scrolls immediately, then verifies
-visibility after the scene's layout pass. If needed, it retries the scroll for up to three layout passes so newly added
-rows use the native list's updated item count and measured heights. Each request retains the exact contact reference
-and resolves its current index again. A later command, selection change, mouse/key/wheel interaction, scene change,
+visibility after the scene's layout pass. Visibility is checked against the live `VirtualFlow` row and clipped viewport,
+excluding cells retained only for measurement or reuse. A request finishes after two consecutive visible layout passes.
+If needed, it makes up to three corrective scrolls. Once the native item count matches the displayed list, the public
+`VirtualFlow.scrollTo(index)` API also brings the row inside the viewport using measured cell geometry, rather than
+relying only on repeated index-scroll events. Each request retains the exact contact reference and resolves its current
+index again. A later command, selection change, mouse/key/wheel interaction, scene change,
 or window closure cancels pending scrolling. Scene listeners and window handlers are removed when a request finishes
 or is cancelled, and stale callbacks cannot affect a newer request. This retains visible contacts across filtering, sorting, and unrelated changes;
 it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
@@ -175,9 +178,16 @@ instead of imposing a platform-dependent pixel-height limit. Off-screen selectio
 the requested row to fit in the list for two consecutive frames, retaining full-visibility checks without issuing
 another scroll. Timeouts report the selected index, window/list bounds, and visible rows. Gradle logs full exception
 details on test failure so CI diagnostics include assertion messages and stack traces.
-The newly added-row regression deliberately drops scroll requests made before the first layout pass, reproducing
-the native list's early-request failure without relying on a particular operating system. It requires the app's
-post-layout request to reveal the row. Further checks ensure delayed requests respect later commands, changed
+Temporary Windows CI instrumentation is enabled only by the select/new-contact UI test. Its trace records native
+row counts, scroll positions, selection identities, retry numbers, and cancellation/stop reasons under
+`build/ui-diagnostics/select-new-contact/`. A failed test also captures the scene before cleanup hides the window.
+CI uploads these files and the test reports with a three-day retention period; diagnostic files are not committed.
+Remove the diagnostic hooks, capture callback, upload step, and temporary `fail-fast: false` setting after diagnosis.
+The newly added-row regression deliberately drops scroll requests made before the first layout pass, exercising
+early-request loss without relying on a particular operating system. Additional regressions discard all index-scroll
+events and move a briefly visible row away during the next layout pass, verifying viewport correction and stable
+visibility respectively. Tests inspect live rows inside the clipped viewport, without accepting measurement cells.
+Further checks ensure delayed requests respect later commands, changed
 selection, and manual scrolling without moving keyboard focus or resetting the details panel's reading position.
 `UiDateTrackerTest` covers local midnight, unchanged days, clock corrections, periodic refresh, hidden/shown windows,
 and focus return. `PersonDetailsPanelTest` checks that date refresh cannot revive a cleared follow-up section.

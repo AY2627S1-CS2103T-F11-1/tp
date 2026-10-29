@@ -12,7 +12,9 @@ import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.BENSON;
 import static seedu.address.testutil.TypicalPersons.CARL;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
@@ -25,10 +27,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
+import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
 
 import javafx.animation.AnimationTimer;
@@ -47,6 +52,9 @@ import javafx.scene.control.ScrollToEvent;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.skin.VirtualFlow;
+import javafx.scene.image.PixelFormat;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -83,6 +91,19 @@ public class MainWindowTest {
 
     private Stage stage;
     private MainWindow mainWindow;
+    private StringBuilder scrollTrace;
+
+    // Temporary Windows diagnostics: capture before @AfterEach hides the failed window.
+    @RegisterExtension
+    private final AfterTestExecutionCallback captureScrollDiagnostics = context -> {
+        if (scrollTrace != null) {
+            try {
+                runOnFxThread(() -> saveScrollDiagnostics(context.getExecutionException().isPresent()));
+            } catch (Exception e) {
+                System.err.println("Unable to capture temporary UI diagnostics: " + e);
+            }
+        }
+    };
 
     @BeforeAll
     public static void initializeJavaFx() throws Exception {
@@ -122,6 +143,32 @@ public class MainWindowTest {
         FutureTask<Void> task = new FutureTask<>(action, null);
         Platform.runLater(task);
         task.get(10, TimeUnit.SECONDS);
+    }
+
+    private void saveScrollDiagnostics(boolean failed) {
+        try {
+            Path directory = Path.of("build", "ui-diagnostics", "select-new-contact");
+            Files.createDirectories(directory);
+            mainWindow.getPersonListPanel().recordScrollDiagnostics(failed ? "test-failed" : "test-passed");
+            scrollTrace.append("window=").append(stage.getWidth()).append('x').append(stage.getHeight())
+                    .append(" scale=").append(stage.getOutputScaleX()).append('x').append(stage.getOutputScaleY())
+                    .append('\n');
+            Files.writeString(directory.resolve("scroll-trace.txt"), scrollTrace.toString());
+            if (failed) {
+                WritableImage snapshot = stage.getScene().snapshot(null);
+                int width = (int) snapshot.getWidth();
+                int height = (int) snapshot.getHeight();
+                int[] pixels = new int[width * height];
+                snapshot.getPixelReader().getPixels(0, 0, width, height, PixelFormat.getIntArgbInstance(),
+                        pixels, 0, width);
+                BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+                image.setRGB(0, 0, width, height, pixels, 0, width);
+                ImageIO.write(image, "png", directory.resolve("failure.png").toFile());
+            }
+            System.out.println("Temporary UI diagnostics: " + directory.toAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("Unable to write temporary UI diagnostics: " + e);
+        }
     }
 
     /**
@@ -379,9 +426,18 @@ public class MainWindowTest {
     }
 
     private ListCell<?> findContactCell(Person person) {
-        return (ListCell<?>) contactList().lookupAll(".list-cell").stream()
-                .filter(node -> node instanceof ListCell<?> cell && cell.getItem() == person && cell.isVisible())
-                .findFirst().orElse(null);
+        VirtualFlow<?> flow = (VirtualFlow<?>) contactList().lookup(".virtual-flow");
+        int index = contactList().getItems().indexOf(person);
+        if (flow != null && index >= 0 && flow.getVisibleCell(index) instanceof ListCell<?> cell
+                && cell.getItem() == person && cell.isVisible()) {
+            return cell;
+        }
+        return null;
+    }
+
+    private Bounds contactViewportBounds() {
+        Node viewport = contactList().lookup(".clipped-container");
+        return viewport.localToScene(viewport.getLayoutBounds());
     }
 
     /**
@@ -399,7 +455,7 @@ public class MainWindowTest {
                 @Override
                 public void handle(long now) {
                     ListCell<?> cell = findContactCell(person);
-                    Bounds listBounds = contactList().localToScene(contactList().getLayoutBounds());
+                    Bounds listBounds = contactViewportBounds();
                     Bounds rowBounds = cell == null ? null : cell.localToScene(cell.getLayoutBounds());
                     boolean visible = rowBounds != null && cell.getHeight() > 0
                             && rowBounds.getMinY() >= listBounds.getMinY() - 1
@@ -410,7 +466,14 @@ public class MainWindowTest {
                         result.complete(null);
                     } else if (System.nanoTime() >= deadline) {
                         stop();
-                        result.complete("Timed out " + operation + ": " + contactRowDiagnostics(person));
+                        String diagnostics = contactRowDiagnostics(person);
+                        if (scrollTrace != null) {
+                            mainWindow.getPersonListPanel().recordScrollDiagnostics("visibility-wait-timeout");
+                            String trace = scrollTrace.toString();
+                            diagnostics += "\nRecent scroll diagnostics:\n"
+                                    + trace.substring(Math.max(0, trace.length() - 8000));
+                        }
+                        result.complete("Timed out " + operation + ": " + diagnostics);
                     }
                 }
             };
@@ -750,6 +813,11 @@ public class MainWindowTest {
 
     @Test
     public void selectCommand_offscreenAndRepeated_revealsContactWithoutResettingDetailsScroll() throws Exception {
+        scrollTrace = new StringBuilder("Temporary select/new-row diagnostics\n")
+                .append("os=").append(System.getProperty("os.name")).append(' ')
+                .append(System.getProperty("os.version")).append(' ').append(System.getProperty("os.arch"))
+                .append("\njava=").append(System.getProperty("java.version"))
+                .append("\njavafx=").append(System.getProperty("javafx.runtime.version")).append('\n');
         boolean[] newRowLaidOut = {false};
         int[] earlyScrollRequests = {0};
         Person target = new PersonBuilder().withName("Target Supplier").withPhone("81000999")
@@ -764,6 +832,10 @@ public class MainWindowTest {
             }
             model.addPerson(target);
             initializeMainWindow(model);
+            mainWindow.getPersonListPanel().setScrollDiagnostics(message -> scrollTrace.append(message).append('\n'));
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event ->
+                    mainWindow.getPersonListPanel().recordScrollDiagnostics("scroll-event target="
+                            + event.getScrollTarget() + " consumed=" + event.isConsumed()));
         });
         awaitLayout();
         runOnFxThread(() -> {
@@ -798,12 +870,14 @@ public class MainWindowTest {
                 @Override
                 public void run() {
                     newRowLaidOut[0] = true;
+                    mainWindow.getPersonListPanel().recordScrollDiagnostics("test-first-post-layout-marker");
                     stage.getScene().removePostLayoutPulseListener(this);
                 }
             });
             contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
                 if (event.getScrollTarget() == 41 && !newRowLaidOut[0]) {
                     earlyScrollRequests[0]++;
+                    mainWindow.getPersonListPanel().recordScrollDiagnostics("test-drop-early-scroll target=41");
                     event.consume();
                 }
             });
@@ -819,6 +893,69 @@ public class MainWindowTest {
             assertTrue(earlyScrollRequests[0] > 0, "The regression should discard an early scroll request");
             assertSelected(appended);
             assertContactRowVisible(appended);
+        });
+    }
+
+    @Test
+    public void deferredScrolling_droppedRequests_revealsContactAndStopsRetrying() throws Exception {
+        int[] droppedRequests = {0};
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            for (int i = 0; i < 40; i++) {
+                model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").build());
+            }
+            initializeMainWindow(model);
+            contactList().addEventFilter(ScrollToEvent.scrollToTopIndex(), event -> {
+                if (event.getScrollTarget() == 39) {
+                    droppedRequests[0]++;
+                    event.consume();
+                }
+            });
+        });
+        awaitContactRowVisible(0, "before checking dropped native scroll requests");
+        runOnFxThread(() -> submitCommand("select 40"));
+        awaitContactRowVisible(39, "after the native index-scroll requests were dropped");
+        runOnFxThread(() -> {
+            assertTrue(droppedRequests[0] > 0);
+            assertSelected((Person) contactList().getItems().get(39));
+            assertContactRowVisible((Person) contactList().getItems().get(39));
+            contactList().scrollTo(0);
+        });
+        awaitContactRowVisible(0, "after scrolling away from the completed selection request");
+        awaitLayout();
+        runOnFxThread(() -> assertContactRowVisible((Person) contactList().getItems().getFirst()));
+    }
+
+    @Test
+    public void deferredScrolling_transientVisibility_checksAgainBeforeStopping() throws Exception {
+        boolean[] shifted = {false};
+        runOnFxThread(() -> {
+            ModelManager model = new ModelManager();
+            for (int i = 0; i < 40; i++) {
+                model.addPerson(new PersonBuilder().withName("Supplier " + i).withPhone("81000" + (100 + i))
+                        .withEmail("supplier" + i + "@example.com").build());
+            }
+            initializeMainWindow(model);
+        });
+        awaitContactRowVisible(0, "before checking transient row visibility");
+        runOnFxThread(() -> {
+            submitCommand("select 40");
+            // Run after the request's first visibility check, simulating a subsequent native layout correction.
+            stage.getScene().addPostLayoutPulseListener(new Runnable() {
+                @Override
+                public void run() {
+                    shifted[0] = true;
+                    contactList().scrollTo(0);
+                    stage.getScene().removePostLayoutPulseListener(this);
+                }
+            });
+        });
+        awaitContactRowVisible(39, "after a native layout correction moved the selected row away");
+        runOnFxThread(() -> {
+            assertTrue(shifted[0]);
+            assertSelected((Person) contactList().getItems().get(39));
+            assertContactRowVisible((Person) contactList().getItems().get(39));
         });
     }
 
@@ -876,7 +1013,7 @@ public class MainWindowTest {
 
     private void assertContactRowVisible(Person person) {
         Bounds row = contactCell(person).localToScene(contactCell(person).getLayoutBounds());
-        Bounds list = contactList().localToScene(contactList().getLayoutBounds());
+        Bounds list = contactViewportBounds();
         assertTrue(row.getMinY() >= list.getMinY() - 1,
                 "The selected row should not be clipped at the top: " + contactRowDiagnostics(person));
         assertTrue(row.getMaxY() <= list.getMaxY() + 1,
