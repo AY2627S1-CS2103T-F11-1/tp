@@ -29,6 +29,14 @@ public class MessagesTest {
     }
 
     @Test
+    public void getIndexOutOfRangeMessage_formatsDisplayedRangeCorrectly() {
+        assertEquals("INDEX 4 is outside the displayed contact list (valid range: 1-3).",
+                Messages.getIndexOutOfRangeMessage(4, 3));
+        assertEquals("INDEX 2 is outside the displayed contact list (valid index: 1).",
+                Messages.getIndexOutOfRangeMessage(2, 1));
+    }
+
+    @Test
     public void getErrorMessageForDuplicatePrefixes() {
         // single duplicate prefix
         String expectedMessage = Messages.MESSAGE_DUPLICATE_FIELDS + "n/.";
