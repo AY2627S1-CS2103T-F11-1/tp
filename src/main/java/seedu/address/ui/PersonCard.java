@@ -80,6 +80,11 @@ public class PersonCard extends UiPart<Region> {
         nameTooltip.setMaxWidth(400);
         name.setTooltip(nameTooltip);
         role.setText(person.getRole().value);
+        Tooltip roleTooltip = new Tooltip(person.getRole().value);
+        roleTooltip.setWrapText(true);
+        roleTooltip.setMaxWidth(400);
+        role.setTooltip(roleTooltip);
+        configureRoleBadgeSize();
         boolean hasFollowUp = person.getFollowUp().isPresent();
         followUpBadge.setVisible(hasFollowUp);
         followUpBadge.setManaged(hasFollowUp);
@@ -107,6 +112,19 @@ public class PersonCard extends UiPart<Region> {
                 });
         tags.setVisible(!person.getTags().isEmpty());
         tags.setManaged(!person.getTags().isEmpty());
+    }
+
+    /**
+     * Reserves enough width for the role badge so typical roles remain on a single line,
+     * while capping at 105px to ensure long roles do not push adjacent badges off the card at minimum width.
+     */
+    private void configureRoleBadgeSize() {
+        Text sample = new Text(person.getRole().value);
+        Font font = role.getFont() != null ? role.getFont() : Font.font("Segoe UI Semibold", 11);
+        sample.setFont(font);
+        double naturalWidth = Math.ceil(sample.getLayoutBounds().getWidth()) + 24;
+        double targetMinWidth = Math.min(naturalWidth, 105);
+        role.setMinWidth(targetMinWidth);
     }
 
     /** Reserves enough space for every status in either weight, including the current theme's insets. */
