@@ -19,6 +19,7 @@ Class Email
 Class Name
 Class Phone
 Class Role
+Class FollowUp
 Class Tag
 
 Class I #FFFFFF
@@ -43,6 +44,7 @@ Person *--> Phone
 Person *--> Email
 Person *--> Address
 Person *--> Role
+Person *--> "0..1" FollowUp
 Person *--> "*" Tag
 
 Person -[hidden]up--> I
@@ -52,7 +54,8 @@ Name -[hidden]right-> Phone
 Phone -[hidden]right-> Address
 Address -[hidden]right-> Email
 Email -[hidden]right-> Role
-Role -[hidden]right-> Tag
+Role -[hidden]right-> FollowUp
+FollowUp -[hidden]right-> Tag
 
 ModelManager --> "~* displayed" Person
 @enduml
