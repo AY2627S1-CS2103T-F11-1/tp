@@ -40,6 +40,33 @@ public class ParserUtilTest {
     private static final String WHITESPACE = " \t\r\n";
 
     @Test
+    public void unescapeSlashes_onlyDecodesSlashEscapesOnce() {
+        // EP: null, empty, escaped slash, plain slash and unrelated backslashes.
+        assertThrows(NullPointerException.class, () -> ParserUtil.unescapeSlashes(null));
+        assertEquals("", ParserUtil.unescapeSlashes(""));
+        assertEquals("s/o and key/board", ParserUtil.unescapeSlashes("s\\/o and key\\/board"));
+        assertEquals("s/o and key/board", ParserUtil.unescapeSlashes("s/o and key/board"));
+        assertEquals("C:\\Users\\John\\", ParserUtil.unescapeSlashes("C:\\Users\\John\\"));
+        assertEquals("s\\/o", ParserUtil.unescapeSlashes("s\\\\/o"));
+    }
+
+    @Test
+    public void parseEscapedFields_decodesBeforeValidationAndNormalisation() throws Exception {
+        assertEquals(new Name("David s/o John"), ParserUtil.parseName(" David   s\\/o John "));
+        assertEquals(new Role("Supplier p/Manufacturer"), ParserUtil.parseRole(" Supplier   p\\/Manufacturer "));
+        assertEquals(new Tag("Parts xx/custom"), ParserUtil.parseTag(" Parts   xx\\/custom "));
+        assertEquals(Set.of(new Tag("key/board")), ParserUtil.parseTags(List.of("key\\/board", "KEY/BOARD")));
+    }
+
+    @Test
+    public void parseEscapedFields_otherBackslashesStillFollowFieldValidation() throws Exception {
+        assertThrows(ParseException.class, Name.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseName("David\\q John"));
+        assertThrows(ParseException.class, Role.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseRole("Supplier\\"));
+        assertThrows(ParseException.class, Tag.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseTag("key\\\\/board"));
+        assertEquals("C:\\Users\\John/Archive", ParserUtil.parseAddress("C:\\Users\\John\\/Archive").value);
+    }
+
+    @Test
     public void parseIndex_null_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> ParserUtil.parseIndex(null));
     }
