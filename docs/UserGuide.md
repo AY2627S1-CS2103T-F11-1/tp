@@ -21,7 +21,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 
 1. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar keybosswarriorspro.jar`.<br>
    A GUI similar to the one below should appear in a few seconds. Note how the app contains some sample data.<br>
-   ![Ui](images/Ui.png)
+   <img src="images/UpdatedUi.png" alt="Main application window" width="750" />
 
 1. Type a command in the command box and press Enter to execute it. For example, type **`help`** and press Enter to open the full help window, or type **`help add`** to see the `add` command's usage in the result display.<br>
    Some example commands you can try:
@@ -93,7 +93,7 @@ The details panel updates immediately without moving keyboard focus.
 Press **Esc** from the contact list, details panel, or command feedback to return to command input.
 Your draft command, its cursor position and text selection, and the selected contact are preserved.
 
-![Selected contact and full details in the two-panel interface](images/contact-details.png)
+<img src="images/contact-details.png" alt="Main application window" width="750" />
 
 * Details include the contact's name, role, tags, phone number, email address, address, and follow-up when present.
 * Empty tags and absent follow-ups do not leave blank sections.
@@ -492,11 +492,11 @@ Sorting cleared. Contacts will be displayed in insertion order.
 
 Use `help` on its own to open the full help window, which lists all commands. Use `help COMMAND` to display a command's usage directly in the result display without opening the window. Targeted help is available for `add`, `clear`, `delete`, `edit`, `exit`, `find`, `followup`, `followups`, `help`, `list`, `redo`, `select`, `sort`, and `undo`. For detailed explanations and examples, refer to this user guide.
 
-![Help window showing commands for managing contacts](images/help.png)
+<img src="images/help.png" alt="Help window showing commands for managing contacts" width="650" />
 
-![Help window showing browsing commands, including SELECT](images/help-browse.png)
+<img src="images/help-browse.png" alt="Help window showing browsing commands, including SELECT" width="650" />
 
-![Help window scrolled down to follow-up queries, undo and redo, and application commands](images/help-continued.png)
+<img src="images/help-continued.png" alt="Help window showing follow-up queries, undo and redo, and application commands" width="650" />
 
 **Format:** `help [COMMAND]`
 

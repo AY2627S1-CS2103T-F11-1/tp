@@ -386,17 +386,8 @@ and `JsonAdaptedPersonTest` cover these paths.
 Two field-specific behaviours remain: only `Tag` has a 50-character limit, checked
 before normalisation, and `Name.equals()` compares case-sensitively while `Role`
 and `Tag` compare case-insensitively. Search predicates for all three fields ignore
-case. Before constructing predicates, `FindCommandParser` collapses repeated
-ordinary spaces in each `n/`, `r/`, and `t/` search phrase using
-`normaliseSearchPhrases()`. Each phrase remains a single substring criterion;
-repeated prefixes retain OR matching, and different prefix types retain AND
-matching. Search phrases do not pass through whole-field validation, so partial
-phrases remain valid. Legacy name search continues to split keywords on whitespace.
-
-`FindCommandParserTest` covers normalisation for all three fields, repeated prefix
-groups, and partial phrases. `LogicManagerTest` reproduces adding and searching
-with the same repeated spaces, checks single-space equivalence, and verifies
-case-insensitive substring matching together with OR/AND behaviour.
+case. See [Finding contacts](#finding-contacts) for search phrase normalisation and
+predicate composition.
 
 Prefix recognition runs before field validation. Slash-containing values such as
 `n/David s/o Me` remain rejected because `s/` is recognised as an unknown prefix;
@@ -431,6 +422,86 @@ The activity diagram below illustrates the duplicate resolution and defensive er
   * Pros: Simpler parsing code.
   * Cons: Causes silent input drops where mistyped fields are omitted without warning the user.
 
+### Finding contacts
+
+`find` filters the displayed contacts using either prefixed name, role, and tag phrases
+or quick name search keywords. The [User Guide](UserGuide.md#locating-contacts-find)
+describes both command formats and their user-facing behaviour.
+
+#### Parsing and validation
+
+`AddressBookParser#parseCommand()` delegates the arguments to `FindCommandParser#parse()`.
+It uses the shared parser classes shown in the [Logic component](#logic-component) and
+processes input in this order:
+
+1. Reject empty or whitespace-only arguments, then reject prefixes other than `n/`, `r/`, and `t/`
+   using `ArgumentTokenizer#verifyNoUnrecognizedPrefixes()`.
+2. Tokenize the supported prefixes. `ArgumentMultimap#getAllValues()` retains every value
+   for a repeated prefix, and tokenization trims leading and trailing whitespace.
+   `normaliseSearchPhrases()` collapses repeated ordinary spaces within each value without
+   splitting a phrase into separate keywords.
+3. If any supported prefix is present, reject any blank value, then reject a nonempty
+   preamble (unprefixed keywords before the first prefix). Create one predicate for each
+   supplied field, containing all its search phrases.
+4. Otherwise, if no supported prefixes are present, default to performing a quick name search: split the trimmed arguments on whitespace and
+   create one `NameContainsKeywordsPredicate` containing the resulting keywords.
+
+Invalid input raises a `ParseException` with a specific reason before a command is executed,
+so the current filter and contact data are preserved. Prefix recognition follows the
+shared syntax described under [Name, role, and tag formatting](#name-role-and-tag-formatting).
+
+#### Predicate composition and execution
+
+`NameContainsKeywordsPredicate`, `RoleContainsKeywordsPredicate`, and
+`TagContainsKeywordsPredicate` implement `Predicate<Person>`. They use `Locale.ROOT`
+to lowercase both field values and search criteria, then apply `String#contains()`.
+Each predicate uses `anyMatch()` to implement OR within its field. The tag predicate
+matches when at least one tag contains at least one supplied phrase; a contact with
+no tags cannot satisfy a tag criterion.
+
+`FindCommand#execute()` combines the field predicates using `allMatch()`, implementing
+AND across fields. For example, `find n/ali n/bob r/supp` creates a name predicate for
+`ali` OR `bob` and a role predicate for `supp`; both predicates must match the contact.
+A contact appears once even when several criteria match it.
+
+The command passes this combined predicate to `Model#updateFilteredPersonList()`.
+`ModelManager` replaces the predicate on its `FilteredList<Person>`, which is backed by
+the full contact list. Each search therefore replaces the previous filter. The wrapping
+`SortedList<Person>` retains its comparator, so the selected sort order still applies.
+The [model view diagram](#model-integration-persistence-and-history) shows these source
+relationships. `Messages#getContactsFoundMessage()` uses the displayed list's size to
+produce singular, plural, or `No contacts found.` feedback in a `CommandResult`.
+
+Search changes only the displayed view and does not call `commitAddressBook()`, so it
+neither creates an undo snapshot nor discards redo history. `LogicManager` still saves
+the underlying address book after successful execution; the search filter is not serialized.
+
+The activity diagram below summarises validation, both parsing paths, and filter execution.
+It focuses on `FindCommandParser` and `FindCommand`.
+
+<!-- Render diagrams/FindActivityDiagram.puml to images/FindActivityDiagram.png. -->
+![Find command activity diagram](images/FindActivityDiagram.png)
+
+#### Design considerations
+
+* **Separate field predicates:** Keeping OR matching inside each predicate and AND matching
+  in `FindCommand` allows alternatives within a field while narrowing across fields. Both
+  search formats reuse the name predicate.
+* **Accept partial phrases:** Search criteria do not pass through `ParserUtil`'s whole-field
+  validation. This allows useful substrings, including partial phrases containing punctuation,
+  while the parser still enforces command syntax and nonblank values.
+
+#### Test coverage
+
+`FindCommandParserTest` covers both formats, multiword phrases, repeated prefixes and spaces,
+and the missing-criteria, blank-value, mixed-format, and unsupported-prefix errors.
+The three `*ContainsKeywordsPredicateTest` classes cover field-specific substring and case
+matching. `FindCommandTest` checks combined predicates and overlapping matches.
+`LogicManagerTest` covers adding and searching normalised fields, OR/AND composition,
+restoring all contacts with `list`, and preserving sorting across searches.
+The [manual find tests](#finding-contacts-with-find) provide a reproducible dataset and
+expected results for these user-visible behaviours.
+
 ### Command-specific help
 
 `AddressBookParser` parses the optional command name after `help` and creates a `HelpCommand`. Bare `help` opens the full help window, while `help COMMAND` displays usage for a supported command in the result area.
@@ -449,7 +520,11 @@ Each user command defines its help text in the command class. `COMMAND_USAGE` is
 
 * Use `COMMAND_WORD`, `COMMAND_DESCRIPTION`, and `COMMAND_USAGE` for help content.
 * Commands without parameters define `COMMAND_USAGE` as `COMMAND_WORD + ": " + COMMAND_DESCRIPTION`. Do not add parameter or example fields for these commands.
-* Commands with required or optional parameters also define `COMMAND_PARAMETERS` and `COMMAND_EXAMPLE`. Their `COMMAND_USAGE` combines the description with `Parameters:` and `Example:` lines. Commands with optional arguments, such as `help`, `sort`, and `followups`, follow this format even though they can run without arguments.
+* Most commands with required or optional parameters define `COMMAND_PARAMETERS` and `COMMAND_EXAMPLE`.
+  Their `COMMAND_USAGE` combines the description with `Parameters:` and `Example:` lines. Commands
+  with optional arguments, such as `help`, `sort`, and `followups`, follow this format even though
+  they can run without arguments. `find` instead uses `COMMAND_FORMATS` and `COMMAND_EXAMPLES`
+  with separate `Formats:` and `Examples:` blocks to distinguish prefixed search from quick name search.
 * Use the `MESSAGE_` prefix for result feedback and errors, such as `MESSAGE_SUCCESS` and `MESSAGE_FAILURE`. Parsers that include usage instructions in an error should reference `COMMAND_USAGE` rather than duplicate its text.
 
 #### Help window categories
@@ -854,6 +929,7 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 | `* * *`  | artisan keyboard shop manager | tag contacts as employees, suppliers, or service providers                                 | distinguish staff from external partners.                                 |
 | `* * *`  | artisan keyboard shop manager | search contacts by full or partial names regardless of letter case                         | quickly find a particular contact's details.                              |
 | `* * *`  | artisan keyboard shop manager | filter contacts by component tags                                                          | find alternative suppliers when stock is low.                             |
+| `* * *`  | artisan keyboard shop manager | combine name, role, and tag search criteria                                                | narrow my search to relevant staff or suppliers.                           |
 | `* * *`  | artisan keyboard shop manager | contact and tag changes to be saved automatically to a local JSON file                     | persist changes between sessions.                                         |
 | `* * *`  | artisan keyboard shop manager | load saved contacts automatically at startup                                               | begin work without re-entering all details.                               |
 | `* * *`  | artisan keyboard shop manager | view command syntax and parameters using the help command                                  | learn commands within the application.                                    |
@@ -929,18 +1005,18 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **Extensions**
 
-*  1a. No search criteria are provided, or all provided values are blank.
-  *  1a1. `KeyBossWarriorsPro` shows an error message.
+*  1a. No search criteria are provided, or any prefixed value is blank.
+   *  1a1. `KeyBossWarriorsPro` shows an error message.
        
-       Use case ends.
+      Use case ends.
 
-*  1b. A provided search criterion is invalid (e.g. unrecognised prefix).
-  *  1b1. `KeyBossWarriorsPro` shows an error message.
+*  1b. An unsupported prefix is provided, or unprefixed keywords are mixed with prefixed values.
+   *  1b1. `KeyBossWarriorsPro` shows an error message.
        
-     Use case ends.
+      Use case ends.
 
 *  2a. No contacts match the given criteria.
-  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
+   *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
        
        Use case ends.
 
@@ -1211,6 +1287,42 @@ Command | Expected result
 `edit 1 n/Anne-Marie    O'Connor r/R&D    Partner t/PCB    Supplier` | All supplied fields use single internal spaces. The new tag is `PCB Supplier`, and the existing tag remains.
 `edit 1 n/Changed xx/value` | Unknown-prefix error; the contact's name, role, and tags remain unchanged.
 Restart the application, then run `find n/Anne-Marie O'Connor`. | The normalised name, role, and both tags are retained.
+
+### Finding contacts with `find`
+
+Use a disposable application copy in a separate folder: this setup replaces saved contacts.
+Run `clear`, then `sort clear`, and execute each setup command separately:
+
+```text
+add n/Alice Tan p/81009101 e/alice.tan@find.example.com a/Test Address r/Employee t/tactile switch t/keycap
+add n/Alice Lee p/81009102 e/alice.lee@find.example.com a/Test Address r/Regional Supplier t/tactile switch t/trusted partner
+add n/Bob Tan p/81009103 e/bob.tan@find.example.com a/Test Address r/Regional Supplier t/keycap
+add n/Carol Lim p/81009104 e/carol.lim@find.example.com a/Test Address r/Distributor
+```
+
+Run the rows below in order. Where a row contains several commands, enter them separately
+from left to right.
+
+| Command | Expected result |
+|---------|-----------------|
+| `find aLI tAN` | Alice Tan, Alice Lee, and Bob Tan; `3 contacts found.` Keywords use OR and ignore case. |
+| `find n/Alice Tan` | Alice Tan only; `1 contact found.` The value is one continuous phrase. |
+| `find r/gional supp t/tactile swi` | Alice Lee only. Both the role and tag substrings must match. |
+| `find t/tactile t/keycap` | Alice Tan, Alice Lee, and Bob Tan, each once. Either tag phrase suffices; Carol has no tags. |
+| `find n/ali n/bob r/supp` | Alice Lee and Bob Tan. The name alternatives use OR; the role condition uses AND. |
+| `find NoSuchFindContact` | An empty list and `No contacts found.` |
+| `find n/Carol`, then `find n/Alice` | First Carol Lim, then both Alice contacts. The second search checks the full contact list. |
+| `sort r/ n/`, then `find r/supp`, then `list` | Find shows Alice Lee, then Bob Tan. List restores Carol Lim, Alice Tan, Alice Lee, then Bob Tan, retaining role-then-name order. |
+
+Before checking errors, run `find n/Alice Tan`. Each rejected command below must preserve
+that one-contact view and all stored contacts.
+
+| Command | Expected feedback |
+|---------|-------------------|
+| `find` | `find requires at least one search criterion.` |
+| `find n/Alice r/` | `find requires a non-blank value after n/, r/, t/.` A blank prefix is rejected even when another value is present. |
+| `find Alice r/Supplier` | `find cannot mix unprefixed keywords with prefixed search values.` |
+| `find p/81009101` | `Unrecognized prefix(es) provided: p/.` |
 
 ### Editing contact tags
 
