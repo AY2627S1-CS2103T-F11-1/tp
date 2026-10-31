@@ -206,16 +206,21 @@ Clears all entries from KeyBossWarriorsPro.
 
 ### Deleting a contact: `delete`
 
-Deletes the contact at the specified position in the currently displayed contact list.
+Deletes one contact from the currently displayed list immediately, without asking for confirmation.
 
 **Format:** `delete INDEX`
 
-* `INDEX` **must be a positive integer** 1, 2, 3, …​
-* `INDEX` refers to the contact's position in the contact list currently displayed to the user.
-* The index is temporary and may change when commands such as `list`, `find`, `add`, `edit`, or `delete` change the displayed list.
+* Supply **exactly one `INDEX`**: a positive integer referring to a contact in the currently displayed list,
+  including results from `find`, `followups`, or `sort`.
+* Indices may change when the displayed list changes. Check the displayed index before deleting.
+* Successful deletion keeps the current filter and sort order. The remaining contacts are renumbered.
+
+If no contacts are displayed, for example after a search with no matches, the application reports
+`No contacts are currently displayed.` Enter `list` to show all contacts before choosing an index.
 
 Examples:
-* `list` followed by `delete 2` deletes the second contact in the currently displayed list.
+
+* `sort n/` followed by `delete 2` deletes the second contact in the list sorted by name.
 * `find Betsy` followed by `delete 1` deletes the 1st contact in the results of the `find` command.
 
 
