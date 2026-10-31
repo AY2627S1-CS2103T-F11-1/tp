@@ -398,12 +398,27 @@ groups, and partial phrases. `LogicManagerTest` reproduces adding and searching
 with the same repeated spaces, checks single-space equivalence, and verifies
 case-insensitive substring matching together with OR/AND behaviour.
 
-Prefix recognition runs before field validation. Slash-containing values such as
-`n/David s/o Me` remain rejected because `s/` is recognised as an unknown prefix;
-a supported prefix after a space starts another field. This also affects leading
-spaces before a slash-containing value: `t/key/board` works, but `t/ key/board`
-is rejected as an unknown `key/` prefix. Changing this command syntax remains
-deferred.
+Prefix recognition runs on raw command input before field validation or escape
+decoding. `ParserUtil.unescapeSlashes()` replaces each `\/` with `/` once and
+preserves other backslashes. Name, role, tag and address parsers decode before
+validation and construction; `FollowUpCommandParser` decodes descriptions before
+validation. Existing character restrictions remain in force. Tag length is checked
+after decoding but before space normalisation; description length is checked after
+decoding and trimming.
+
+`FindCommandParser` decodes both prefixed phrases and legacy keywords after prefix
+detection, retaining phrase spacing, substring matching and OR/AND rules. Escaped
+prefix-like text cannot introduce a field during decoding. Unknown, duplicate and
+missing real prefixes are still checked on raw input. Model constructors and JSON
+adapters never decode escapes, preventing double decoding of saved values.
+Phone, email and date parsing are unaffected.
+
+`ParserUtilTest` partitions null/empty input, slash escapes, plain slashes and other
+backslashes. `SlashEscapingIntegrationTest` covers add/edit/search, tag deduplication
+and deletion/conflicts, prefix errors, undo/redo and JSON reload. EP and BVA comments
+identify test choices following the course's
+[test case design guidance](https://nus-cs2103-ay2627-s1.github.io/website/se-book-adapted/chapters/testCaseDesign.html).
+Length boundaries are checked on decoded values rather than raw escape syntax.
 
 #### Execution flow
 
