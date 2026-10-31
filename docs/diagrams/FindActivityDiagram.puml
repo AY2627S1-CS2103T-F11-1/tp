@@ -1,0 +1,41 @@
+@startuml
+skin rose
+skinparam ActivityFontSize 15
+skinparam ArrowFontSize 12
+skinparam Shadowing false
+
+start
+
+partition FindCommandParser {
+    :Validate and normalise input;
+    note right
+        Invalid input:
+        * Missing search criteria
+        * Unrecognised prefixes
+        * Blank prefix values
+        * Unprefixed text before a prefix
+    end note
+
+    if () then ([valid input])
+    else ([invalid input])
+        :Throw ParseException\nwith specific feedback;
+        stop
+    endif
+
+    if () then ([prefixes present])
+        :Build prefixed search:\nOne predicate per field, OR within fields;
+    else ([no prefixes])
+        :Build quick name search:\nOne name predicate, OR across keywords;
+    endif
+
+    :Return FindCommand;
+}
+
+partition FindCommand {
+    :Combine field predicates using AND;
+    :Replace the displayed contact filter;
+    :Return CommandResult\nwith search feedback;
+}
+
+stop
+@enduml

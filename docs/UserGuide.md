@@ -21,7 +21,7 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 
 1. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar keybosswarriorspro.jar`.<br>
    A GUI similar to the one below should appear in a few seconds. Note how the app contains some sample data.<br>
-   ![Ui](images/Ui.png)
+   <img src="images/UpdatedUi.png" alt="Main application window" width="750" />
 
 1. Type a command in the command box and press Enter to execute it. For example, type **`help`** and press Enter to open the full help window, or type **`help add`** to see the `add` command's usage in the result display.<br>
    Some example commands you can try:
@@ -93,7 +93,7 @@ The details panel updates immediately without moving keyboard focus.
 Press **Esc** from the contact list, details panel, or command feedback to return to command input.
 Your draft command, its cursor position and text selection, and the selected contact are preserved.
 
-![Selected contact and full details in the two-panel interface](images/contact-details.png)
+<img src="images/contact-details.png" alt="Main application window" width="750" />
 
 * Details include the contact's name, role, tags, phone number, email address, address, and follow-up when present.
 * Empty tags and absent follow-ups do not leave blank sections.
@@ -391,61 +391,39 @@ For example, `exit -f` exits in the same way as `exit`.
 
 ### Locating contacts: `find`
 
-Finds contacts matching one or more name, role, or tag criteria. All searches are case-insensitive and support partial matching (substring matching).
+Finds contacts by name, role, or tag. Matches ignore letter case and can occur anywhere within a field, so `alex` matches `Alexander`.
 
-#### Prefixed Search
+#### Search by name, role, or tag (Prefixed Search)
 
 **Format:** `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...`
 
-* At least one `n/`, `r/`, or `t/` prefix must be provided.
-* `n/` specifies a name search phrase.
-* `r/` specifies a role search phrase.
-* `t/` specifies a tag search phrase. Tags can contain spaces: `find t/good friend` matches a tag containing the phrase `good friend`.
-* Each value after a prefix is treated as a continuous search phrase until the next prefix or the end of the command.
-* Repeated spaces in `n/`, `r/`, and `t/` search phrases are collapsed into a single space before matching, just as when adding or editing these fields. For example, `find r/Regional   Supplier` and `find r/Regional Supplier` return the same results.
-* **Partial & Case-Insensitive Matching**: Matches if the term appears anywhere within the field, regardless of upper or lower case (e.g., `n/alex` matches `Alexander`, `r/distrib` matches `Distributor`).
-* **Search Logic:**
-    * **Same prefix → `OR` logic**: A contact matches if it satisfies *at least one* of the values given for that prefix type (e.g. `n/alice n/bob` returns contacts whose name contains "alice" *or* "bob", case-insensitively).
-    * **Different prefixes → `AND` logic**: Results are then narrowed so that a contact must satisfy *all* prefix types specified (e.g. `n/alice r/manager` returns contacts whose name contains "alice" *and* whose role contains "manager", case-insensitively).
-    * In short: **OR within a prefix, AND across prefixes.**
+* Use lowercase `n/` (name), `r/` (role), or `t/` (tag), with a space before each prefix. These are the only supported prefixes.
+* **At least one search criterion is required**, and every prefix must have a nonblank value.
+* Each value is one continuous phrase, ending at the next prefix or the end of the command. Names, roles, and tags can contain spaces.
+* Leading and trailing spaces are ignored; repeated spaces within prefixed phrases are treated as one space.
+* **Repeated prefixes:** a contact matches any of the supplied values for that field (OR).
+* **Different prefixes:** a contact must match all specified fields (AND).
 
-Examples:
-* `find n/alex` matches contacts whose names contain `alex`, such as
-  `Alex Yeoh`, `alexander`, and `Alexis Tan`.
-* `find n/John Doe` matches contacts whose names contain the phrase
-  `John Doe`, such as `John Doe` and `John Doeder`.
-* `find r/distrib` matches contacts whose roles contain `distrib`, such as
-  `Distributor` and `Regional Distributor`.
-* `find t/frie` matches contacts with at least one tag containing `frie`,
-  such as `friend` or `Friendly`.
-* `find r/supp r/distrib` matches contacts whose roles contain either
-  `supp` or `distrib`.
-* `find t/friend t/family` matches contacts with at least one tag containing
-  either `friend` or `family`.
-* `find n/ali r/emp` matches contacts whose names contain `ali` and whose
-  roles contain `emp`, such as a contact named `Alice` with role `Employee`.
-* `find n/John n/ali r/supp` matches contacts whose names contain either
-  `John` or `ali`, and whose roles contain `supp`.
-
-#### Legacy Search
-Searches contacts by name using space-separated keywords without prefixes.
+#### Quick name search
 
 **Format:** `find NAME_KEYWORD [NAME_KEYWORD]...`
 
-* Searches contacts by **name only**.
-* Space-separated words are treated as individual name keywords.
-* **Search Logic**: Keywords use `OR` logic. A contact is returned if its name contains *at least one* of the specified keywords.
-* **Partial & Case-Insensitive Matching**: Matches if the keyword appears anywhere within a name, regardless of upper or lower case (e.g., `han` matches `Hans Bo` and `Johan Meyer`).
-* Keyword order does not matter (e.g., `find Bo Hans` can match a contact named `Hans Bo`).
-* Adding more keywords broadens the search results; it does not narrow them.
-* **Cannot Mix with Prefixes**: Legacy unprefixed keywords cannot be combined with prefixed search values (e.g., `find Alice n/Bob` or `find Alice r/Employee` is rejected).
+Searches **names only**. Each space-separated word is a separate keyword; a name matches if it contains **any** keyword (OR).
 
-Examples:
-* `find John` matches `john` and `John Doe` *(case-insensitive)*.
-* `find han` matches `Hans Bo` and `Johan Meyer` *(partial substring match)*.
-* `find alex david` matches `Alex Yeoh` and `David Li` *(OR logic: matches either keyword)*.<br>
-  ![result for 'find alex david'](images/findAlexDavidResult.png)
-* `find Alice n/Bob` or `find Alice r/Employee` is invalid because legacy keywords and prefixed values cannot be mixed.
+Do not mix unprefixed keywords with prefixes. For example, `find Alice n/Bob` is rejected.
+
+#### Examples
+
+| Command | Finds contacts with… |
+|---------|----------------------|
+| `find John Doe` | Names containing **John or Doe**. |
+| `find n/John Doe` | Names containing the continuous phrase **John Doe**. |
+| `find r/supp` | Roles containing **supp**, such as **Supplier**. |
+| `find t/switch t/keycap` | At least one tag containing **switch or keycap**. |
+| `find n/ali n/bob r/supp` | Names containing **ali or bob**, **and** roles containing **supp**. |
+
+Each search checks all contacts and replaces the previous results, while keeping the selected sort order.
+If nothing matches, the list is empty and the application displays `No contacts found.` Enter `list` to show all contacts again.
 
 
 
@@ -514,11 +492,11 @@ Sorting cleared. Contacts will be displayed in insertion order.
 
 Use `help` on its own to open the full help window, which lists all commands. Use `help COMMAND` to display a command's usage directly in the result display without opening the window. Targeted help is available for `add`, `clear`, `delete`, `edit`, `exit`, `find`, `followup`, `followups`, `help`, `list`, `redo`, `select`, `sort`, and `undo`. For detailed explanations and examples, refer to this user guide.
 
-![Help window showing commands for managing contacts](images/help.png)
+<img src="images/help.png" alt="Help window showing commands for managing contacts" width="650" />
 
-![Help window showing browsing commands, including SELECT](images/help-browse.png)
+<img src="images/help-browse.png" alt="Help window showing browsing commands, including SELECT" width="650" />
 
-![Help window scrolled down to follow-up queries, undo and redo, and application commands](images/help-continued.png)
+<img src="images/help-continued.png" alt="Help window showing follow-up queries, undo and redo, and application commands" width="650" />
 
 **Format:** `help [COMMAND]`
 
@@ -627,7 +605,7 @@ Action | Format, Examples
 **Delete** | `delete INDEX`<br> e.g., `delete 3`
 **Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]…​ [dt/TAG_TO_DELETE]…​`<br> e.g., `edit 1 t/solderer dt/trainee` (requires contact 1 to have `trainee`)
 **Exit** | `exit` 
-**Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...`<br>or `find KEYWORD [MORE_KEYWORDS]` (legacy search)<br>e.g., `find n/John r/Supplier`, `find James Jake`
+**Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...` (at least one criterion required)<br>or `find NAME_KEYWORD [NAME_KEYWORD]...` (quick name search)<br>e.g., `find n/John r/Supplier`, `find James Jake`
 **Help** | `help [COMMAND]`<br>e.g., `help add` displays the `add` command's usage in the result display.<br>`help` opens the full help window.
 **List** | `list`
 **Select** | `select INDEX`<br> e.g., `select 2` displays the second currently listed contact's details.
