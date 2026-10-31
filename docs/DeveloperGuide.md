@@ -269,7 +269,9 @@ Here's a (partial) class diagram of the `Logic` component:
 
 <img src="images/LogicClassDiagram.png" width="550"/>
 
-The sequence diagram below illustrates the interactions within the `Logic` component, taking `execute("delete 1")` API call as an example.
+The sequence diagram below illustrates the successful path through the `Logic` component
+for `execute("delete 1")`, assuming displayed index 1 exists. Validation branches and
+storage interactions are omitted; see [Deleting a contact](#deleting-a-contact) for those details.
 
 ![Interactions Inside the Logic Component for the `delete 1` Command](images/DeleteSequenceDiagram.png)
 
@@ -430,6 +432,71 @@ The activity diagram below illustrates the duplicate resolution and defensive er
 * **Alternative 2:** Permissive parsing where unrecognized prefixes are treated as part of preamble or ignored.
   * Pros: Simpler parsing code.
   * Cons: Causes silent input drops where mistyped fields are omitted without warning the user.
+
+### Deleting a contact
+
+`delete` removes one contact identified by its position in the current displayed list.
+The [User Guide](UserGuide.md#deleting-a-contact-delete) describes its syntax and user-facing behaviour.
+The [sequence diagram in the Logic component](#logic-component) shows the successful execution path.
+
+#### Parsing and validation
+
+`AddressBookParser` delegates the arguments to `DeleteCommandParser#parse()`, which:
+
+1. Trims the arguments and rejects empty input with `INDEX is required.`
+2. Splits the trimmed input on whitespace and rejects multiple arguments with
+   `delete accepts only one INDEX.`
+3. Calls `ParserUtil#parseIndex()` to obtain an `Index`. The helper accepts integers from
+   1 to `Integer.MAX_VALUE` and rejects zero, negative, nonnumeric, and overflowing values
+   with `INDEX must be a whole number between 1 and 2147483647.`
+
+These failures raise `ParseException` before execution. Parsing checks the numeric format
+and supported range; whether the index refers to a displayed contact is checked by the command.
+
+#### Execution and model integration
+
+`DeleteCommand#execute()`:
+
+1. Retrieves `Model#getFilteredPersonList()`, which exposes the filtered and sorted displayed view.
+2. Rejects an empty displayed list with `No contacts are currently displayed.`
+3. Rejects an index beyond the displayed list using `Messages#getIndexOutOfRangeMessage()`.
+   The feedback names the valid range, or the sole valid index when one contact is displayed.
+4. Resolves the `Person` at the index, calls `Model#deletePerson()`, then calls
+   `Model#commitAddressBook()` once to record the deletion.
+5. Returns a `CommandResult` containing `Deleted contact: ...`, using `Messages#format()`
+   to include the deleted contact's details and any follow-up.
+
+The empty-list and out-of-range checks raise `CommandException`. All argument and index
+validation failures preserve contact data, the displayed view, and undo/redo history.
+
+The command removes the selected `Person` from the underlying contact list. It does not
+reset the filter or comparator, so the remaining displayed contacts retain the active
+search criteria and sort order. Displayed indices are recalculated automatically.
+Deleting the contact currently selected in the UI clears its details; deleting another
+contact preserves the selection, as described under [Contact details and selection](#contact-details-and-selection).
+
+#### Persistence, history, and design considerations
+
+`LogicManager` saves the underlying address book after successful execution. If saving
+fails, it rolls back the committed deletion, restores the contact data, and reports a
+saving error. The restored view shows all contacts. The shared
+[persistence and failure handling](#persistence-and-failures) section describes this mechanism.
+
+* **Resolve against the displayed view:** Using the same view as the UI ensures that
+  filtered and sorted indices identify the contact the user sees, rather than its stored position.
+* **Commit after validation:** Rejected requests create no history entry. A successful deletion
+  creates one undoable change and discards any remaining redo history. Undo restores the entire
+  contact, including its follow-up; redo removes it again. Both operations show all contacts
+  while retaining the active sort order.
+
+#### Test coverage
+
+`DeleteCommandParserTest` covers missing, extra, and invalid arguments. `ParserUtilTest`
+checks numeric boundaries and overflow. `DeleteCommandTest` covers empty and filtered lists,
+out-of-range indices, follow-up restoration through undo/redo, and redo preservation after
+failed validation. `LogicManagerTest` covers sorted deletion, history, and saving failures;
+`MainWindowTest` covers selection updates after deletion.
+The [manual delete tests](#deleting-contacts-with-delete) provide reproducible acceptance cases.
 
 ### Command-specific help
 
@@ -845,42 +912,42 @@ GUI application.
 
 Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unlikely to have) - `*`
 
-| Priority | As  an …                      | I want to …                                                                                | So that I can…                                                            |
-|----------|-------------------------------|--------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| `* * *`  | artisan keyboard shop manager | add contacts with their names, phone numbers, emails and addresses                         | keep all shop contacts in one place.                                      |
-| `* * *`  | artisan keyboard shop manager | delete outdated contacts by index or identifier                                            | have a contact list that stays relevant.                                  |
-| `* * *`  | artisan keyboard shop manager | edit contact details                                                                       | reach the right people using updated communication details.               |
-| `* * *`  | artisan keyboard shop manager | list all contacts in a compact table                                                       | quickly review staff, suppliers and service providers.                    |
-| `* * *`  | artisan keyboard shop manager | tag contacts as employees, suppliers, or service providers                                 | distinguish staff from external partners.                                 |
-| `* * *`  | artisan keyboard shop manager | search contacts by full or partial names regardless of letter case                         | quickly find a particular contact's details.                              |
-| `* * *`  | artisan keyboard shop manager | filter contacts by component tags                                                          | find alternative suppliers when stock is low.                             |
-| `* * *`  | artisan keyboard shop manager | contact and tag changes to be saved automatically to a local JSON file                     | persist changes between sessions.                                         |
-| `* * *`  | artisan keyboard shop manager | load saved contacts automatically at startup                                               | begin work without re-entering all details.                               |
-| `* * *`  | artisan keyboard shop manager | view command syntax and parameters using the help command                                  | learn commands within the application.                                    |
-| `* * *`  | artisan keyboard shop manager | exit the application using a CLI command                                                   | exit gracefully while keeping my terminal open.                           |
-| `* *`    | artisan keyboard shop manager | sort contacts by name, role, or both in my chosen priority                                  | browse contacts alphabetically or group contacts with matching roles.      |
-| `* *`    | artisan keyboard shop manager | tag contacts with finer-grain details like suppliers by the components supplied            | find suitable suppliers and service providers for custom keyboard builds. |
-| `* *`    | artisan keyboard shop manager | record suppliers' minimum order quantities                                                 | check order requirements before placing group-buy orders.                 |
-| `* *`    | artisan keyboard shop manager | record suppliers' manufacturing and shipping lead times in days                            | estimate delivery dates for keyboard pre-orders.                          |
-| `* *`    | artisan keyboard shop manager | record payment terms on supplier profiles                                                  | arrange payments according to agreements with suppliers.                  |
-| `* *`    | artisan keyboard shop manager | tag technicians by their verified assembly skills                                          | assign suitable staff for custom builds.                                  |
-| `* *`    | artisan keyboard shop manager | associate contacts with keyboard group-buy projects                                        | view all suppliers and artisans involved in a particular project.         |
-| `* *`    | artisan keyboard shop manager | record emergency phone numbers for part-time soldering staff                               | contact them during urgent builds.                                        |
-| `* *`    | artisan keyboard shop manager | record hourly pay rates of staff                                                           | calculate payroll for my employees.                                       |
-| `* *`    | artisan keyboard shop manager | record part-time staff's weekly availability                                               | schedule shifts without repeatedly asking when they are free.             |
-| `* *`    | artisan keyboard shop manager | filter staff by their availability on a specific weekend                                   | quickly arrange staffing for major assembly sessions.                     |
-| `* *`    | artisan keyboard shop manager | filter contacts using a combination of tags                                                | find contacts matching several requirements.                              |
-| `* *`    | artisan keyboard shop manager | view a supplier's notes, tags and transaction history in an expanded card                  | review the relationship before negotiating a contract renewal.            |
-| `* *`    | artisan keyboard shop manager | use single-letter command aliases and shortened prefixes                                   | manage my contacts with fewer keystrokes.                                 |
-| `* *`    | artisan keyboard shop manager | browse recent commands using the Up and Down arrow keys                                    | reuse or edit commands without retyping them.                             |
-| `* *`    | artisan keyboard shop manager | export all contacts to a formatted CSV file using one command                              | share supplier details or use them in spreadsheets.                       |
-| `* *`    | artisan keyboard shop manager | import contacts from a CSV backup with automatic format validation                         | migrate existing contact lists into KeyBossWarriorsPro.                   |
-| `*`      | artisan keyboard shop manager | create timestamped contact backups automatically after operations                          | restore data after accidental changes or deletions.                       |
-| `*`      | artisan keyboard shop manager | record defect rates and quality ratings for suppliers                                      | avoid suppliers with recurring product defects.                           |
+| Priority | As  an …                      | I want to …                                                                            | So that I can…                                                            |
+|----------|-------------------------------|----------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| `* * *`  | artisan keyboard shop manager | add contacts with their names, phone numbers, emails and addresses                     | keep all shop contacts in one place.                                      |
+| `* * *`  | artisan keyboard shop manager | delete outdated contacts by index                                            | have a contact list that stays relevant.                                  |
+| `* * *`  | artisan keyboard shop manager | edit contact details                                                                   | reach the right people using updated communication details.               |
+| `* * *`  | artisan keyboard shop manager | list all contacts in a compact table                                                   | quickly review staff, suppliers and service providers.                    |
+| `* * *`  | artisan keyboard shop manager | tag contacts as employees, suppliers, or service providers                             | distinguish staff from external partners.                                 |
+| `* * *`  | artisan keyboard shop manager | search contacts by full or partial names regardless of letter case                     | quickly find a particular contact's details.                              |
+| `* * *`  | artisan keyboard shop manager | filter contacts by component tags                                                      | find alternative suppliers when stock is low.                             |
+| `* * *`  | artisan keyboard shop manager | contact and tag changes to be saved automatically to a local JSON file                 | persist changes between sessions.                                         |
+| `* * *`  | artisan keyboard shop manager | load saved contacts automatically at startup                                           | begin work without re-entering all details.                               |
+| `* * *`  | artisan keyboard shop manager | view command syntax and parameters using the help command                              | learn commands within the application.                                    |
+| `* * *`  | artisan keyboard shop manager | exit the application using a CLI command                                               | exit gracefully while keeping my terminal open.                           |
+| `* *`    | artisan keyboard shop manager | sort contacts by name, role, or both in my chosen priority                              | browse contacts alphabetically or group contacts with matching roles.      |
+| `* *`    | artisan keyboard shop manager | tag contacts with finer-grain details like suppliers by the components supplied        | find suitable suppliers and service providers for custom keyboard builds. |
+| `* *`    | artisan keyboard shop manager | record suppliers' minimum order quantities                                             | check order requirements before placing group-buy orders.                 |
+| `* *`    | artisan keyboard shop manager | record suppliers' manufacturing and shipping lead times in days                        | estimate delivery dates for keyboard pre-orders.                          |
+| `* *`    | artisan keyboard shop manager | record payment terms on supplier profiles                                              | arrange payments according to agreements with suppliers.                  |
+| `* *`    | artisan keyboard shop manager | tag technicians by their verified assembly skills                                      | assign suitable staff for custom builds.                                  |
+| `* *`    | artisan keyboard shop manager | associate contacts with keyboard group-buy projects                                    | view all suppliers and artisans involved in a particular project.         |
+| `* *`    | artisan keyboard shop manager | record emergency phone numbers for part-time soldering staff                           | contact them during urgent builds.                                        |
+| `* *`    | artisan keyboard shop manager | record hourly pay rates of staff                                                       | calculate payroll for my employees.                                       |
+| `* *`    | artisan keyboard shop manager | record part-time staff's weekly availability                                           | schedule shifts without repeatedly asking when they are free.             |
+| `* *`    | artisan keyboard shop manager | filter staff by their availability on a specific weekend                               | quickly arrange staffing for major assembly sessions.                     |
+| `* *`    | artisan keyboard shop manager | filter contacts using a combination of tags                                            | find contacts matching several requirements.                              |
+| `* *`    | artisan keyboard shop manager | view a supplier's notes, tags and transaction history in an expanded card              | review the relationship before negotiating a contract renewal.            |
+| `* *`    | artisan keyboard shop manager | use single-letter command aliases and shortened prefixes                               | manage my contacts with fewer keystrokes.                                 |
+| `* *`    | artisan keyboard shop manager | browse recent commands using the Up and Down arrow keys                                | reuse or edit commands without retyping them.                             |
+| `* *`    | artisan keyboard shop manager | export all contacts to a formatted CSV file using one command                          | share supplier details or use them in spreadsheets.                       |
+| `* *`    | artisan keyboard shop manager | import contacts from a CSV backup with automatic format validation                     | migrate existing contact lists into KeyBossWarriorsPro.                   |
+| `*`      | artisan keyboard shop manager | create timestamped contact backups automatically after operations                      | restore data after accidental changes or deletions.                       |
+| `*`      | artisan keyboard shop manager | record defect rates and quality ratings for suppliers                                  | avoid suppliers with recurring product defects.                           |
 | `*`      | artisan keyboard shop manager | toggle terminal notifications for upcoming supplier contract expiries and restocking dates | place orders before assembly supplies run out.                            |
-| `*`      | artisan keyboard shop manager | customize CLI theme colors                                                                 | personalize my workspace                                                  |
-| `*`      | artisan keyboard shop manager | check shipment tracking from a supplier's contact card using a tracking code               | monitor incoming product deliveries.                                      |
-| `*`      | artisan keyboard shop manager | track past unit-price quotes for products                                                  | compare prices and negotiate better deals.                                |
+| `*`      | artisan keyboard shop manager | customize CLI theme colors                                                             | personalize my workspace                                                  |
+| `*`      | artisan keyboard shop manager | check shipment tracking from a supplier's contact card using a tracking code           | monitor incoming product deliveries.                                      |
+| `*`      | artisan keyboard shop manager | track past unit-price quotes for products                                              | compare prices and negotiate better deals.                                |
 
 ### Use cases
 
@@ -953,23 +1020,34 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **MSS**
 1.  User requests to delete a contact by specifying its index in the currently displayed contact list.
-2.  `KeyBossWarriorsPro` deletes the selected contact and displays a confirmation message with the contact's details (including any active follow-up).
+2.  `KeyBossWarriorsPro` removes the contact, saves the change, and displays the deleted contact's
+    details, including any follow-up.
 
     Use case ends.
 
 **Extensions**
 
-*  1a. No contacts are currently displayed (contact list is empty).
+*  1a. The request has missing, multiple, or malformed index arguments.
+   *  1a1. `KeyBossWarriorsPro` explains the input error.
 
-  *  1a1. `KeyBossWarriorsPro` informs the user that there are no contacts to delete.
+      Use case ends.
 
-     Use case ends.
+*  1b. The request has a valid positive index, but no contacts are displayed.
+   *  1b1. `KeyBossWarriorsPro` informs the user that no contacts are currently displayed.
 
-*  1b. The DELETE request contains a missing or invalid argument.
+      Use case ends.
 
-  * 1b1. `KeyBossWarriorsPro` shows an error message.
+*  1c. The request has a valid positive index beyond the nonempty displayed list.
+   *  1c1. `KeyBossWarriorsPro` explains the valid index or range.
 
-    Use case ends.
+      Use case ends.
+
+*  2a. Saving the deletion fails.
+   *  2a1. `KeyBossWarriorsPro` rolls back the deletion, displays all contacts, and reports the saving error.
+
+      Use case ends.
+
+Argument and index errors leave contact data, the displayed view, and undo/redo history unchanged.
 
 
 **Use Case: UC4 - Add or Delete Contact Tags**
@@ -1173,22 +1251,31 @@ Run `help select` while a contact is selected. | Usage appears in command feedba
 Make one edit, undo it, run `select 1`, then redo. | Redo is still available and reapplies the edit; undo/redo clear selection.
 Restart the application. | Contact data remains available and the details panel starts in its empty state.
 
-### Deleting a person
+### Deleting contacts with `delete`
 
-1. Deleting a person while all persons are being shown
+Start a fresh application session using a disposable copy in a separate folder.
+Run `clear` to remove the sample contacts, then enter these setup commands separately:
 
-   1. Prerequisites: List all persons using the `list` command, with multiple persons in the list.
+```text
+add n/Alice p/81009201 e/alice@delete.example.com a/Test Address r/Employee
+add n/Bob p/81009202 e/bob@delete.example.com a/Test Address r/Supplier
+add n/Charlie p/81009203 e/charlie@delete.example.com a/Test Address r/Supplier
+```
 
-   1. Test case: `delete 1`<br>
-      Expected: The first contact is deleted from the list. The status message shows the deleted contact's details.
+The list should show Alice, Bob, and Charlie at indices 1, 2, and 3.
+Run the rows below in order. Where a row contains several commands, enter them separately.
+Each rejected request must leave the displayed list and contact data unchanged.
 
-   1. Test case: `delete 0`<br>
-      Expected: No person is deleted. The status message shows error details.
-
-   1. Other incorrect delete commands to try: `delete`, `delete x`, `...` (where x is larger than the list size)<br>
-      Expected: Similar to previous.
-
-1. _{ more test cases …​ }_
+| Command | Expected result |
+|---------|-----------------|
+| `delete 2` | Bob is deleted. Feedback starts with `Deleted contact: Bob;`. Alice and Charlie remain at indices 1 and 2. |
+| `delete 1` | Alice is deleted. Charlie is now at index 1. |
+| `delete` | `INDEX is required.` Charlie remains. |
+| `delete 1 2` | `delete accepts only one INDEX.` Charlie remains. |
+| `delete 0`, `delete abc`, then `delete 2147483648` | Each reports `INDEX must be a whole number between 1 and 2147483647.` Charlie remains. |
+| `delete 2` | `INDEX 2 is outside the displayed contact list (valid index: 1).` Charlie remains. |
+| `delete 1` | Charlie is deleted and the list becomes empty. |
+| `delete 1` | `No contacts are currently displayed.` The list stays empty. |
 
 ### Name, role, and tag formatting
 
