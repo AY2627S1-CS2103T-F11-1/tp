@@ -171,6 +171,9 @@ public class PersonCardTest {
 
             PersonCard card = new PersonCard(personWithFollowUp, 1);
 
+            Label roleLabel = (Label) card.getRoot().lookup("#role");
+            assertEquals(0.0, roleLabel.getMinWidth());
+
             assertNull(card.getRoot().lookup("#followUpSection"));
             assertNull(card.getRoot().lookup("#followUpDueDate"));
             assertNull(card.getRoot().lookup("#followUpDescription"));

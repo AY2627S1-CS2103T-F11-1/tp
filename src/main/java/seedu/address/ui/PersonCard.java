@@ -84,10 +84,10 @@ public class PersonCard extends UiPart<Region> {
         roleTooltip.setWrapText(true);
         roleTooltip.setMaxWidth(400);
         role.setTooltip(roleTooltip);
-        configureRoleBadgeSize();
         boolean hasFollowUp = person.getFollowUp().isPresent();
         followUpBadge.setVisible(hasFollowUp);
         followUpBadge.setManaged(hasFollowUp);
+        configureRoleBadgeSize(hasFollowUp);
         configureFollowUpBadgeSize();
         dateListener = (observable, previous, today) -> updateFollowUpBadge(today);
         uiDate.dateProperty().addListener(new WeakChangeListener<>(dateListener));
@@ -116,9 +116,13 @@ public class PersonCard extends UiPart<Region> {
 
     /**
      * Reserves enough width for the role badge so typical roles remain on a single line,
-     * while capping at 105px to ensure long roles do not push adjacent badges off the card at minimum width.
+     * while allowing shrinking when a follow-up badge is present to ensure all badges fit within card bounds.
      */
-    private void configureRoleBadgeSize() {
+    private void configureRoleBadgeSize(boolean hasFollowUp) {
+        if (hasFollowUp) {
+            role.setMinWidth(0);
+            return;
+        }
         Text sample = new Text(person.getRole().value);
         Font font = role.getFont() != null ? role.getFont() : Font.font("Segoe UI Semibold", 11);
         sample.setFont(font);
