@@ -6,7 +6,7 @@ title: KeyBossWarriorsPro
 [![CI Status](https://github.com/AY2627S1-CS2103T-F11-1/tp/workflows/Java%20CI/badge.svg)](https://github.com/AY2627S1-CS2103T-F11-1/tp/actions)
 [![codecov](https://codecov.io/gh/AY2627S1-CS2103T-F11-1/tp/branch/master/graph/badge.svg)](https://codecov.io/gh/AY2627S1-CS2103T-F11-1/tp)
 
-![Ui](images/Ui.png)
+![Ui](images/UpdatedUi.png)
 
 **KeyBossWarriorsPro is a specialized desktop contact and vendor management application tailored for Artisan Mechanical Keyboard Shop Managers.** Optimized for keyboard-centric operations, it delivers the speed of a Command Line Interface (CLI) alongside the visual clarity of a Graphical User Interface (GUI).
 
