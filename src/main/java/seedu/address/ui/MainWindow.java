@@ -177,12 +177,13 @@ public class MainWindow extends UiPart<Stage> {
      * Sets the default size based on {@code guiSettings}.
      */
     private void setWindowDefaultSize(GuiSettings guiSettings) {
+        GuiSettings settings = guiSettings != null ? guiSettings : new GuiSettings();
         // Older preferences may contain dimensions that cannot fit both contact panes.
-        primaryStage.setHeight(Math.max(guiSettings.getWindowHeight(), primaryStage.getMinHeight()));
-        primaryStage.setWidth(Math.max(guiSettings.getWindowWidth(), primaryStage.getMinWidth()));
-        if (guiSettings.getWindowCoordinates() != null) {
-            primaryStage.setX(guiSettings.getWindowCoordinates().getX());
-            primaryStage.setY(guiSettings.getWindowCoordinates().getY());
+        primaryStage.setHeight(Math.max(settings.getWindowHeight(), primaryStage.getMinHeight()));
+        primaryStage.setWidth(Math.max(settings.getWindowWidth(), primaryStage.getMinWidth()));
+        if (settings.getWindowCoordinates() != null) {
+            primaryStage.setX(settings.getWindowCoordinates().getX());
+            primaryStage.setY(settings.getWindowCoordinates().getY());
         }
     }
 

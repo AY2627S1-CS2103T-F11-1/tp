@@ -23,11 +23,11 @@ public class UserPrefs implements ReadOnlyUserPrefs {
      */
     public UserPrefs(ReadOnlyUserPrefs userPrefs) {
         requireNonNull(userPrefs);
-        setGuiSettings(userPrefs.getGuiSettings());
+        setGuiSettings(userPrefs.getGuiSettings() != null ? userPrefs.getGuiSettings() : new GuiSettings());
     }
 
     public GuiSettings getGuiSettings() {
-        return guiSettings;
+        return guiSettings != null ? guiSettings : new GuiSettings();
     }
 
     public void setGuiSettings(GuiSettings guiSettings) {
