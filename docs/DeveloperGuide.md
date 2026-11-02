@@ -5,6 +5,14 @@ title: Developer Guide
 * Table of Contents
 {:toc}
 
+This guide describes **v1.6 in the project working directory**, ahead of its GitHub release.
+Repository source links identify the corresponding files on `master`; the local working tree
+is the reference for unreleased v1.6 behaviour.
+
+Start with [Design](#design) for the architecture, [Implementation](#implementation) for command
+behaviour and shared mechanisms, [Requirements](#appendix-requirements) for current and future needs,
+and [Instructions for manual testing](#appendix-instructions-for-manual-testing) for test scenarios.
+
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Acknowledgements**
@@ -27,58 +35,70 @@ Refer to the guide [_Setting up and getting started_](SettingUp.md).
 
 <div markdown="span" class="alert alert-primary">
 
-:bulb: **Tip:** The `.puml` files used to create diagrams are in `docs/diagrams`. Refer to the [_PlantUML Tutorial_ at se-edu/guides](https://se-education.org/guides/tutorials/plantUml.html) to learn how to create and edit diagrams.
+:bulb: **Tip:** Diagram sources are in `docs/diagrams` and their exported images are in `docs/images`,
+with matching filenames. Update both when changing a diagram. Refer to the
+[_PlantUML Tutorial_ at se-edu/guides](https://se-education.org/guides/tutorials/plantUml.html) for editing guidance.
 </div>
+
+Diagrams are partial views: their surrounding descriptions identify omitted interactions.
+`XYZCommand` and `XYZCommandParser` stand for concrete command classes and their parsers;
+not every command uses a separate parser. Ellipses mark omitted parameters; examples containing them are illustrative.
+Sequence lifelines do not specify Java garbage-collection timing. Click a diagram to open its full-size image.
 
 ### Architecture
 
-<img src="images/ArchitectureDiagram.png" width="280" />
+<a href="images/ArchitectureDiagram.png"><img src="images/ArchitectureDiagram.png" alt="Application components and their dependencies" /></a>
 
-The ***Architecture Diagram*** given above explains the high-level design of the App.
+The architecture diagram shows the application components and their dependencies.
 
-The following provides a quick overview of the main components and their interactions.
+The components have the following responsibilities.
 
 **Main components of the architecture**
 
-**`Main`** (consisting of classes [`Main`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/Main.java) and [`MainApp`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/MainApp.java)) is in charge of the app launch and shut down.
+**`Main`** (consisting of classes [`Main`](https://github.com/AY2627S1-CS2103T-F11-1/tp/blob/master/src/main/java/seedu/address/Main.java) and [`MainApp`](https://github.com/AY2627S1-CS2103T-F11-1/tp/blob/master/src/main/java/seedu/address/MainApp.java)) coordinates application startup and shutdown.
 * At app launch, it initializes the other components in the correct sequence, and connects them up with each other.
 * At shut down, it shuts down the other components and invokes cleanup methods where necessary.
 
-The bulk of the app's work is done by the following four components:
+Four components handle the application's main responsibilities:
 
-* [**`UI`**](#ui-component): The UI of the App.
-* [**`Logic`**](#logic-component): The command executor.
-* [**`Model`**](#model-component): Holds the data of the App in memory.
-* [**`Storage`**](#storage-component): Reads data from, and writes data to, the hard disk.
+* [**`UI`**](#ui-component): The visual interface and command input.
+* [**`Logic`**](#logic-component): Command parsing and execution.
+* [**`Model`**](#model-component): Contact data, displayed views, preferences, and session history in memory.
+* [**`Storage`**](#storage-component): Local JSON persistence and startup backups.
 
 [**`Commons`**](#common-classes) represents a collection of classes used by multiple other components.
 
 **How the architecture components interact with each other**
 
-The *Sequence Diagram* below shows how the components interact with each other for the scenario where the user issues the command `delete 1`.
+The sequence diagram shows a successful `delete 1` across component boundaries, assuming displayed
+index 1 exists and saving succeeds. It includes the contact-data commit and save; command parsing,
+validation branches, and detailed selection bookkeeping are omitted.
 
-<img src="images/ArchitectureSequenceDiagram.png" width="574" />
+<a href="images/ArchitectureSequenceDiagram.png"><img src="images/ArchitectureSequenceDiagram.png" alt="Successful deletion across UI, Logic, Model, and Storage" /></a>
 
 Each of the four main components (also shown in the diagram above),
 
-* defines its *API* in an `interface` with the same name as the Component.
+* defines an API interface: `Ui`, `Logic`, `Model`, or `Storage`.
 * provides its functionality through a concrete `{Component Name}Manager` class that implements the corresponding API interface.
 
 For example, the `Logic` component defines its API in `Logic.java` and implements it in `LogicManager.java`. Other components interact with a component through its interface rather than its concrete class, preventing them from coupling to that component's implementation, as illustrated in the following partial class diagram.
 
-<img src="images/ComponentManagers.png" width="300" />
+<a href="images/ComponentManagers.png"><img src="images/ComponentManagers.png" alt="LogicManager dependencies on the Model and Storage interfaces" /></a>
 
 The sections below give more details of each component.
 
 ### UI component
 
-The **API** of this component is specified in [`Ui.java`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/ui/Ui.java)
+**API:** [`Ui.java`](https://github.com/AY2627S1-CS2103T-F11-1/tp/blob/master/src/main/java/seedu/address/ui/Ui.java)
 
-![Structure of the UI Component](images/UiClassDiagram.png)
+The UI class diagram focuses on the window parts and shared date tracker. The common `UiPart`
+inheritance relationships are omitted; all visual parts listed below extend it.
+
+<a href="images/UiClassDiagram.png"><img src="images/UiClassDiagram.png" alt="UI window parts and their shared date tracker" /></a>
 
 The UI consists of a `MainWindow` and its parts, such as `CommandBox`, `ResultDisplay`, `PersonListPanel`, `PersonDetailsPanel`, and `StatusBarFooter`. All of these, including `MainWindow`, inherit from the abstract `UiPart` class, which captures common behavior among classes that represent visible GUI parts.
 
-The `UI` component uses the JavaFX UI framework. The layouts of these UI parts are defined in matching `.fxml` files in `src/main/resources/view`. For example, [`MainWindow.fxml`](https://github.com/se-edu/addressbook-level3/tree/master/src/main/resources/view/MainWindow.fxml) specifies the layout of [`MainWindow`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/ui/MainWindow.java).
+The `UI` component uses the JavaFX UI framework. The layouts of these UI parts are defined in matching `.fxml` files in `src/main/resources/view`. For example, [`MainWindow.fxml`](https://github.com/AY2627S1-CS2103T-F11-1/tp/blob/master/src/main/resources/view/MainWindow.fxml) specifies the layout of [`MainWindow`](https://github.com/AY2627S1-CS2103T-F11-1/tp/blob/master/src/main/java/seedu/address/ui/MainWindow.java).
 
 The `UI` component,
 
@@ -101,20 +121,19 @@ The contact interface:
 
 ### Logic component
 
-**API** : [`Logic.java`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/logic/Logic.java)
+**API:** [`Logic.java`](https://github.com/AY2627S1-CS2103T-F11-1/tp/blob/master/src/main/java/seedu/address/logic/Logic.java)
 
-Here's a (partial) class diagram of the `Logic` component:
+The partial Logic class diagram shows the parser entry point, command API, command results, and
+selection-change metadata. Concrete commands use an `XYZCommand` placeholder; individual command
+parsers are shown separately.
 
-<img src="images/LogicClassDiagram.png" width="550"/>
+<a href="images/LogicClassDiagram.png"><img src="images/LogicClassDiagram.png" alt="Logic entry point, command results, and selection metadata" /></a>
 
 The sequence diagram below illustrates the successful path through the `Logic` component
 for `execute("delete 1")`, assuming displayed index 1 exists. Validation branches and
 storage interactions are omitted; see [Deleting a contact](#deleting-a-contact) for those details.
 
-![Interactions Inside the Logic Component for the `delete 1` Command](images/DeleteSequenceDiagram.png)
-
-<div markdown="span" class="alert alert-info">:information_source: **Note:** The lifeline for `DeleteCommandParser` should end at the destroy marker (X), but due to a limitation of PlantUML, it continues to the end of the diagram.
-</div>
+<a href="images/DeleteSequenceDiagram.png"><img src="images/DeleteSequenceDiagram.png" alt="Successful delete parsing, contact removal, and history commit" /></a>
 
 How the `Logic` component works:
 
@@ -126,9 +145,10 @@ How the `Logic` component works:
    Parsing or command-validation failures skip the save step. Saving failures are reported as `CommandException`;
    their effects on contact data and history are described under [Persistence and failures](#persistence-and-failures).
 
-Here are the other classes in `Logic` (omitted from the class diagram above) that are used for parsing a user command:
+The parser class diagram expands the parsing relationships. `ArgumentMultimap` stores values keyed
+by `Prefix`; `ParserUtil` validates and constructs model values. The direct help-parsing path is omitted.
 
-<img src="images/ParserClasses.png" width="600"/>
+<a href="images/ParserClasses.png"><img src="images/ParserClasses.png" alt="Command parser, tokenisation, prefix, and argument-map relationships" /></a>
 
 How the parsing works:
 * When called upon to parse a user command, the `AddressBookParser` class creates an `XYZCommandParser` (`XYZ` is a placeholder for the specific command name, e.g., `AddCommandParser`). The parser uses the other classes shown above to parse the user command and create an `XYZCommand` object (e.g., `AddCommand`). The `AddressBookParser` returns that object as a `Command` object.
@@ -136,9 +156,14 @@ How the parsing works:
   Optional `help` arguments are parsed inside `AddressBookParser`. These paths return a `Command` for execution by `LogicManager`.
 
 ### Model component
-**API** : [`Model.java`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/model/Model.java)
 
-<img src="images/ModelClassDiagram.png" width="450" />
+**API:** [`Model.java`](https://github.com/AY2627S1-CS2103T-F11-1/tp/blob/master/src/main/java/seedu/address/model/Model.java)
+
+The model class diagram shows the current contact data and `VersionedAddressBook` inheritance.
+Snapshot internals and view collections are omitted; the latter are shown under
+[Displayed contact views](#displayed-contact-views).
+
+<a href="images/ModelClassDiagram.png"><img src="images/ModelClassDiagram.png" alt="Current contact model and VersionedAddressBook inheritance" /></a>
 
 
 The `Model` component,
@@ -150,18 +175,24 @@ The `Model` component,
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
 
-<div markdown="span" class="alert alert-info">:information_source: **Note:** The alternative, arguably more object-oriented, design below keeps a unique list of tags in `AddressBook`, and each `Person` references tags from that list. This lets `AddressBook` maintain one `Tag` object per unique tag instead of each `Person` holding its own `Tag` objects.<br>
+<div markdown="span" class="alert alert-info">:information_source: **Proposed alternative — not implemented:**
+The diagram below illustrates a possible shared tag list in `AddressBook`, referenced by each `Person`.
+`UniqueTagList` belongs to this alternative design and is not a v1.6 class. The current implementation
+stores a tag set in each contact.<br>
 
-<img src="images/BetterModelClassDiagram.png" width="450" />
+<a href="images/BetterModelClassDiagram.png"><img src="images/BetterModelClassDiagram.png" alt="Proposed shared-tag model, not implemented in v1.6" /></a>
 
 </div>
 
 
 ### Storage component
 
-**API** : [`Storage.java`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/storage/Storage.java)
+**API:** [`Storage.java`](https://github.com/AY2627S1-CS2103T-F11-1/tp/blob/master/src/main/java/seedu/address/storage/Storage.java)
 
-<img src="images/StorageClassDiagram.png" width="550" />
+The storage class diagram shows delegation to the two JSON storage classes and the contact-data
+adapters, including the optional follow-up adapter. Common file utilities are omitted.
+
+<a href="images/StorageClassDiagram.png"><img src="images/StorageClassDiagram.png" alt="JSON storage delegation and contact-data adapters" /></a>
 
 The `Storage` component,
 * can save both address book data and user preference data in JSON format, and read them back into corresponding objects.
@@ -174,7 +205,11 @@ The `Storage` component,
 
 The sequence diagram below shows how the application recovers when a corrupted data file is encountered at startup:
 
-![BackupCorruptedFileSequenceDiagram](images/BackupCorruptedFileSequenceDiagram.png)
+The startup sequence below shows an existing invalid contact-data file whose backup succeeds.
+`JsonAddressBookStorage` delegates the copy to `FileUtil`; `MainApp` records a warning and creates an empty model.
+Preference loading and failed backups are described under [Startup loading and recovery](#startup-loading-and-recovery).
+
+<a href="images/BackupCorruptedFileSequenceDiagram.png"><img src="images/BackupCorruptedFileSequenceDiagram.png" alt="Startup recovery when backing up an invalid contact file succeeds" /></a>
 
 ### Common classes
 
@@ -211,11 +246,13 @@ Required prefixes are `n/`, `p/`, `e/`, `a/`, and `r/`, each supplied once. Tags
 
 <a id="implementation-details"></a>
 
-The sequence diagram below illustrates how an `add` command travels through `Logic` and `Model` components when a user executes `add n/John Doe p/98765432 ... r/Supplier`:
+The sequence diagram shows successful parsing and execution of an `add` command. Field validation
+and `CommandResult` construction are summarised; shared selection bookkeeping and the subsequent
+contact-data save are omitted. The parameter names `phone` and `email` refer to the new contact's values.
 
-![AddSequenceDiagram](images/AddSequenceDiagram.png)
+<a href="images/AddSequenceDiagram.png"><img src="images/AddSequenceDiagram.png" alt="Successful add parsing, uniqueness checks, and history commit" /></a>
 
-How the command parsing and execution works:
+Parsing and execution proceed as follows:
 
 1. `LogicManager#execute()` calls `AddressBookParser#parseCommand()`.
 2. `AddressBookParser` instantiates an `AddCommandParser` and invokes its `parse()` method.
@@ -225,7 +262,7 @@ How the command parsing and execution works:
    * Checks that the preamble is empty.
    * `ArgumentMultimap#verifyNoDuplicatePrefixesFor()` rejects repeated compulsory prefixes.
    * Parses individual fields into domain value objects (`Name`, `Phone`, `Email`, `Address`, `Role`, and a set of `Tag` objects) via `ParserUtil`.
-4. A new `Person` entity `toAdd` is constructed, and `AddCommandParser` returns an `AddCommand` object (labeled `command`). The parser instance is no longer needed after parsing. The diagram's destroy marker (`X`) represents the end of its role in this interaction; Java garbage collection does not have a specified immediate destruction time.
+4. A new `Person` entity `toAdd` is constructed, and `AddCommandParser` returns an `AddCommand` object (labelled `command`).
 5. `LogicManager` executes `AddCommand#execute(Model)`.
 6. `AddCommand` queries `Model` to verify uniqueness:
    * `Model#hasPhone(toAdd.getPhone())`
@@ -235,9 +272,10 @@ How the command parsing and execution works:
 
 <a id="execution-flow"></a>
 
-The activity diagram below illustrates the duplicate resolution and defensive error-handling branching during `AddCommand#execute()`. Each decision node specifies explicit, mutually exclusive guard conditions on all outgoing branches, and all execution paths converge cleanly to a single final node:
+The activity diagram shows the duplicate-identity branches inside `AddCommand#execute()`.
+Parsing and the later save are outside its scope; each duplicate branch throws a `CommandException`.
 
-![AddCommandActivityDiagram](images/AddCommandActivityDiagram.png)
+<a href="images/AddCommandActivityDiagram.png"><img src="images/AddCommandActivityDiagram.png" alt="Duplicate phone and email branches in AddCommand" /></a>
 
 `ModelManager#addPerson()` resets the filter to all contacts and retains sorting. `LogicManager` saves after execution; committed additions are rolled back if saving fails. See [Persistence and failures](#persistence-and-failures).
 
@@ -256,12 +294,12 @@ The activity diagram below illustrates the duplicate resolution and defensive er
 
 **Aspect: Phone number representation and future work**
 
-The current release stores one `Phone` per contact and uses exact-string equality for the phone part of
+The v1.6 implementation stores one `Phone` per contact and uses exact-string equality for the phone part of
 duplicate detection. This simplifies comparison but excludes useful formats and multiple contact numbers.
 Simply accepting separators would let `91234567` and `9123 4567` bypass a phone match.
 Future support should define canonical comparison values, country-code and extension handling while
 preserving display formatting. Multiple numbers would also require model, command and storage changes,
-with duplicate checks across all numbers. These enhancements are deferred beyond the current tP release.
+with duplicate checks across all numbers. These enhancements are outside the v1.6 implementation.
 
 **Aspect: Input prefix validation**
 
@@ -389,11 +427,14 @@ The parser uses the existing tokenizer and prefix-validation utilities. Both set
 
 Each modifying command resolves the index against the currently displayed list, constructs a replacement `Person`, calls `Model#setPerson()`, and commits once to undo history. Other contact fields and the current filter are preserved. Failed validation does not modify data or history. Automatic persistence uses the existing logic/storage flow.
 
-The sequence diagram below illustrates how a `followup` command travels through `Logic` and `Model` components when a user executes `followup 1 by/2026-11-01 abt/Confirm quotation`:
+The sequence diagram shows successful parsing and execution of
+`followup 1 by/2026-11-01 abt/Confirm quotation`, assuming displayed index 1 exists.
+`oldPerson` is that contact and `updatedPerson` contains the replacement follow-up.
+Field validation, result construction, selection bookkeeping, and the subsequent save are omitted.
 
-![FollowUpSequenceDiagram](images/FollowUpSequenceDiagram.png)
+<a href="images/FollowUpSequenceDiagram.png"><img src="images/FollowUpSequenceDiagram.png" alt="Setting a follow-up with a replacement contact and history commit" /></a>
 
-How the command parsing and execution works:
+Parsing and execution proceed as follows:
 
 1. `LogicManager#execute()` calls `AddressBookParser#parseCommand()`.
 2. `AddressBookParser` instantiates a `FollowUpCommandParser` and invokes its `parse()` method.
@@ -404,7 +445,7 @@ How the command parsing and execution works:
    * `ArgumentMultimap#verifyNoDuplicatePrefixesFor()` rejects repeated prefixes.
    * `ParserUtil#parseFollowUpDate()` parses the due date into a `LocalDate`.
    * `ParserUtil#unescapeSlashes()` and `FollowUp#isValidDescription()` validate the description string.
-4. A `SetFollowUpCommand` object (labeled `f`) containing the parsed index and new `FollowUp` is returned. The parser is no longer needed after parsing; the destroy marker (`X`) marks its role ending in the illustrated interaction rather than a guaranteed Java garbage-collection event.
+4. A `SetFollowUpCommand` object (labelled `f`) containing the parsed index and new `FollowUp` is returned.
 5. `LogicManager` executes `SetFollowUpCommand#execute(Model)`:
    * The command retrieves `personToUpdate` from the filtered list using the zero-based index.
    * `createPersonWithFollowUp()` constructs a replacement `Person` entity `updatedPerson` containing the new `FollowUp`.
@@ -634,18 +675,16 @@ the underlying address book after successful execution; the search filter is not
 The activity diagram below summarises validation, both parsing paths, and filter execution.
 It focuses on `FindCommandParser` and `FindCommand`.
 
-<!-- Render diagrams/FindActivityDiagram.puml to images/FindActivityDiagram.png. -->
-![Find command activity diagram](images/FindActivityDiagram.png)
+<a href="images/FindActivityDiagram.png"><img src="images/FindActivityDiagram.png" alt="Find validation, predicate creation, and filter execution" /></a>
 
 The [find command sequence diagram](diagrams/FindSequenceDiagram.puml) shows the parsing
 and execution of `find n/Alice n/Bob r/Supplier`. It focuses on search-specific interactions;
-shared `LogicManager` bookkeeping and storage calls are omitted. Predicate creation is
-summarised in a note: both `n/` values belong to one name predicate, while `r/` produces
-a separate role predicate. Quick name search follows the same execution flow, using one
+shared `LogicManager` bookkeeping and storage calls are omitted. The command holds two predicates: both `n/` values belong to one name predicate, while `r/` produces
+a separate role predicate. The parser combines them in the returned `FindCommand`; predicate creation
+and result construction are omitted from the sequence diagram. Quick name search follows the same execution flow, using one
 `NameContainsKeywordsPredicate` containing all whitespace-separated keywords.
 
-<!-- Render diagrams/FindSequenceDiagram.puml to images/FindSequenceDiagram.png. -->
-![Find command sequence diagram](images/FindSequenceDiagram.png)
+<a href="images/FindSequenceDiagram.png"><img src="images/FindSequenceDiagram.png" alt="Prefixed find parsing and replacement of the displayed filter" /></a>
 
 **Design considerations**
 
@@ -884,44 +923,48 @@ it returns feedback without committing, so any available redo history is preserv
 
 The underlying `VersionedAddressBook` also checks its boundaries and throws `NoUndoableStateException` or `NoRedoableStateException` when navigation is unavailable.
 
-Given below is an example usage scenario and how the undo/redo mechanism behaves at each step.
+The following example shows how snapshots and the integer history pointer change. Command arguments
+are abbreviated for illustration; each addition is assumed valid with unique phone and email values.
+The pointer arrows identify history entries, rather than Java object references.
 
-Step 1. The user launches the application for the first time. The `VersionedAddressBook` will be initialized with the initial address book state, and the `currentStatePointer` pointing to that single address book state.
+Step 1. On first launch, `VersionedAddressBook` contains one snapshot of the sample contact book.
+`currentStatePointer` is 0, selecting that initial snapshot.
 
-![UndoRedoState0](images/UndoRedoState0.png)
+<a href="images/UndoRedoState0.png"><img src="images/UndoRedoState0.png" alt="Initial snapshot selected at history index 0" /></a>
 
 Step 2. The user executes `delete 5` command to delete the 5th person in the address book. The `delete` command calls `Model#commitAddressBook()`, causing the modified state of the address book after the `delete 5` command executes to be saved in the `addressBookStateList`, and the `currentStatePointer` is shifted to the newly inserted address book state.
 
-![UndoRedoState1](images/UndoRedoState1.png)
+<a href="images/UndoRedoState1.png"><img src="images/UndoRedoState1.png" alt="Deletion snapshot selected at history index 1" /></a>
 
 Step 3. The user executes `add n/David …​` to add a new person. The `add` command also calls `Model#commitAddressBook()`, causing another modified address book state to be saved into the `addressBookStateList`.
 
-![UndoRedoState2](images/UndoRedoState2.png)
+<a href="images/UndoRedoState2.png"><img src="images/UndoRedoState2.png" alt="Addition snapshot selected at history index 2" /></a>
 
-<div markdown="span" class="alert alert-info">:information_source: **Note:** If a command fails its execution, it will not call `Model#commitAddressBook()`, so the address book state will not be saved into the `addressBookStateList`.
-
+<div markdown="span" class="alert alert-info">:information_source: **Note:** Parsing and command-validation
+failures do not commit a snapshot. A later save failure is handled separately: a newly committed state
+is rolled back, while an applied undo/redo remains in memory. See [Persistence and failures](#persistence-and-failures).
 </div>
 
 Step 4. The user now decides that adding the person was a mistake, and decides to undo that action by executing the `undo` command. The `undo` command will call `Model#undoAddressBook()`, which will shift the `currentStatePointer` once to the left, pointing it to the previous address book state, and restores the address book to that state.
 
-![UndoRedoState3](images/UndoRedoState3.png)
+<a href="images/UndoRedoState3.png"><img src="images/UndoRedoState3.png" alt="Undo selects the earlier snapshot at history index 1" /></a>
 
 <div markdown="span" class="alert alert-info">:information_source: **Note:** If the `currentStatePointer` is at index 0, pointing to the initial AddressBook state, then there are no previous AddressBook states to restore. The `undo` command uses `Model#canUndoAddressBook()` to check if this is the case. If so, it will return an error to the user rather
 than attempting to perform the undo.
 
 </div>
 
-The following sequence diagram shows how an undo operation goes through the `Logic` component:
+The Logic sequence shows a successful `undo`, including `UndoCommandParser` and the availability
+check. Empty arguments are accepted; unavailable history and extra arguments are error paths omitted
+from the diagram. `CommandResult` construction is summarised; selection bookkeeping and the later save are omitted.
 
-![UndoSequenceDiagram](images/UndoSequenceDiagram-Logic.png)
+<a href="images/UndoSequenceDiagram-Logic.png"><img src="images/UndoSequenceDiagram-Logic.png" alt="Undo parser, availability check, and command execution" /></a>
 
-<div markdown="span" class="alert alert-info">:information_source: **Note:** The lifeline for `UndoCommand` should end at the destroy marker (X), but due to a limitation of PlantUML, it continues to the end of the diagram.
+The Model sequence expands the successful restore: decrement the pointer, reset contact data from
+the selected snapshot, then show all contacts. Availability has already been checked; the sort comparator
+is retained. Snapshot access is abbreviated in the message label.
 
-</div>
-
-Similarly, how an undo operation goes through the `Model` component is shown below:
-
-![UndoSequenceDiagram](images/UndoSequenceDiagram-Model.png)
+<a href="images/UndoSequenceDiagram-Model.png"><img src="images/UndoSequenceDiagram-Model.png" alt="Undo snapshot restore and displayed-filter reset" /></a>
 
 The `redo` command does the opposite — it calls `Model#redoAddressBook()`, which shifts the `currentStatePointer` once to the right, pointing to the previously undone state, and restores the address book to that state.
 
@@ -929,20 +972,22 @@ The `redo` command does the opposite — it calls `Model#redoAddressBook()`,
 
 </div>
 
-Step 5. The user then decides to execute the command `list`. Commands that do not modify the address book, such as `list`, will usually not call `Model#commitAddressBook()`, `Model#undoAddressBook()` or `Model#redoAddressBook()`. Thus, the `addressBookStateList` remains unchanged.
+Step 5. The user then decides to execute the command `list`. Commands that do not modify the address book, such as `list`, do not call `Model#commitAddressBook()`, `Model#undoAddressBook()` or `Model#redoAddressBook()`. Thus, the `addressBookStateList` remains unchanged.
 
-![UndoRedoState4](images/UndoRedoState4.png)
+<a href="images/UndoRedoState4.png"><img src="images/UndoRedoState4.png" alt="List leaves the selected history snapshot unchanged" /></a>
 
 Step 6. The user executes `clear`, which calls `Model#commitAddressBook()`. Since the `currentStatePointer` is not pointing at the end of the `addressBookStateList`, all address book states after the `currentStatePointer` will be purged. Reason: It no longer makes sense to redo the `add n/David …​` command. This is the behavior that most modern desktop applications follow.
 
 <div markdown="span" class="alert alert-info">:information_source: **Note:** If the address book is already empty, `clear` does not modify contact data or invoke `Model#commitAddressBook()`, keeping the existing `addressBookStateList` and redo history intact.
 </div>
 
-![UndoRedoState5](images/UndoRedoState5.png)
+<a href="images/UndoRedoState5.png"><img src="images/UndoRedoState5.png" alt="Clear replaces the redo branch with a new snapshot" /></a>
 
-The following activity diagram summarizes what happens when a user executes a new command:
+The activity diagram expands `VersionedAddressBook#commit()`: retain displaced redo states for
+possible save-failure rollback, replace that branch with a new snapshot, and advance the pointer.
+It does not describe undo, redo, or commands that do not commit.
 
-<img src="images/CommitActivityDiagram.png" width="250" />
+<a href="images/CommitActivityDiagram.png"><img src="images/CommitActivityDiagram.png" alt="Snapshot commit, displaced redo states, and history-pointer advance" /></a>
 
 **Design considerations**
 
@@ -1033,7 +1078,10 @@ Optional help arguments are parsed directly in `AddressBookParser`. No target re
 
 `AddressBookParser` parses the optional command name after `help` and creates a `HelpCommand`. Bare `help` opens the full help window, while `help COMMAND` displays usage for a supported command in the result area.
 
-![Help command activity diagram](images/HelpActivityDiagram.png)
+The activity diagram covers help argument validation, response selection, the shared save request,
+and UI handling. If parsing or saving fails, the requested Help window is not opened.
+
+<a href="images/HelpActivityDiagram.png"><img src="images/HelpActivityDiagram.png" alt="Help validation, response, save request, and window handling" /></a>
 
 * Bare `help` returns opening feedback in a `CommandResult` with `showHelp` set to `true`.
 * For a supported target, `HelpCommand` retrieves the command's `COMMAND_USAGE` from `COMMAND_USAGE_BY_NAME` and returns it as feedback with `showHelp` set to `false`.
@@ -1170,7 +1218,7 @@ With no comparator, the sorted view follows its source order.
 then calls `updateSortedPersonList(null)` and returns clearing feedback. A `SortedList` without a comparator follows its source order,
 so this displays all contacts in insertion order without rearranging stored data.
 
-![Partial class diagram of the model's filtered and sorted contact views](images/SortModelClassDiagram.png)
+<a href="images/SortModelClassDiagram.png"><img src="images/SortModelClassDiagram.png" alt="Filtered and sorted contact views backed by the contact list" /></a>
 
 The partial class diagram shows each view's source relationship. The sorted view supplies displayed order;
 the underlying contact list retains its source order for persistence. Unrelated model classes and list inheritance
@@ -1257,9 +1305,11 @@ The following steps describe a contact-data save; preference JSON uses the same 
 Failures before replacement leave the destination unmodified. The non-atomic fallback does not provide the same all-or-nothing replacement guarantee;
 callers must not assume every reported failure means the old file is intact. This mechanism also does not establish a power-loss durability guarantee.
 
-The sequence diagram below illustrates the successful atomic-move path across components. The fallback and failure paths are described above:
+The sequence diagram shows the successful atomic-move path across components. Parameters are
+abbreviated, and self-messages summarise `FileUtil`'s internal file operations. The fallback and
+failure paths are described above; directory preparation and initial-file creation are omitted.
 
-![AtomicWriteSequenceDiagram](images/AtomicWriteSequenceDiagram.png)
+<a href="images/AtomicWriteSequenceDiagram.png"><img src="images/AtomicWriteSequenceDiagram.png" alt="Successful contact-data save through a temporary file and atomic move" /></a>
 
 **Design considerations**
 
@@ -1297,7 +1347,10 @@ See the [User Guide recovery procedure](UserGuide.md#recovering-data-that-fails-
 
 #### Proposed data archiving
 
-_{Explain here how the data archiving feature will be implemented}_
+**Status: not implemented in v1.6; design not yet specified.** The current implementation has no archiving command
+or archive-file format. A future proposal would need requirements
+for archive contents, retention, and restoration before an implementation design can be documented.
+Session undo history and startup recovery backups are separate mechanisms, not an archive feature.
 
 --------------------------------------------------------------------------------------------------------------------
 

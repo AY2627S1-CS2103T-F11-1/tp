@@ -1,39 +1,43 @@
 @startuml
 !include style.puml
 skinparam ArrowFontStyle plain
+actor User as User USER_COLOR
+participant ":Ui" as Ui UI_COLOR
+participant ":Logic" as Logic LOGIC_COLOR
+participant ":Model" as Model MODEL_COLOR
+participant ":Storage" as Storage STORAGE_COLOR
 
-Actor User as user USER_COLOR
-Participant ":UI" as ui UI_COLOR
-Participant ":Logic" as logic LOGIC_COLOR
-Participant ":Model" as model MODEL_COLOR
-Participant ":Storage" as storage STORAGE_COLOR
-
-user -[USER_COLOR]> ui : "delete 1"
-activate ui UI_COLOR
-
-ui -[UI_COLOR]> logic : execute("delete 1")
-activate logic LOGIC_COLOR
-
-logic -[LOGIC_COLOR]> model : deletePerson(p)
-activate model MODEL_COLOR
-
-model -[MODEL_COLOR]-> logic
-deactivate model
-
-logic -[LOGIC_COLOR]> storage : saveAddressBook(addressBook)
-activate storage STORAGE_COLOR
-
-storage -[STORAGE_COLOR]> storage : Save to file
-activate storage STORAGE_COLOR_T1
-storage --[STORAGE_COLOR]> storage
-deactivate storage
-
-storage --[STORAGE_COLOR]> logic
-deactivate storage
-
-logic --[LOGIC_COLOR]> ui
-deactivate logic
-
-ui--[UI_COLOR]> user
-deactivate ui
+User -> Ui : "delete 1"
+activate Ui
+Ui -> Logic : execute("delete 1")
+activate Logic
+Logic -> Model : getFilteredPersonList()
+activate Model
+Model --> Logic : displayed contacts
+deactivate Model
+note over Logic
+  Parsing and index validation succeed;
+  p is the contact at displayed index 1.
+end note
+Logic -> Model : deletePerson(p)
+activate Model
+Model --> Logic
+deactivate Model
+Logic -> Model : commitAddressBook()
+activate Model
+Model --> Logic
+deactivate Model
+Logic -> Model : getAddressBook()
+activate Model
+Model --> Logic : addressBook
+deactivate Model
+Logic -> Storage : saveAddressBook(addressBook)
+activate Storage
+Storage --> Logic : saved
+deactivate Storage
+Logic --> Ui : CommandResult
+deactivate Logic
+Ui -> Ui : reconcile selection and display feedback
+Ui --> User : updated contact list
+deactivate Ui
 @enduml

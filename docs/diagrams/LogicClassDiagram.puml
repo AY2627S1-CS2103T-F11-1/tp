@@ -1,51 +1,33 @@
 @startuml
 !include style.puml
-skinparam arrowThickness 1.1
+!pragma layout smetana
 skinparam arrowColor LOGIC_COLOR_T4
 skinparam classBackgroundColor LOGIC_COLOR
 
 package Logic as LogicPackage {
-
-package "Parser Classes" as ParserClasses{
+interface Logic <<interface>>
+class LogicManager
+class AddressBookParser
+abstract class Command
+class XYZCommand
+class CommandResult
+class CommandSelectionChange
 }
-Class XYZCommand
-Class CommandResult
-Class CommandSelectionChange
-Class "{abstract}\nCommand" as Command
+interface Model <<interface>> MODEL_COLOR
+interface Storage <<interface>> STORAGE_COLOR
 
-
-Class "<<interface>>\nLogic" as Logic
-Class LogicManager
-}
-
-package Model {
-Class HiddenModel #FFFFFF
-}
-
-package Storage {
-}
-
-Class HiddenOutside #FFFFFF
-HiddenOutside ..> Logic
-
-LogicManager .right.|> Logic
-LogicManager -right->"1" ParserClasses
-ParserClasses ..> XYZCommand : <<create>>
-
-XYZCommand -up-|> Command
-LogicManager .left.> Command : <<call>>
-
-LogicManager --> Model
-LogicManager --> Storage
-Storage --[hidden] Model
-Command .[hidden]up.> Storage
-Command .right.> Model
-note right of XYZCommand: XYZCommand = AddCommand, \nFindCommand, etc
-
-Logic ..> CommandResult
-LogicManager .down.> CommandResult
-Logic ..> CommandSelectionChange
+LogicManager ..|> Logic
+LogicManager --> "1" AddressBookParser
+AddressBookParser ..> Command : returns
+XYZCommand --|> Command
+LogicManager ..> Command : executes
+Command ..> Model : updates or queries
+Command ..> CommandResult : creates
+LogicManager --> "1" Model
+LogicManager --> "1" Storage
 LogicManager --> "1" CommandSelectionChange
-CommandSelectionChange ..> Model
-Command .up.> CommandResult : <<create>>
+CommandSelectionChange ..> Model : refers to contacts
+Logic ..> CommandResult
+Logic ..> CommandSelectionChange
+
 @enduml
