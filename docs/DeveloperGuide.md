@@ -185,13 +185,31 @@ Classes used by multiple components are in the `seedu.address.commons` package.
 ## **Implementation**
 
 This section describes the v1.6 implementation in the project working directory, ahead of its GitHub release.
-Shared explanations distinguish contact data, displayed views, session history, and saved files; command-specific flows build on these mechanisms.
+Command entries follow the User Guide order. See [Shared mechanisms](#shared-mechanisms) for behaviour used across features.
 
-### Adding a contact
+### Manage contacts
+
+#### Adding a contact: `add`
+
+**Overview**
+
+<a id="adding-a-contact"></a>
 
 KeyBossWarriorsPro allows keyboard shop managers to add new contacts with an industry-specific `Role` (e.g., `Supplier`, `Employee`, `Partner`, `Customer`) and optional tags. Contact uniqueness is governed by communication identifiers (phone number and email address) rather than names.
 
-#### Implementation details
+See the [UG add entry](UserGuide.md#adding-a-contact-add) for syntax and examples.
+
+**Relevant classes and data**
+
+`AddCommandParser` constructs validated value objects and a `Person`; `AddCommand` uses the `Model` API to check uniqueness, insert the contact, and commit history.
+
+**Parsing and validation**
+
+Required prefixes are `n/`, `p/`, `e/`, `a/`, and `r/`, each supplied once. Tags may repeat. The parser rejects unknown prefixes and unexpected preamble text, then validates field values. See the shared [text rules](#contact-text-validation-formatting-and-searching) and [email and phone rules](#email-and-phone-validation).
+
+**Execution and failure handling**
+
+<a id="implementation-details"></a>
 
 The sequence diagram below illustrates how an `add` command travels through `Logic` and `Model` components when a user executes `add n/John Doe p/98765432 ... r/Supplier`:
 
@@ -215,47 +233,17 @@ How the command parsing and execution works:
 7. If uniqueness validation passes, `Model#addPerson(toAdd)` inserts the contact into `UniquePersonList`, and `Model#commitAddressBook()` saves the state snapshot into `VersionedAddressBook` to support undo/redo.
 8. A `CommandResult` containing success feedback (labeled `result`) is returned to `LogicManager`.
 
-#### Contact text validation, formatting, and searching
-
-`Name`, `Role`, `Tag` and `Address` validate trimmed input with `StringUtil.isValidText()`, rejecting
-blank/invisible-only values, ISO controls and Unicode line/paragraph separators. Names, roles and tags
-accept Unicode, punctuation and literal backslashes.
-
-`normalizeSpaces()` strips Java whitespace and collapses ordinary U+0020 spaces for names, roles and tags.
-Addresses only strip their edges. Non-breaking spaces and formatting characters remain literal alongside
-visible text; capitalisation is preserved. Tags have a 50-unit limit after decoding and normalisation,
-measured by `String.length()` (UTF-16); names, roles and addresses have no maximum.
-
-Name/address equality is case-sensitive; role/tag/email equality uses `equalsIgnoreCase()`.
-`normalizeCase()` applies `toLowerCase(toUpperCase(...))` per code point for locale-independent searches
-and role/tag/email hashes, preserving stored spelling and accent distinctions.
-
-Prefixes are recognised before `ParserUtil.unescapeSlashes()` decodes each `\/` once. Models and JSON
-adapters never decode escapes. Phone, email and date values do not use slash decoding.
-
-`FindCommandParser.normaliseSearchPhrases()` applies `normalizeSpaces()` to prefixed queries, retaining
-substring matching, OR within fields and AND across fields. Queries have no whole-field validation or
-length limit. Simple name search retains whitespace-based keyword splitting.
-
-#### Email and phone validation
-
-`Email.VALIDATION_REGEX` uses the WHATWG HTML pattern with Java `String.matches()`; the
-[UG lists its supported syntax](UserGuide.md#supported-email-syntax). Parsing trims input and preserves
-case. Validation checks syntax only, without mailbox verification or IDN conversion.
-
-`Phone.VALIDATION_REGEX` accepts 3–20 ASCII digits, preserving leading zeroes.
-
-Contact identity is separate from full value equality: `Person#isSamePerson()` matches either the phone number or email,
-while `Person#equals()` compares all stored fields, including tags and the optional follow-up. Duplicate checks examine
-all stored contacts, including those hidden by a filter. A role is custom validated text rather than an enumeration of fixed categories.
-
-#### Execution flow
+<a id="execution-flow"></a>
 
 The activity diagram below illustrates the duplicate resolution and defensive error-handling branching during `AddCommand#execute()`. Each decision node specifies explicit, mutually exclusive guard conditions on all outgoing branches, and all execution paths converge cleanly to a single final node:
 
 ![AddCommandActivityDiagram](images/AddCommandActivityDiagram.png)
 
-#### Design considerations
+`ModelManager#addPerson()` resets the filter to all contacts and retains sorting. `LogicManager` saves after execution; committed additions are rolled back if saving fails. See [Persistence and failures](#persistence-and-failures).
+
+**Design considerations**
+
+<a id="design-considerations"></a>
 
 **Aspect: Contact identity and duplicate criteria**
 
@@ -284,13 +272,314 @@ with duplicate checks across all numbers. These enhancements are deferred beyond
   * Pros: Simpler parsing code.
   * Cons: Causes silent input drops where mistyped fields are omitted without warning the user.
 
-### Finding contacts
+**Testing references**
+
+`AddCommandParserTest` covers prefix and field validation; `AddCommandTest` and `AddCommandIntegrationTest` cover insertion and duplicate identifiers. `LogicManagerTest` covers persistence and rollback. See the [manual add tests](#adding-contacts-with-add).
+
+#### Editing a contact: `edit`
+
+**Overview**
+
+<a id="adding-and-deleting-contact-tags"></a>
+
+The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_ADD]... [dt/TAG_TO_DELETE]...`, alongside the existing contact fields. Additions preserve existing tags, and deletions remove only explicitly named tags. Parsing and command-validation failures leave all contact details and the displayed view unchanged. A successful edit displays all contacts;
+if its subsequent save fails, contact data is rolled back and the restored view also displays all contacts, as described under [Persistence and failures](#persistence-and-failures).
+
+The same command edits names, phone numbers, emails, addresses, and roles. See the [UG edit entry](UserGuide.md#editing-a-contact-edit).
+
+**Relevant classes and data**
+
+`EditCommandParser`, `EditCommand.EditPersonDescriptor`, and `EditCommand` separate supplied changes from the original immutable `Person`. Optional scalar fields and independent tag-operation sets describe the requested edit.
+
+**Parsing and validation**
+
+<a id="parsing-and-descriptor"></a>
+
+`CliSyntax` defines `PREFIX_TAG` (`t/`) and `PREFIX_DELETE_TAG` (`dt/`). `EditCommandParser` recognizes both prefixes and permits repeated occurrences of each.
+
+`EditCommand.EditPersonDescriptor` stores `tagsToAdd` and `tagsToDelete` separately. Each setter makes a defensive copy, and each getter returns an `Optional<Set<Tag>>` containing an unmodifiable set. An absent optional means that operation was not supplied. Both sets participate in the copy constructor, `isAnyFieldEdited()`, `equals()`, and `toString()`.
+
+Before tokenizing the arguments, `EditCommandParser` calls
+`ArgumentTokenizer#verifyNoUnrecognizedPrefixes()` with all supported edit
+prefixes (`n/`, `p/`, `e/`, `a/`, `r/`, `t/`, and `dt/`). This prevents unknown
+prefixes from being silently ignored.
+
+The parser requires a displayed index, rejects duplicate scalar prefixes, and parses each supplied name, phone, email, address, or role into the descriptor. Omitted fields stay absent.
+
+After parsing these fields, `EditCommandParser`:
+
+1. Parses additions, then deletions, using `parseTagsForEdit()`. An absent prefix produces an empty optional. A supplied blank tag is rejected, including bare `t/` and `dt/`; neither clears all tags.
+2. Uses `ParserUtil.parseTags()` to validate tag names and construct sets. `Tag` collapses repeated ordinary spaces, and its equality and hash code support case-insensitive comparison and deduplication.
+3. Rejects any tag present in both sets. If several tags conflict, the first tag alphabetically, ignoring case, is reported using the spelling from the additions set.
+4. Rejects a command with no fields or tag operations, or returns an `EditCommand` containing a copy of the descriptor.
+
+Invalid tag values are rejected before add/delete conflicts. Missing deletions require the selected contact's current data and are checked during execution.
+
+**Execution and failure handling**
+
+<a id="execution-and-validation"></a>
+
+`EditCommand#execute()` resolves the index against the currently displayed list. `createEditedPerson()` checks every requested deletion against the original contact's tags before constructing the edited contact. If any requested tag is absent, it throws a `CommandException`; if several are absent, the first alphabetically, ignoring case, is reported.
+
+For valid deletions, `createEditedPerson()` copies the original tag set into a new `HashSet`, removes `tagsToDelete`, adds `tagsToAdd`, and constructs a new `Person` using the supplied or existing contact details. Adding an existing tag succeeds without creating a duplicate. Removing every tag requires explicitly listing every tag for deletion.
+
+`execute()` then performs the existing duplicate phone and email checks. Only after all validation succeeds does it call `Model#setPerson()` and reset the displayed list with `PREDICATE_SHOW_ALL_PERSONS`. A validation failure therefore changes neither the original contact nor the displayed list, including when a command combines valid deletions, a missing deletion, additions, and other field edits.
+
+Condition | Error constant | Exception
+--------|------------------|----------
+Blank value after `t/` or `dt/` | `EditCommand.MESSAGE_EMPTY_TAG` | `ParseException`
+Invalid tag name | `Tag.MESSAGE_CONSTRAINTS` | `ParseException`
+Same tag in both operations | `EditCommand.MESSAGE_TAG_CONFLICT` | `ParseException`
+Requested deletion absent from the selected contact | `EditCommand.MESSAGE_TAG_NOT_FOUND` | `CommandException`
+
+Supplied scalar fields replace existing values; omitted fields and the optional follow-up are preserved. Duplicate checks exclude the contact being edited. The valid replacement is committed once and saved through `LogicManager`. A storage failure follows [Persistence and failures](#persistence-and-failures).
+
+**Design considerations**
+
+Validate requested deletions and duplicate communication identifiers before replacing the original contact. This makes combined field and tag edits succeed as one change. The descriptor represents omitted fields explicitly, so ordinary field edits preserve existing tags and follow-ups.
+
+**Testing references**
+
+<a id="test-coverage-2"></a>
+
+* `EditPersonDescriptorTest` covers independent tag operations, defensive copying, unmodifiable getters, equality, and string output.
+* `EditCommandParserTest` covers recognised and unrecognised prefixes, repeated and empty values, invalid names, case-insensitive conflicts, and validation order.
+* `EditCommandTest` covers additions, selective deletions, combined operations, filtered lists, existing tags, missing deletions, and preservation of the full model on failure. It also parses command text through `AddressBookParser` before execution to cover the acceptance examples and failure cases.
+* `AddressBookParserTest` checks that an edit containing both operations is routed to the edit parser.
+
+#### Managing a contact's follow-up: `followup`
+
+**Overview**
+
+<a id="contact-follow-up-management"></a>
+
+Each `Person` owns an `Optional<FollowUp>`. A contact can have zero or one follow-up.
+
+See the [UG followup entry](UserGuide.md#managing-a-contacts-follow-up-followup) for setting and clearing syntax.
+
+**Relevant classes and data**
+
+<a id="model-and-persistence"></a>
+
+`FollowUp` stores an immutable `LocalDate` due date and description. Both fields are mandatory when a follow-up exists.
+* Due dates accept past values and restrict years to `0000`–`9999`.
+* Descriptions use `strip()` and `StringUtil.isValidText()` with the [shared text rules](#contact-text-validation-formatting-and-searching), preserving capitalisation and internal spacing. The limit is 200 UTF-16 code units (`String.length()`) after slash decoding and trimming.
+* Equality and hashing include both fields, with case-sensitive description comparison.
+  `FollowUp` has no back-reference to `Person`. The owning contact establishes the association, so changing contact details does not require updating a separate contact identifier.
+
+`Person.equals()` and `hashCode()` include the optional follow-up. `isSamePerson()` retains its existing phone/email identity rules. Contact edits preserve the follow-up, while deleting a contact removes it.
+
+`JsonAdaptedFollowUp` converts the nested JSON representation to and from the model. `JsonAdaptedPerson` treats missing or null follow-ups as absent, preserving compatibility with older files. A present follow-up with missing or invalid fields is rejected through the existing invalid-data handling mechanism.
+
+**Parsing and validation**
+
+`FollowUpCommandParser` recognises either `INDEX clear` or an index with exactly one `by/` and one `abt/` value. It rejects mixed forms, unknown or repeated prefixes, invalid dates, and invalid descriptions. Command execution checks the index against the displayed list; clearing also requires an existing follow-up.
+
+**Execution and failure handling**
+
+<a id="setting-and-clearing-follow-ups"></a>
+
+`AddressBookParser` routes `followup` to `FollowUpCommandParser`, which returns one of two commands:
+* `SetFollowUpCommand` creates or replaces a follow-up using a displayed contact index, due date, and description.
+* `ClearFollowUpCommand` removes the selected contact's follow-up and rejects contacts without one.
+
+The abstract `FollowUpCommand` holds the shared command word and usage message.
+
+The parser uses the existing tokenizer and prefix-validation utilities. Both set fields are mandatory, duplicate and unknown prefixes are rejected, and clear syntax cannot be combined with set parameters. `ParserUtil.parseFollowUpDate()` enforces the exact four-digit-year format and rejects impossible calendar dates.
+
+Each modifying command resolves the index against the currently displayed list, constructs a replacement `Person`, calls `Model#setPerson()`, and commits once to undo history. Other contact fields and the current filter are preserved. Failed validation does not modify data or history. Automatic persistence uses the existing logic/storage flow.
+
+The sequence diagram below illustrates how a `followup` command travels through `Logic` and `Model` components when a user executes `followup 1 by/2026-11-01 abt/Confirm quotation`:
+
+![FollowUpSequenceDiagram](images/FollowUpSequenceDiagram.png)
+
+How the command parsing and execution works:
+
+1. `LogicManager#execute()` calls `AddressBookParser#parseCommand()`.
+2. `AddressBookParser` instantiates a `FollowUpCommandParser` and invokes its `parse()` method.
+3. `FollowUpCommandParser` performs validation:
+   * `ArgumentTokenizer#verifyNoUnrecognizedPrefixes()` ensures no unrecognized prefixes are supplied.
+   * `ParserUtil#parseIndex()` parses the target contact index.
+   * `ArgumentMultimap#verifyNoMissingPrefixesFor()` verifies that both `by/` and `abt/` prefixes are present.
+   * `ArgumentMultimap#verifyNoDuplicatePrefixesFor()` rejects repeated prefixes.
+   * `ParserUtil#parseFollowUpDate()` parses the due date into a `LocalDate`.
+   * `ParserUtil#unescapeSlashes()` and `FollowUp#isValidDescription()` validate the description string.
+4. A `SetFollowUpCommand` object (labeled `f`) containing the parsed index and new `FollowUp` is returned. The parser is no longer needed after parsing; the destroy marker (`X`) marks its role ending in the illustrated interaction rather than a guaranteed Java garbage-collection event.
+5. `LogicManager` executes `SetFollowUpCommand#execute(Model)`:
+   * The command retrieves `personToUpdate` from the filtered list using the zero-based index.
+   * `createPersonWithFollowUp()` constructs a replacement `Person` entity `updatedPerson` containing the new `FollowUp`.
+   * `Model#setPerson(personToUpdate, updatedPerson)` updates the contact in the address book.
+   * `Model#commitAddressBook()` saves the state to history for undo/redo support.
+6. A `CommandResult` object (labeled `r`) containing the success feedback is created and returned to `LogicManager`.
+
+Each valid change preserves the current comparator as well as the filter. Changing or clearing a follow-up can remove its contact from an active query, which also clears its selection. See [Follow-up urgency and details](#follow-up-urgency-and-details) and [Persistence and failures](#persistence-and-failures).
+
+**Design considerations**
+
+Store the follow-up inside its owning contact so replacement, deletion, persistence, and snapshots include it. The two concrete commands share `FollowUpCommand` usage constants but have distinct validation and execution responsibilities.
+
+**Testing references**
+
+<a id="test-coverage-3"></a>
+
+* Model tests cover validation, normalization, equality, and contact identity.
+* Storage tests cover JSON round trips, older records, and malformed nested follow-ups.
+* Command tests cover creation, replacement, removal, filtered indexes, failure preservation, and undo/redo.
+* Query tests use fixed clocks to verify date boundaries, time zones, filtering, and history preservation.
+* Parser tests cover supported forms, invalid arguments, shared date parsing, and command routing.
+
+#### Deleting a contact: `delete`
+
+**Overview**
+
+<a id="deleting-a-contact"></a>
+
+`delete` removes one contact identified by its position in the current displayed list.
+The [User Guide](UserGuide.md#deleting-a-contact-delete) describes its syntax and user-facing behaviour.
+The [sequence diagram in the Logic component](#logic-component) shows the successful execution path.
+
+**Relevant classes and data**
+
+`DeleteCommandParser` produces an `Index`; `DeleteCommand` resolves it through `Model#getFilteredPersonList()`, then removes the `Person` from the underlying contact book.
+
+**Parsing and validation**
+
+<a id="parsing-and-validation-1"></a>
+
+`AddressBookParser` delegates the arguments to `DeleteCommandParser#parse()`, which:
+
+1. Trims the arguments and rejects empty input with `INDEX is required.`
+2. Splits the trimmed input on whitespace and rejects multiple arguments with
+   `delete accepts only one INDEX.`
+3. Calls `ParserUtil#parseIndex()` to obtain an `Index`. The helper accepts integers from
+   1 to `Integer.MAX_VALUE` and rejects zero, negative, nonnumeric, and overflowing values
+   with `INDEX must be a whole number between 1 and 2147483647.`
+
+These failures raise `ParseException` before execution. Parsing checks the numeric format
+and supported range; whether the index refers to a displayed contact is checked by the command.
+
+**Execution and failure handling**
+
+<a id="execution-and-model-integration"></a>
+
+`DeleteCommand#execute()`:
+
+1. Retrieves `Model#getFilteredPersonList()`, which exposes the filtered and sorted displayed view.
+2. Rejects an empty displayed list with `No contacts are currently displayed.`
+3. Rejects an index beyond the displayed list using `Messages#getIndexOutOfRangeMessage()`.
+   The feedback names the valid range, or the sole valid index when one contact is displayed.
+4. Resolves the `Person` at the index, calls `Model#deletePerson()`, then calls
+   `Model#commitAddressBook()` once to record the deletion.
+5. Returns a `CommandResult` containing `Deleted contact: ...`, using `Messages#format()`
+   to include the deleted contact's details and any follow-up.
+
+The empty-list and out-of-range checks raise `CommandException`. All argument and index
+validation failures preserve contact data, the displayed view, and undo/redo history.
+
+The command removes the selected `Person` from the underlying contact list. It does not
+reset the filter or comparator, so the remaining displayed contacts retain the active
+search criteria and sort order. Displayed indices are recalculated automatically.
+Deleting the contact currently selected in the UI clears its details; deleting another
+contact preserves the selection, as described under [Contact details and selection](#contact-details-and-selection).
+
+<a id="persistence-history-and-design-considerations"></a>
+
+`LogicManager` saves the underlying address book after successful execution. If saving
+fails, it rolls back the committed deletion, restores the contact data, and reports a
+saving error. The restored view shows all contacts. The shared
+[persistence and failure handling](#persistence-and-failures) section describes this mechanism.
+
+**Design considerations**
+
+* **Resolve against the displayed view:** Using the same view as the UI ensures that
+  filtered and sorted indices identify the contact the user sees, rather than its stored position.
+* **Commit after validation:** Rejected requests create no history entry. A successful deletion
+  creates one undoable change and discards any remaining redo history. Undo restores the entire
+  contact, including its follow-up; redo removes it again. Both operations show all contacts
+  while retaining the active sort order.
+
+**Testing references**
+
+<a id="test-coverage-1"></a>
+
+`DeleteCommandParserTest` covers missing, extra, and invalid arguments. `ParserUtilTest`
+checks numeric boundaries and overflow. `DeleteCommandTest` covers empty and filtered lists,
+out-of-range indices, follow-up restoration through undo/redo, and redo preservation after
+failed validation. `LogicManagerTest` covers sorted deletion, history, and saving failures;
+`MainWindowTest` covers selection updates after deletion.
+The [manual delete tests](#deleting-contacts-with-delete) provide reproducible acceptance cases.
+
+#### Clearing all contacts: `clear`
+
+**Overview**
+
+Removes every stored contact, including contacts hidden by a filter. See the [UG clear entry](UserGuide.md#clearing-all-contacts-clear).
+
+**Relevant classes and data**
+
+`ClearCommandParser` records whether extra arguments were supplied. `ClearCommand` replaces the model data with an empty `AddressBook`.
+
+**Parsing and validation**
+
+Extra non-blank text is recorded rather than rejected; it does not limit the deletion scope.
+
+**Execution and failure handling**
+
+If the underlying book is empty, return empty-book feedback without committing. Otherwise call `Model#setAddressBook(new AddressBook())`, commit once, and return success feedback with an ignored-arguments warning when needed. The view becomes empty and selection clears. A failed save rolls back the committed clear through the shared persistence path.
+
+**Design considerations**
+
+Check the underlying book rather than the displayed list so a filter never changes the scope of clearing. Treat an already-empty book as a no-op that preserves redo history.
+
+**Testing references**
+
+`ClearCommandParserTest`, `ClearCommandTest`, `UndoRedoIntegrationTest`, and `LogicManagerTest` cover extra arguments, empty-book behaviour, history, and rollback.
+
+### Browse contacts
+
+#### Listing all contacts: `list`
+
+**Overview**
+
+Restores the full displayed contact list. See the [UG list entry](UserGuide.md#listing-all-contacts-list).
+
+**Relevant classes and data**
+
+`ListCommandParser` records extra arguments; `ListCommand` changes the predicate through `Model#updateFilteredPersonList()`.
+
+**Parsing and validation**
+
+Whitespace-only arguments are treated as absent. Other extra text is accepted and produces a warning.
+
+**Execution and failure handling**
+
+Apply `PREDICATE_SHOW_ALL_PERSONS`, retain the sort comparator, and return normal or empty-book feedback based on the underlying contact count. Contact data and snapshot history are unchanged. `LogicManager` still attempts to save the current contact book after successful execution.
+
+**Design considerations**
+
+Reuse the filtered/sorted view pipeline rather than creating a separate list. See [Displayed contact views](#displayed-contact-views).
+
+**Testing references**
+
+`ListCommandParserTest`, `ListCommandTest`, and `LogicManagerTest` cover extra arguments, filtered views, empty books, and sorting preservation.
+
+#### Locating contacts: `find`
+
+**Overview**
+
+<a id="finding-contacts"></a>
 
 `find` filters the displayed contacts using either prefixed name, role, and tag phrases
 or quick name search keywords. The [User Guide](UserGuide.md#locating-contacts-find)
 describes both command formats and their user-facing behaviour.
 
-#### Parsing and validation
+**Relevant classes and data**
+
+`FindCommandParser` constructs field-specific `Predicate<Person>` objects. `FindCommand` combines them and delegates view changes to the model; `Messages` formats the result count.
+
+**Parsing and validation**
+
+<a id="parsing-and-validation"></a>
 
 `AddressBookParser#parseCommand()` delegates the arguments to `FindCommandParser#parse()`.
 It uses the shared parser classes shown in the [Logic component](#logic-component) and
@@ -312,7 +601,9 @@ Invalid input raises a `ParseException` with a specific reason before a command 
 so the current filter and contact data are preserved. Prefix recognition follows the
 shared syntax described under [Name, role, and tag formatting](#name-role-and-tag-formatting).
 
-#### Predicate composition and execution
+**Execution and failure handling**
+
+<a id="predicate-composition-and-execution"></a>
 
 `NameContainsKeywordsPredicate`, `RoleContainsKeywordsPredicate`, and
 `TagContainsKeywordsPredicate` implement `Predicate<Person>`. They apply `StringUtil.normalizeCase()`
@@ -356,7 +647,9 @@ a separate role predicate. Quick name search follows the same execution flow, us
 <!-- Render diagrams/FindSequenceDiagram.puml to images/FindSequenceDiagram.png. -->
 ![Find command sequence diagram](images/FindSequenceDiagram.png)
 
-#### Design considerations
+**Design considerations**
+
+<a id="design-considerations-1"></a>
 
 * **Separate field predicates:** Keeping OR matching inside each predicate and AND matching
   in `FindCommand` allows alternatives within a field while narrowing across fields. Both
@@ -365,7 +658,9 @@ a separate role predicate. Quick name search follows the same execution flow, us
   validation. This allows useful substrings, including partial phrases containing punctuation,
   while the parser still enforces command syntax and nonblank values.
 
-#### Test coverage
+**Testing references**
+
+<a id="test-coverage"></a>
 
 `FindCommandParserTest` covers both formats, multiword phrases, repeated prefixes and spaces,
 and the missing-criteria, blank-value, mixed-format, and unsupported-prefix errors.
@@ -375,305 +670,25 @@ matching. `FindCommandTest` checks combined predicates and overlapping matches.
 restoring all contacts with `list`, and preserving sorting across searches.
 The [manual find tests](#finding-contacts-with-find) provide a reproducible dataset and
 expected results for these user-visible behaviours.
-### Deleting a contact
 
-`delete` removes one contact identified by its position in the current displayed list.
-The [User Guide](UserGuide.md#deleting-a-contact-delete) describes its syntax and user-facing behaviour.
-The [sequence diagram in the Logic component](#logic-component) shows the successful execution path.
+#### Sorting all contacts: `sort`
 
-#### Parsing and validation
+**Overview**
 
-`AddressBookParser` delegates the arguments to `DeleteCommandParser#parse()`, which:
-
-1. Trims the arguments and rejects empty input with `INDEX is required.`
-2. Splits the trimmed input on whitespace and rejects multiple arguments with
-   `delete accepts only one INDEX.`
-3. Calls `ParserUtil#parseIndex()` to obtain an `Index`. The helper accepts integers from
-   1 to `Integer.MAX_VALUE` and rejects zero, negative, nonnumeric, and overflowing values
-   with `INDEX must be a whole number between 1 and 2147483647.`
-
-These failures raise `ParseException` before execution. Parsing checks the numeric format
-and supported range; whether the index refers to a displayed contact is checked by the command.
-
-#### Execution and model integration
-
-`DeleteCommand#execute()`:
-
-1. Retrieves `Model#getFilteredPersonList()`, which exposes the filtered and sorted displayed view.
-2. Rejects an empty displayed list with `No contacts are currently displayed.`
-3. Rejects an index beyond the displayed list using `Messages#getIndexOutOfRangeMessage()`.
-   The feedback names the valid range, or the sole valid index when one contact is displayed.
-4. Resolves the `Person` at the index, calls `Model#deletePerson()`, then calls
-   `Model#commitAddressBook()` once to record the deletion.
-5. Returns a `CommandResult` containing `Deleted contact: ...`, using `Messages#format()`
-   to include the deleted contact's details and any follow-up.
-
-The empty-list and out-of-range checks raise `CommandException`. All argument and index
-validation failures preserve contact data, the displayed view, and undo/redo history.
-
-The command removes the selected `Person` from the underlying contact list. It does not
-reset the filter or comparator, so the remaining displayed contacts retain the active
-search criteria and sort order. Displayed indices are recalculated automatically.
-Deleting the contact currently selected in the UI clears its details; deleting another
-contact preserves the selection, as described under [Contact details and selection](#contact-details-and-selection).
-
-#### Persistence, history, and design considerations
-
-`LogicManager` saves the underlying address book after successful execution. If saving
-fails, it rolls back the committed deletion, restores the contact data, and reports a
-saving error. The restored view shows all contacts. The shared
-[persistence and failure handling](#persistence-and-failures) section describes this mechanism.
-
-* **Resolve against the displayed view:** Using the same view as the UI ensures that
-  filtered and sorted indices identify the contact the user sees, rather than its stored position.
-* **Commit after validation:** Rejected requests create no history entry. A successful deletion
-  creates one undoable change and discards any remaining redo history. Undo restores the entire
-  contact, including its follow-up; redo removes it again. Both operations show all contacts
-  while retaining the active sort order.
-
-#### Test coverage
-
-`DeleteCommandParserTest` covers missing, extra, and invalid arguments. `ParserUtilTest`
-checks numeric boundaries and overflow. `DeleteCommandTest` covers empty and filtered lists,
-out-of-range indices, follow-up restoration through undo/redo, and redo preservation after
-failed validation. `LogicManagerTest` covers sorted deletion, history, and saving failures;
-`MainWindowTest` covers selection updates after deletion.
-The [manual delete tests](#deleting-contacts-with-delete) provide reproducible acceptance cases.
-
-### Selecting contacts with `select INDEX`
-
-`AddressBookParser` dispatches `select` to `SelectCommandParser`, which accepts exactly one positive integer using
-`ParserUtil.parseIndex()`. `SelectCommand#execute()` resolves the index against `Model#getFilteredPersonList()`, the
-current filtered and sorted view. It returns feedback and the exact `Person` reference without modifying data,
-filter predicates, comparators, or history. The command does not call `commitAddressBook()`.
-
-`CommandResult#getSelectedPerson()` carries an optional explicit selection request. Existing constructors default to
-no request; `CommandResult(String, Person)` retains the exact immutable contact reference. Equality, hashing, and the
-string representation include the request. `LogicManager` forwards it into `CommandSelectionChange` before saving.
-Each command attempt resets this information before parsing. Selection precedence is:
-
-1. Successful undo/redo resets clear selection.
-2. An explicit selection request chooses its target, even when there was no previous selection.
-3. Otherwise, retain the previous contact or its recorded replacement when it remains visible.
-
-`MainWindow` applies the result through its existing `finally` block and `PersonListPanel#endCommand(Person)`.
-The panel resolves the current index by object identity, updates the highlight, and scrolls to the contact without
-moving focus out of command input. It resolves pending styling/layout and completes any required scroll after the
-scene's layout pass so freshly added rows are positioned correctly. Repeated selection of the same object retains
-the details panel's reading position.
-There are no new Model or Storage fields and no selection data is persisted.
-
-The existing automatic saving flow still runs after selection. Because the explicit request is recorded before
-saving, a storage exception does not discard a valid selection. Rejected parsing or index validation leaves no
-new request, so the UI preserves the previous selection. `help select` returns usage with no selection request;
-it neither executes a selection nor opens the full Help window.
-
-Condition | Handling
-----------|---------
-Missing index | `ParseException` with `SelectCommand.MESSAGE_INDEX_REQUIRED`.
-Extra arguments | `ParseException` with `SelectCommand.MESSAGE_EXTRA_ARGUMENTS`.
-Malformed, non-positive, or overflowing integer | `ParseException` with `ParserUtil.MESSAGE_INVALID_INDEX`.
-Empty displayed list | `CommandException` with `SelectCommand.MESSAGE_NO_CONTACTS_TO_SELECT`.
-Index outside the current view | `CommandException` with the range message, or the single-valid-index variant.
-
-Tests cover the command through the real parser, logic, storage, and JavaFX UI pipeline:
-
-* `SelectCommandParserTest` and `AddressBookParserTest`: argument validation, integer boundaries, and dispatch.
-* `SelectCommandTest`: exact targets, filtered/sorted indexes, unchanged model state, and invalid displayed indexes.
-* `CommandResultTest` and `CommandSelectionChangeTest`: request defaults, value methods, identity, and reset precedence.
-* `LogicManagerTest`: request forwarding/reset, unchanged saved contact JSON, undo/redo preservation, and storage failures.
-  A package-private parser-injection constructor also supports isolated command-result tests.
-* `MainWindowTest`: focus, duplicate names, invalid-input recovery, empty results, edits/deletion after selection,
-  saving errors, off-screen and newly added rows, and repeated selection retaining the details scroll position.
-  Visibility checks wait for the real viewport row rather than a fixed number of frames, without issuing extra scrolls.
-  Regression tests cover dropped index-scroll events, stale endpoint offsets, transient visibility, and cancellation
-  after another command, selection, or manual scroll. Failures report the target/selected indexes and visible row bounds.
-* `HelpCommandTest` and `HelpWindowTest`: targeted usage, supported-command guidance, browse-category placement,
-  formatting, and absence of a selection side effect.
-
-The existing generic command/parser class diagrams cover `SelectCommand` without additional class boxes.
-
-### Command-specific help
-
-`AddressBookParser` parses the optional command name after `help` and creates a `HelpCommand`. Bare `help` opens the full help window, while `help COMMAND` displays usage for a supported command in the result area.
-
-![Help command activity diagram](images/HelpActivityDiagram.png)
-
-* Bare `help` returns opening feedback in a `CommandResult` with `showHelp` set to `true`.
-* For a supported target, `HelpCommand` retrieves the command's `COMMAND_USAGE` from `COMMAND_USAGE_BY_NAME` and returns it as feedback with `showHelp` set to `false`.
-* An unsupported target returns guidance with `showHelp` set to `false`. The supported command names in the guidance are derived from the same map.
-
-`MainWindow` displays the feedback in `ResultDisplay` and opens or focuses `HelpWindow` only when `showHelp` is `true`. The activity diagram assumes at most one command target; input with multiple target words is rejected during parsing, and the parser error is displayed in the result area.
-
-#### Help text conventions
-
-Each user command defines its help text in the command class. `COMMAND_USAGE` is the shared source for both command-specific help and the full help window. `HelpWindow.formatCommandUsage` converts the command name into an uppercase heading while preserving the rest of the usage text.
-
-* Use `COMMAND_WORD`, `COMMAND_DESCRIPTION`, and `COMMAND_USAGE` for help content.
-* Commands without parameters define `COMMAND_USAGE` as `COMMAND_WORD + ": " + COMMAND_DESCRIPTION`. Do not add parameter or example fields for these commands.
-* Most commands with required or optional parameters define `COMMAND_PARAMETERS` and `COMMAND_EXAMPLE`.
-  Their `COMMAND_USAGE` combines the description with `Parameters:` and `Example:` lines. Commands
-  with optional arguments, such as `help`, `sort`, and `followups`, follow this format even though
-  they can run without arguments. `find` instead uses `COMMAND_FORMATS` and `COMMAND_EXAMPLES`
-  with separate `Formats:` and `Examples:` blocks to distinguish prefixed search from quick name search.
-* Use the `MESSAGE_` prefix for result feedback and errors, such as `MESSAGE_SUCCESS` and `MESSAGE_FAILURE`. Parsers that include usage instructions in an error should reference `COMMAND_USAGE` rather than duplicate its text.
-
-#### Help window categories
-
-`HelpWindow.HELP_MESSAGE` groups commands by user task:
-
-| Category | Commands |
-| --- | --- |
-| Manage contacts | `add`, `edit`, `delete`, `clear`, `followup` |
-| Browse contacts | `list`, `find`, `sort`, `select`, `followups` |
-| Undo and redo | `undo`, `redo` |
-| Application | `help`, `exit` |
-
-`select` belongs under Browse contacts because it changes only the displayed selection. `followup` belongs under Manage contacts because it changes contact data. `followups` belongs under Browse contacts because it filters the displayed contacts without modifying their data.
-
-When adding a user command, define its help constants, register its `COMMAND_USAGE` in `HelpCommand.COMMAND_USAGE_BY_NAME`, and add it to the appropriate category in `HelpWindow.HELP_MESSAGE`. Update `HelpCommandTest` and `HelpWindowTest` to cover targeted help, category placement, and formatting. Update parser tests when usage text changes, and keep the User Guide's command list, categories, and help screenshot consistent with the implementation.
-
-### Adding and deleting contact tags
-
-The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_ADD]... [dt/TAG_TO_DELETE]...`, alongside the existing contact fields. Additions preserve existing tags, and deletions remove only explicitly named tags. Parsing and command-validation failures leave all contact details and the displayed view unchanged. A successful edit displays all contacts;
-if its subsequent save fails, contact data is rolled back and the restored view also displays all contacts, as described under [Persistence and failures](#persistence-and-failures).
-
-#### Parsing and descriptor
-
-`CliSyntax` defines `PREFIX_TAG` (`t/`) and `PREFIX_DELETE_TAG` (`dt/`). `EditCommandParser` recognizes both prefixes and permits repeated occurrences of each.
-
-`EditCommand.EditPersonDescriptor` stores `tagsToAdd` and `tagsToDelete` separately. Each setter makes a defensive copy, and each getter returns an `Optional<Set<Tag>>` containing an unmodifiable set. An absent optional means that operation was not supplied. Both sets participate in the copy constructor, `isAnyFieldEdited()`, `equals()`, and `toString()`.
-
-Before tokenizing the arguments, `EditCommandParser` calls
-`ArgumentTokenizer#verifyNoUnrecognizedPrefixes()` with all supported edit
-prefixes (`n/`, `p/`, `e/`, `a/`, `r/`, `t/`, and `dt/`). This prevents unknown
-prefixes from being silently ignored.
-
-After parsing the index and other contact fields, `EditCommandParser`:
-
-1. Parses additions, then deletions, using `parseTagsForEdit()`. An absent prefix produces an empty optional. A supplied blank tag is rejected, including bare `t/` and `dt/`; neither clears all tags.
-2. Uses `ParserUtil.parseTags()` to validate tag names and construct sets. `Tag` collapses repeated ordinary spaces, and its equality and hash code support case-insensitive comparison and deduplication.
-3. Rejects any tag present in both sets. If several tags conflict, the first tag alphabetically, ignoring case, is reported using the spelling from the additions set.
-4. Rejects a command with no fields or tag operations, or returns an `EditCommand` containing a copy of the descriptor.
-
-Invalid tag values are rejected before add/delete conflicts. Missing deletions require the selected contact's current data and are checked during execution.
-
-#### Execution and validation
-
-`EditCommand#execute()` resolves the index against the currently displayed list. `createEditedPerson()` checks every requested deletion against the original contact's tags before constructing the edited contact. If any requested tag is absent, it throws a `CommandException`; if several are absent, the first alphabetically, ignoring case, is reported.
-
-For valid deletions, `createEditedPerson()` copies the original tag set into a new `HashSet`, removes `tagsToDelete`, adds `tagsToAdd`, and constructs a new `Person` using the supplied or existing contact details. Adding an existing tag succeeds without creating a duplicate. Removing every tag requires explicitly listing every tag for deletion.
-
-`execute()` then performs the existing duplicate phone and email checks. Only after all validation succeeds does it call `Model#setPerson()` and reset the displayed list with `PREDICATE_SHOW_ALL_PERSONS`. A validation failure therefore changes neither the original contact nor the displayed list, including when a command combines valid deletions, a missing deletion, additions, and other field edits.
-
-Condition | Error constant | Exception
---------|------------------|----------
-Blank value after `t/` or `dt/` | `EditCommand.MESSAGE_EMPTY_TAG` | `ParseException`
-Invalid tag name | `Tag.MESSAGE_CONSTRAINTS` | `ParseException`
-Same tag in both operations | `EditCommand.MESSAGE_TAG_CONFLICT` | `ParseException`
-Requested deletion absent from the selected contact | `EditCommand.MESSAGE_TAG_NOT_FOUND` | `CommandException`
-
-#### Test coverage
-
-* `EditPersonDescriptorTest` covers independent tag operations, defensive copying, unmodifiable getters, equality, and string output.
-* `EditCommandParserTest` covers recognised and unrecognised prefixes, repeated and empty values, invalid names, case-insensitive conflicts, and validation order.
-* `EditCommandTest` covers additions, selective deletions, combined operations, filtered lists, existing tags, missing deletions, and preservation of the full model on failure. It also parses command text through `AddressBookParser` before execution to cover the acceptance examples and failure cases.
-* `AddressBookParserTest` checks that an edit containing both operations is routed to the edit parser.
-
-
-### Contact follow-up management
-
-Each `Person` owns an `Optional<FollowUp>`. A contact can have zero or one follow-up.
-
-#### Model and persistence
-`FollowUp` stores an immutable `LocalDate` due date and description. Both fields are mandatory when a follow-up exists.
-* Due dates accept past values and restrict years to `0000`–`9999`.
-* Descriptions use `strip()` and `StringUtil.isValidText()` with the [shared text rules](#contact-text-validation-formatting-and-searching), preserving capitalisation and internal spacing. The limit is 200 UTF-16 code units (`String.length()`) after slash decoding and trimming.
-* Equality and hashing include both fields, with case-sensitive description comparison.
-  `FollowUp` has no back-reference to `Person`. The owning contact establishes the association, so changing contact details does not require updating a separate contact identifier.
-
-`Person.equals()` and `hashCode()` include the optional follow-up. `isSamePerson()` retains its existing phone/email identity rules. Contact edits preserve the follow-up, while deleting a contact removes it.
-
-`JsonAdaptedFollowUp` converts the nested JSON representation to and from the model. `JsonAdaptedPerson` treats missing or null follow-ups as absent, preserving compatibility with older files. A present follow-up with missing or invalid fields is rejected through the existing invalid-data handling mechanism.
-
-#### Setting and clearing follow-ups
-`AddressBookParser` routes `followup` to `FollowUpCommandParser`, which returns one of two commands:
-* `SetFollowUpCommand` creates or replaces a follow-up using a displayed contact index, due date, and description.
-* `ClearFollowUpCommand` removes the selected contact's follow-up and rejects contacts without one.
-
-The abstract `FollowUpCommand` holds the shared command word and usage message.
-
-The parser uses the existing tokenizer and prefix-validation utilities. Both set fields are mandatory, duplicate and unknown prefixes are rejected, and clear syntax cannot be combined with set parameters. `ParserUtil.parseFollowUpDate()` enforces the exact four-digit-year format and rejects impossible calendar dates.
-
-Each modifying command resolves the index against the currently displayed list, constructs a replacement `Person`, calls `Model#setPerson()`, and commits once to undo history. Other contact fields and the current filter are preserved. Failed validation does not modify data or history. Automatic persistence uses the existing logic/storage flow.
-
-The sequence diagram below illustrates how a `followup` command travels through `Logic` and `Model` components when a user executes `followup 1 by/2026-11-01 abt/Confirm quotation`:
-
-![FollowUpSequenceDiagram](images/FollowUpSequenceDiagram.png)
-
-How the command parsing and execution works:
-
-1. `LogicManager#execute()` calls `AddressBookParser#parseCommand()`.
-2. `AddressBookParser` instantiates a `FollowUpCommandParser` and invokes its `parse()` method.
-3. `FollowUpCommandParser` performs validation:
-   * `ArgumentTokenizer#verifyNoUnrecognizedPrefixes()` ensures no unrecognized prefixes are supplied.
-   * `ArgumentMultimap#verifyNoMissingPrefixesFor()` verifies that both `by/` and `abt/` prefixes are present.
-   * `ArgumentMultimap#verifyNoDuplicatePrefixesFor()` rejects repeated prefixes.
-   * `ParserUtil#parseIndex()` parses the target contact index.
-   * `ParserUtil#parseFollowUpDate()` parses the due date into a `LocalDate`.
-   * `ParserUtil#unescapeSlashes()` and `FollowUp#isValidDescription()` validate the description string.
-4. A `SetFollowUpCommand` object (labeled `f`) containing the parsed index and new `FollowUp` is returned. The parser is no longer needed after parsing; the destroy marker (`X`) marks its role ending in the illustrated interaction rather than a guaranteed Java garbage-collection event.
-5. `LogicManager` executes `SetFollowUpCommand#execute(Model)`:
-   * The command retrieves `personToUpdate` from the filtered list using the zero-based index.
-   * `createPersonWithFollowUp()` constructs a replacement `Person` entity `updatedPerson` containing the new `FollowUp`.
-   * `Model#setPerson(personToUpdate, updatedPerson)` updates the contact in the address book.
-   * `Model#commitAddressBook()` saves the state to history for undo/redo support.
-6. A `CommandResult` object (labeled `r`) containing the success feedback is created and returned to `LogicManager`.
-
-#### Querying follow-ups
-`FollowUpsCommandParser` supports an empty query, `overdue`, or a single `by/` date cutoff. These map to the `all()`, `overdue()`, and `dueBy()` factories of `FollowUpsCommand`.
-The command replaces the model's current contact predicate, searching the entire address book:
-
-* `ALL` accepts contacts with a follow-up.
-* `OVERDUE` accepts follow-ups due strictly before today.
-* `BY_DATE` accepts follow-ups due on or before the cutoff.
-
-The overdue query uses an injectable `Clock`. Today's date is captured when the command executes and remains fixed in the predicate until the query is rerun.
-Results retain the comparator on the model's wrapping `SortedList<Person>`; without a comparator they follow insertion order.
-Queries replace the filter over the complete contact list, so an earlier search does not restrict their input.
-
-Queries do not commit snapshots or alter contact data. An empty result displays `No follow-ups found.`
-
-#### UI integration
-`PersonDetailsPanel` populates the follow-up date and description defined in `PersonDetailsPanel.fxml` when a contact
-is selected. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
-The compact `PersonCard` shows only a `Follow-up`, `Due today`, or `Overdue` badge beside the role when a follow-up is
-present, leaving its date and description in the details panel. Replacement contacts rebuild the card through the
-existing list-cell factory, so setting, replacing, clearing, undoing, or redoing a follow-up refreshes the badge without
-new model state. The shared `UiDateTracker` exposes a `ReadOnlyObjectProperty<LocalDate>` to the cards and details panel on the JavaFX application thread.
-It checks the injected clock once per minute while the window is shown and immediately when the window is shown or regains focus.
-It notifies observers only when the date changes. These presentation updates preserve the command draft, selection, and scroll positions;
-they do not mutate contacts, commit history, or trigger a save. The `followups overdue` query keeps its separately captured date;
-rerun it to update result membership.
-
-The command selection handling described under contact details and selection tracks replacement contacts and refreshes
-the details panel after follow-up changes. A contact that no longer matches a follow-up filter clears selection.
-
-#### Test coverage
-
-* Model tests cover validation, normalization, equality, and contact identity.
-* Storage tests cover JSON round trips, older records, and malformed nested follow-ups.
-* Command tests cover creation, replacement, removal, filtered indexes, failure preservation, and undo/redo.
-* Query tests use fixed clocks to verify date boundaries, time zones, filtering, and history preservation.
-* Parser tests cover supported forms, invalid arguments, shared date parsing, and command routing.
-
-
-### Sorting contacts
+<a id="sorting-contacts"></a>
 
 The sort feature changes the displayed contact order without rearranging the address book's underlying contact list.
 It supports case-insensitive, ascending ordering by name, role, or both, with field order determining priority.
 
-#### Parsing and validation
+See the [UG sort entry](UserGuide.md#sorting-all-contacts-sort), including `sort clear`.
+
+**Relevant classes and data**
+
+`SortCommandParser` selects an ordered list of `SortField` values or the clearing mode. `SortCommand` builds comparators and changes the model view; [Displayed contact views](#displayed-contact-views) describes the source relationships.
+
+**Parsing and validation**
+
+<a id="parsing-and-validation-2"></a>
 
 `AddressBookParser` delegates sort arguments to `SortCommandParser`. Empty or
 whitespace-only arguments default to `SortField.NAME`. Otherwise, the parser
@@ -685,7 +700,11 @@ unsupported tokens, and combinations such as `clear n/` produce specific
 `SortCommand` independently requires one or two distinct, non-null fields and makes an immutable defensive copy of
 the supplied list. This preserves field priority even if the caller later modifies its original list.
 
-#### Comparator construction and execution
+**Execution and failure handling**
+
+For field-based sorting, the following comparator path applies.
+
+<a id="comparator-construction-and-execution"></a>
 
 `SortCommand#execute()`:
 
@@ -702,37 +721,11 @@ trigger this feedback if the underlying address book contains contacts.
 Executing another sort command replaces the previous comparator rather than
 adding to the previous sorting criteria.
 
-#### Model integration, persistence, and history
+`sort clear` takes an earlier branch: it clears the filter, sets the comparator to `null`, and returns clearing feedback. Both modes show all contacts and retain stored insertion order. Sorting is a view change and creates no snapshot; the comparator is not persisted.
 
-`ModelManager` constructs `filteredPersons` from the address book's observable contact list, then constructs
-`sortedPersons` from `filteredPersons`. `updateFilteredPersonList()` changes the predicate on the filtered view;
-`updateSortedPersonList()` changes the comparator on the sorted view. Neither operation rearranges stored contacts.
-With no comparator, the sorted view follows its source order.
+**Design considerations**
 
-`sort clear` takes a separate branch before comparator construction. It first resets the filter to `PREDICATE_SHOW_ALL_PERSONS`,
-then calls `updateSortedPersonList(null)` and returns clearing feedback. A `SortedList` without a comparator follows its source order,
-so this displays all contacts in insertion order without rearranging stored data.
-
-![Partial class diagram of the model's filtered and sorted contact views](images/SortModelClassDiagram.png)
-
-The partial class diagram shows each view's source relationship. The sorted view supplies displayed order;
-the underlying contact list retains its source order for persistence. Unrelated model classes and list inheritance
-relationships are omitted for clarity.
-
-`getFilteredPersonList()` retains its existing API name but returns `sortedPersons`. The UI and commands such as
-`EditCommand` and `DeleteCommand` therefore resolve displayed indices against the same list. Changes to the source
-contacts propagate through both views, including repositioning a contact when an edit changes its sort keys.
-`ModelManager#equals()` also compares the displayed lists so models with different visible ordering are distinguished.
-
-After successful execution, `LogicManager` saves `model.getAddressBook()`, not the displayed view. The comparator is
-not serialized, so sorting does not change saved contact order and is reset on restart.
-
-Sort and `sort clear` do not call `commitAddressBook()`, so neither creates an
-undo snapshot or discards redo history. Undo and redo restore contact data and
-retain the active sort order unless the user explicitly runs `sort clear`.
-Subsequent find and list commands retain the selected sort order.
-
-#### Design considerations
+<a id="design-considerations-2"></a>
 
 **Aspect: Sorting a displayed view rather than the stored list**
 
@@ -746,7 +739,9 @@ Subsequent find and list commands retain the selected sort order.
 Sort explicitly resets the filter so it provides a way to browse the complete address book in a chosen order.
 Filtering remains independent: users can run find afterwards to narrow the sorted view without losing its comparator.
 
-#### Test coverage
+**Testing references**
+
+<a id="test-coverage-4"></a>
 
 * `SortCommandParserTest` covers default sorting, field priority, whitespace,
   `clear`, invalid arguments, and invalid combinations of `clear` with sorting
@@ -761,10 +756,113 @@ Filtering remains independent: users can run find afterwards to narrow the sorte
 * `LogicManagerTest` exercises complete command sequences involving displayed indices, filtering, editing,
   deletion, undo/redo, invalid sorts, equal-key contact identities, and preservation of saved contact order.
 
+#### Selecting a contact: `select`
 
-### Undo/redo feature
+**Overview**
 
-#### Implementation
+<a id="selecting-contacts-with-select-index"></a>
+
+Selects a contact by its displayed index and requests its full details. See the [UG select entry](UserGuide.md#selecting-a-contact-select).
+
+**Relevant classes and data**
+
+`SelectCommandParser` constructs an indexed `SelectCommand`. The command resolves the chosen immutable `Person` and returns its exact reference in `CommandResult`. The [shared reconciliation mechanism](#contact-selection-reconciliation) applies the request through `LogicManager` and the UI.
+
+**Parsing and validation**
+
+`AddressBookParser` dispatches `select` to `SelectCommandParser`, which accepts exactly one positive integer using
+`ParserUtil.parseIndex()`. Whether that index exists in the current view is checked during execution.
+
+Condition | Handling
+----------|---------
+Missing index | `ParseException` with `SelectCommand.MESSAGE_INDEX_REQUIRED`.
+Extra arguments | `ParseException` with `SelectCommand.MESSAGE_EXTRA_ARGUMENTS`.
+Malformed, non-positive, or overflowing integer | `ParseException` with `ParserUtil.MESSAGE_INVALID_INDEX`.
+Empty displayed list | `CommandException` with `SelectCommand.MESSAGE_NO_CONTACTS_TO_SELECT`.
+Index outside the current view | `CommandException` with the range message, or the single-valid-index variant.
+
+**Execution and failure handling**
+
+`SelectCommand#execute()` resolves the index against the current filtered and sorted `Model#getFilteredPersonList()`.
+It returns feedback and the exact contact reference without changing data, filter predicates, comparators, or history.
+It does not call `commitAddressBook()`.
+
+The existing automatic saving flow still runs after selection. Because the explicit request is recorded before
+saving, a storage exception does not discard a valid selection. Rejected parsing or index validation leaves no
+new request, so the UI preserves the previous selection. `help select` returns usage with no selection request;
+it neither executes a selection nor opens the full Help window.
+
+An explicit request highlights and reveals the target while keeping command-input focus. Repeated selection of the same object retains the details panel reading position.
+
+**Design considerations**
+
+Use the existing command-result and selection pipeline rather than storing selected state in the model or saved JSON. Object identity allows two contacts with equal names to remain distinct and supports replacement tracking when editable identity fields change.
+
+**Testing references**
+
+Tests cover the command through the real parser, logic, storage, and JavaFX UI pipeline:
+
+* `SelectCommandParserTest` and `AddressBookParserTest`: argument validation, integer boundaries, and dispatch.
+* `SelectCommandTest`: exact targets, filtered/sorted indexes, unchanged model state, and invalid displayed indexes.
+* `CommandResultTest` and `CommandSelectionChangeTest`: request defaults, value methods, identity, and reset precedence.
+* `LogicManagerTest`: request forwarding/reset, unchanged saved contact JSON, undo/redo preservation, and storage failures.
+  A package-private parser-injection constructor also supports isolated command-result tests.
+* `MainWindowTest`: focus, duplicate names, invalid-input recovery, empty results, edits/deletion after selection,
+  saving errors, off-screen and newly added rows, and repeated selection retaining the details scroll position.
+  Visibility checks wait for the real viewport row rather than a fixed number of frames, without issuing extra scrolls.
+  Regression tests cover dropped index-scroll events, stale endpoint offsets, transient visibility, and cancellation
+  after another command, selection, or manual scroll. Failures report the target/selected indexes and visible row bounds.
+* `HelpCommandTest` and `HelpWindowTest`: targeted usage, supported-command guidance, browse-category placement,
+  formatting, and absence of a selection side effect.
+
+#### Viewing contacts with follow-ups: `followups`
+
+**Overview**
+
+Queries contacts with pending follow-ups without changing their data. See the [UG followups entry](UserGuide.md#viewing-contacts-with-follow-ups-followups).
+
+**Relevant classes and data**
+
+`FollowUpsCommandParser` creates a `FollowUpsCommand` through its `all()`, `overdue()`, or `dueBy()` factory. The command owns its mode, optional cutoff, and injectable `Clock`; it reads the optional `FollowUp` on each contact.
+
+**Parsing and validation**
+
+Accept no arguments, the standalone `overdue` keyword, or one `by/` cutoff. Modes cannot be combined. The parser rejects extra tokens, repeated or unsupported prefixes, and invalid dates.
+
+**Execution and failure handling**
+
+<a id="querying-follow-ups"></a>
+
+`FollowUpsCommandParser` supports an empty query, `overdue`, or a single `by/` date cutoff. These map to the `all()`, `overdue()`, and `dueBy()` factories of `FollowUpsCommand`.
+The command replaces the model's current contact predicate, searching the entire address book:
+
+* `ALL` accepts contacts with a follow-up.
+* `OVERDUE` accepts follow-ups due strictly before today.
+* `BY_DATE` accepts follow-ups due on or before the cutoff.
+
+The overdue query uses an injectable `Clock`. Today's date is captured when the command executes and remains fixed in the predicate until the query is rerun.
+Results retain the comparator on the model's wrapping `SortedList<Person>`; without a comparator they follow insertion order.
+Queries replace the filter over the complete contact list, so an earlier search does not restrict their input.
+
+Queries do not commit snapshots or alter contact data. An empty result displays `No follow-ups found.`
+
+**Design considerations**
+
+Capture today once when executing an overdue query so membership uses one date throughout that query. UI badge refresh has a separate lifetime and does not silently rerun the filter. Replacing only the predicate preserves sorting and avoids creating undo snapshots.
+
+**Testing references**
+
+`FollowUpsCommandParserTest` checks modes and invalid input; `FollowUpsCommandTest` uses fixed clocks for date boundaries, zones, filtering, and history preservation. See the [manual follow-up tests](#managing-and-viewing-follow-ups).
+
+### Undo and redo
+
+**Shared snapshot mechanism**
+
+<a id="undoredo-feature"></a>
+
+**Relevant classes and data**
+
+<a id="implementation-1"></a>
 
 The implemented undo/redo mechanism is facilitated by `VersionedAddressBook`. It extends `AddressBook` with an undo/redo history, stored internally as an `addressBookStateList` and `currentStatePointer`. Additionally, it implements the following operations:
 
@@ -846,6 +944,269 @@ The following activity diagram summarizes what happens when a user executes a ne
 
 <img src="images/CommitActivityDiagram.png" width="250" />
 
+**Design considerations**
+
+<a id="design-considerations-3"></a>
+
+**Aspect: How undo & redo execute:**
+
+* **Alternative 1 (current choice):** Saves the entire address book.
+  * Pros: Easy to implement.
+  * Cons: May have performance issues in terms of memory usage.
+
+* **Alternative 2:** Individual command knows how to undo/redo by
+  itself.
+  * Pros: Will use less memory (e.g. for `delete`, just save the person being deleted).
+  * Cons: We must ensure that the implementation of each individual command is correct.
+
+#### Undoing a change: `undo`
+
+**Overview**
+
+Restores the previous contact-data snapshot. See the [UG undo entry](UserGuide.md#undoing-a-change-undo).
+
+**Relevant classes and data**
+
+`UndoCommandParser` and `UndoCommand` use `Model#canUndoAddressBook()` and `Model#undoAddressBook()`. The snapshot mechanism described above owns the history list and pointer.
+
+**Parsing and validation**
+
+The parser accepts empty or whitespace-only arguments and rejects extra text. The command reports `No more commands to undo!` if no earlier snapshot exists.
+
+**Execution and failure handling**
+
+`ModelManager` delegates to `VersionedAddressBook#undo()`, then displays all contacts without changing the comparator. Successful execution clears selection. `LogicManager` saves the restored data; a failed save leaves the undo and history-pointer movement in memory. See [Persistence and failures](#persistence-and-failures).
+
+**Design considerations**
+
+Restore snapshots rather than re-executing inverse commands. Each undo is one history step and does not append another snapshot.
+
+**Testing references**
+
+`UndoCommandParserTest`, `UndoCommandTest`, `VersionedAddressBookTest`, and `UndoRedoIntegrationTest` cover boundaries, restored states, and multi-step history. `LogicManagerTest` covers save failures. See the [manual undo/redo tests](#undoing-and-redoing-commands-with-undo-and-redo).
+
+#### Redoing a change: `redo`
+
+**Overview**
+
+Restores the next available snapshot after an undo. See the [UG redo entry](UserGuide.md#redoing-a-change-redo).
+
+**Relevant classes and data**
+
+`RedoCommandParser` and `RedoCommand` use `Model#canRedoAddressBook()` and `Model#redoAddressBook()` over the same history.
+
+**Parsing and validation**
+
+The parser accepts empty or whitespace-only arguments and rejects extra text. The command reports `No more commands to redo!` when no next snapshot remains.
+
+**Execution and failure handling**
+
+`VersionedAddressBook#redo()` moves the pointer forward and restores that snapshot. The model displays all contacts, preserves sorting, and the UI clears selection. A new successful commit discards the available redo branch; validation failures and view-only commands preserve it. A failed save after redo leaves its in-memory result applied.
+
+**Design considerations**
+
+Replay the recorded snapshot rather than rerunning the original command, avoiding dependence on indexes that may identify different contacts in the current view.
+
+**Testing references**
+
+`RedoCommandParserTest`, `RedoCommandTest`, `VersionedAddressBookTest`, and `UndoRedoIntegrationTest` cover availability, branch invalidation, and restored contact fields. See the [manual undo/redo tests](#undoing-and-redoing-commands-with-undo-and-redo).
+
+### Application
+
+#### Viewing help: `help`
+
+**Overview**
+
+<a id="command-specific-help"></a>
+
+Opens full help or displays command-specific usage. See the [UG help entry](UserGuide.md#viewing-help-help).
+
+**Relevant classes and data**
+
+`AddressBookParser` creates `HelpCommand`; `COMMAND_USAGE_BY_NAME` supplies targeted text. `CommandResult#isShowHelp()` controls whether `MainWindow` opens `HelpWindow`.
+
+**Parsing and validation**
+
+Optional help arguments are parsed directly in `AddressBookParser`. No target requests full help; one token becomes a target command name; multiple tokens are rejected. Unsupported single-token targets produce guidance during execution.
+
+**Execution and failure handling**
+
+`AddressBookParser` parses the optional command name after `help` and creates a `HelpCommand`. Bare `help` opens the full help window, while `help COMMAND` displays usage for a supported command in the result area.
+
+![Help command activity diagram](images/HelpActivityDiagram.png)
+
+* Bare `help` returns opening feedback in a `CommandResult` with `showHelp` set to `true`.
+* For a supported target, `HelpCommand` retrieves the command's `COMMAND_USAGE` from `COMMAND_USAGE_BY_NAME` and returns it as feedback with `showHelp` set to `false`.
+* An unsupported target returns guidance with `showHelp` set to `false`. The supported command names in the guidance are derived from the same map.
+
+`MainWindow` displays the feedback in `ResultDisplay` and opens or focuses `HelpWindow` only when `showHelp` is `true`. The activity diagram assumes at most one command target; input with multiple target words is rejected during parsing, and the parser error is displayed in the result area.
+
+**Help window categories**
+
+<a id="help-window-categories"></a>
+
+`HelpWindow.HELP_MESSAGE` groups commands by user task:
+
+| Category | Commands |
+| --- | --- |
+| Manage contacts | `add`, `edit`, `delete`, `clear`, `followup` |
+| Browse contacts | `list`, `find`, `sort`, `select`, `followups` |
+| Undo and redo | `undo`, `redo` |
+| Application | `help`, `exit` |
+
+`select` belongs under Browse contacts because it changes only the displayed selection. `followup` belongs under Manage contacts because it changes contact data. `followups` belongs under Browse contacts because it filters the displayed contacts without modifying their data.
+
+When adding a user command, define its help constants, register its `COMMAND_USAGE` in `HelpCommand.COMMAND_USAGE_BY_NAME`, and add it to the appropriate category in `HelpWindow.HELP_MESSAGE`. Update `HelpCommandTest` and `HelpWindowTest` to cover targeted help, category placement, and formatting. Update parser tests when usage text changes, and keep the User Guide's command list, categories, and help screenshot consistent with the implementation.
+
+**Design considerations**
+
+<a id="help-text-conventions"></a>
+
+Each user command defines its help text in the command class. `COMMAND_USAGE` is the shared source for both command-specific help and the full help window. `HelpWindow.formatCommandUsage` converts the command name into an uppercase heading while preserving the rest of the usage text.
+
+* Use `COMMAND_WORD`, `COMMAND_DESCRIPTION`, and `COMMAND_USAGE` for help content.
+* Commands without parameters define `COMMAND_USAGE` as `COMMAND_WORD + ": " + COMMAND_DESCRIPTION`. Do not add parameter or example fields for these commands.
+* Most commands with required or optional parameters define `COMMAND_PARAMETERS` and `COMMAND_EXAMPLE`.
+  Their `COMMAND_USAGE` combines the description with `Parameters:` and `Example:` lines. Commands
+  with optional arguments, such as `help`, `sort`, and `followups`, follow this format even though
+  they can run without arguments. `find` instead uses `COMMAND_FORMATS` and `COMMAND_EXAMPLES`
+  with separate `Formats:` and `Examples:` blocks to distinguish prefixed search from quick name search.
+* Use the `MESSAGE_` prefix for result feedback and errors, such as `MESSAGE_SUCCESS` and `MESSAGE_FAILURE`. Parsers that include usage instructions in an error should reference `COMMAND_USAGE` rather than duplicate its text.
+
+**Testing references**
+
+`HelpCommandTest` and `HelpWindowTest` cover target lookup, guidance, grouping, and formatting. `AddressBookParserTest` covers argument handling. See the [manual help tests](#viewing-contextual-help-with-help).
+
+#### Exiting the program: `exit`
+
+**Overview**
+
+Requests application shutdown after a short closing message. See the [UG exit entry](UserGuide.md#exiting-the-program-exit).
+
+**Relevant classes and data**
+
+`ExitCommandParser` creates `ExitCommand`. Its `CommandResult#isExit()` flag is consumed by `MainWindow`, while `MainApp#stop()` saves preferences.
+
+**Parsing and validation**
+
+The parser records extra non-blank arguments. The command accepts them and chooses feedback explaining that they are ignored.
+
+**Execution and failure handling**
+
+`ExitCommand` returns an exit flag without changing contacts. After the normal save step succeeds, `MainWindow` disables command input, waits one second, captures window settings, and hides the application windows. If that save fails, the result does not reach the closing handler and the application remains open. Session history is not serialized.
+
+**Design considerations**
+
+Keep command parsing and feedback separate from JavaFX window management. The result flag allows the UI to control the closing delay and preference capture.
+
+**Testing references**
+
+`ExitCommandParserTest`, `ExitCommandTest`, and the UI shutdown checks in `MainWindowTest` cover argument handling, result flags, and closing behaviour.
+
+### Shared mechanisms
+
+#### Contact text validation, formatting, and searching
+
+`Name`, `Role`, `Tag` and `Address` validate trimmed input with `StringUtil.isValidText()`, rejecting
+blank/invisible-only values, ISO controls and Unicode line/paragraph separators. Names, roles and tags
+accept Unicode, punctuation and literal backslashes.
+
+`normalizeSpaces()` strips Java whitespace and collapses ordinary U+0020 spaces for names, roles and tags.
+Addresses only strip their edges. Non-breaking spaces and formatting characters remain literal alongside
+visible text; capitalisation is preserved. Tags have a 50-unit limit after decoding and normalisation,
+measured by `String.length()` (UTF-16); names, roles and addresses have no maximum.
+
+Name/address equality is case-sensitive; role/tag/email equality uses `equalsIgnoreCase()`.
+`normalizeCase()` applies `toLowerCase(toUpperCase(...))` per code point for locale-independent searches
+and role/tag/email hashes, preserving stored spelling and accent distinctions.
+
+Prefixes are recognised before `ParserUtil.unescapeSlashes()` decodes each `\/` once. Models and JSON
+adapters never decode escapes. Phone, email and date values do not use slash decoding.
+
+`FindCommandParser.normaliseSearchPhrases()` applies `normalizeSpaces()` to prefixed queries, retaining
+substring matching, OR within fields and AND across fields. Queries have no whole-field validation or
+length limit. Simple name search retains whitespace-based keyword splitting.
+
+#### Email and phone validation
+
+`Email.VALIDATION_REGEX` uses the WHATWG HTML pattern with Java `String.matches()`; the
+[UG lists its supported syntax](UserGuide.md#supported-email-syntax). Parsing trims input and preserves
+case. Validation checks syntax only, without mailbox verification or IDN conversion.
+
+`Phone.VALIDATION_REGEX` accepts 3–20 ASCII digits, preserving leading zeroes.
+
+Contact identity is separate from full value equality: `Person#isSamePerson()` matches either the phone number or email,
+while `Person#equals()` compares all stored fields, including tags and the optional follow-up. Duplicate checks examine
+all stored contacts, including those hidden by a filter. A role is custom validated text rather than an enumeration of fixed categories.
+
+#### Follow-up urgency and details
+
+<a id="ui-integration"></a>
+
+`PersonDetailsPanel` populates the follow-up date and description defined in `PersonDetailsPanel.fxml` when a contact
+is selected. Contacts without follow-ups hide the section and set it unmanaged so it occupies no layout space.
+The compact `PersonCard` shows only a `Follow-up`, `Due today`, or `Overdue` badge beside the role when a follow-up is
+present, leaving its date and description in the details panel. Replacement contacts rebuild the card through the
+existing list-cell factory, so setting, replacing, clearing, undoing, or redoing a follow-up refreshes the badge without
+new model state. The shared `UiDateTracker` exposes a `ReadOnlyObjectProperty<LocalDate>` to the cards and details panel on the JavaFX application thread.
+It checks the injected clock once per minute while the window is shown and immediately when the window is shown or regains focus.
+It notifies observers only when the date changes. These presentation updates preserve the command draft, selection, and scroll positions;
+they do not mutate contacts, commit history, or trigger a save. The `followups overdue` query keeps its separately captured date;
+rerun it to update result membership.
+
+The command selection handling described under contact details and selection tracks replacement contacts and refreshes
+the details panel after follow-up changes. A contact that no longer matches a follow-up filter clears selection.
+
+#### Displayed contact views
+
+<a id="model-integration-persistence-and-history"></a>
+
+`ModelManager` constructs `filteredPersons` from the address book's observable contact list, then constructs
+`sortedPersons` from `filteredPersons`. `updateFilteredPersonList()` changes the predicate on the filtered view;
+`updateSortedPersonList()` changes the comparator on the sorted view. Neither operation rearranges stored contacts.
+With no comparator, the sorted view follows its source order.
+
+`sort clear` takes a separate branch before comparator construction. It first resets the filter to `PREDICATE_SHOW_ALL_PERSONS`,
+then calls `updateSortedPersonList(null)` and returns clearing feedback. A `SortedList` without a comparator follows its source order,
+so this displays all contacts in insertion order without rearranging stored data.
+
+![Partial class diagram of the model's filtered and sorted contact views](images/SortModelClassDiagram.png)
+
+The partial class diagram shows each view's source relationship. The sorted view supplies displayed order;
+the underlying contact list retains its source order for persistence. Unrelated model classes and list inheritance
+relationships are omitted for clarity.
+
+`getFilteredPersonList()` retains its existing API name but returns `sortedPersons`. The UI and commands such as
+`EditCommand` and `DeleteCommand` therefore resolve displayed indices against the same list. Changes to the source
+contacts propagate through both views, including repositioning a contact when an edit changes its sort keys.
+`ModelManager#equals()` also compares the displayed lists so models with different visible ordering are distinguished.
+
+After successful execution, `LogicManager` saves `model.getAddressBook()`, not the displayed view. The comparator is
+not serialized, so sorting does not change saved contact order and is reset on restart.
+
+Sort and `sort clear` do not call `commitAddressBook()`, so neither creates an
+undo snapshot or discards redo history. Undo and redo restore contact data and
+retain the active sort order unless the user explicitly runs `sort clear`.
+Subsequent find and list commands retain the selected sort order.
+
+#### Contact selection reconciliation
+
+`CommandResult#getSelectedPerson()` carries an optional explicit selection request. Existing constructors default to
+no request; `CommandResult(String, Person)` retains the exact immutable contact reference. Equality, hashing, and the
+string representation include the request. `LogicManager` forwards it into `CommandSelectionChange` before saving.
+Each command attempt resets this information before parsing. Selection precedence is:
+
+1. Successful undo/redo resets clear selection.
+2. An explicit selection request chooses its target, even when there was no previous selection.
+3. Otherwise, retain the previous contact or its recorded replacement when it remains visible.
+
+`MainWindow` applies the result through its existing `finally` block and `PersonListPanel#endCommand(Person)`.
+The panel resolves the current index by object identity, updates the highlight, and scrolls to the contact without
+moving focus out of command input. It resolves pending styling/layout and completes any required scroll after the
+scene's layout pass so freshly added rows are positioned correctly. Repeated selection of the same object retains
+the details panel's reading position.
+There are no new Model or Storage fields and no selection data is persisted.
+
 #### Persistence and failures
 
 After successful command execution, `LogicManager` requests a save of `model.getAddressBook()` through `Storage`.
@@ -866,33 +1227,20 @@ an explicit request takes precedence over retaining the previous contact or its 
 
 Memory rollback and file-replacement guarantees are separate concerns. See [Atomic file persistence](#atomic-file-persistence) for filesystem limitations.
 
-#### Design considerations:
+#### Atomic file persistence
 
-**Aspect: How undo & redo execute:**
+**Overview**
 
-* **Alternative 1 (current choice):** Saves the entire address book.
-  * Pros: Easy to implement.
-  * Cons: May have performance issues in terms of memory usage.
+<a id="overview"></a>
 
-* **Alternative 2:** Individual command knows how to undo/redo by
-  itself.
-  * Pros: Will use less memory (e.g. for `delete`, just save the person being deleted).
-  * Cons: We must ensure that the implementation of each individual command is correct.
-
-_{more aspects and alternatives to be added}_
-
-### \[Proposed\] Data archiving
-
-_{Explain here how the data archiving feature will be implemented}_
-
-### Atomic file persistence
-
-#### Overview
 File persistence uses `FileUtil#writeToFile` to write a complete temporary file before replacing the destination.
 It requests atomic replacement where supported. If the filesystem rejects atomic moves, the fallback replaces the file without requesting atomicity;
 the application therefore cannot guarantee atomic replacement on every filesystem.
 
-#### Implementation details
+**Implementation details**
+
+<a id="implementation-details-1"></a>
+
 After a command executes successfully, `LogicManager` requests `Storage` to persist the current address book.
 The following steps describe a contact-data save; preference JSON uses the same file-writing utility.
 
@@ -913,7 +1261,10 @@ The sequence diagram below illustrates the successful atomic-move path across co
 
 ![AtomicWriteSequenceDiagram](images/AtomicWriteSequenceDiagram.png)
 
-#### Design considerations
+**Design considerations**
+
+<a id="design-considerations-4"></a>
+
 **Aspect: How file writes are performed**
 * **Alternative 1 (current choice):** Write to a sibling temporary file and atomically replace the destination file.
   * Pros: Keeps serialization and temporary-file writing separate from the destination file; an atomic move, when supported, prevents a partially replaced destination.
@@ -923,8 +1274,7 @@ The sequence diagram below illustrates the successful atomic-move path across co
   * Pros: Simpler implementation without temporary files.
   * Cons: The file is truncated before new content is written. A crash or disk error mid-write leaves the data file empty or partially written, corrupting user data.
 
-
-### Startup loading and recovery
+#### Startup loading and recovery
 
 `MainApp` initializes preferences and contact data independently. Paths are relative to the launch folder:
 `preferences.json` and `data/addressbook.json`.
@@ -942,6 +1292,12 @@ Warnings from preferences and contact loading are combined for display when the 
 An empty fallback contact book can overwrite the saved contact file after any successful command, including a browsing command or `exit`.
 Recovery therefore requires preserving the available backup or original file and closing the window without entering more commands.
 See the [User Guide recovery procedure](UserGuide.md#recovering-data-that-fails-to-load) for the user-facing steps.
+
+### Future design notes
+
+#### Proposed data archiving
+
+_{Explain here how the data archiving feature will be implemented}_
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -1617,7 +1973,7 @@ Display a long description and resize the window. | Verify the full text remains
 Set due dates for yesterday, today, and tomorrow. | The cards show Overdue, Due today, and Follow-up respectively, including at the minimum pane width.
 Leave the window open across local midnight, or return focus after sleep. | Within the next minute, or immediately on focus return, badge urgency and selected overdue details update while selection, scrolling, and draft input remain intact. Rerun any overdue query to refresh which contacts it includes.
 
-### Sorting contacts
+### Sorting contacts {#sorting-contacts-1}
 
 Use a disposable application copy in a separate folder: these tests replace saved contacts.
 Run `clear`, then `sort clear`, and enter these setup commands separately, in order:
