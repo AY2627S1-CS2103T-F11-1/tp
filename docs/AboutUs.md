@@ -23,10 +23,10 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 <img src="images/chiacxx.png" width="200px">
 
 [[github](https://github.com/chiacxx)]
-[[portfolio](team/johndoe.md)]
+[[portfolio](team/chiacxx.md)]
 
 * Role: Developer
-* Responsibilities: Logic & Architecture
+* Responsibilities: Sort, find & delete commands, input validation, testing & documentation
 
 ### Chester
 
