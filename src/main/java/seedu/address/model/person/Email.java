@@ -16,7 +16,7 @@ public class Email {
             + "Domain labels must contain 1-63 ASCII letters/digits/hyphens, start and end with a letter/digit, "
             + "and be separated by dots. Single-label domains are allowed.\n"
             + "Spaces, quoted local parts, address literals and non-ASCII characters are not supported.";
-    // WHATWG HTML email syntax: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address
+    // Email validation regex taken from WHATWG HTML email syntax: https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address
     public static final String VALIDATION_REGEX = "[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@"
             + "[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
             + "(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*";
