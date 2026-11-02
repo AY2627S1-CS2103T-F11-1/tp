@@ -401,7 +401,6 @@ case. Validation checks syntax only, without mailbox verification or IDN convers
 
 `Phone.VALIDATION_REGEX` accepts 3–20 ASCII digits, preserving leading zeroes.
 
-
 #### Execution flow
 
 The activity diagram below illustrates the duplicate resolution and defensive error-handling branching during `AddCommand#execute()`. Each decision node specifies explicit, mutually exclusive guard conditions on all outgoing branches, and all execution paths converge cleanly to a single final node:

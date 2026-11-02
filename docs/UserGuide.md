@@ -182,12 +182,13 @@ It does not remove non-breaking spaces or invisible formatting characters such a
 these remain literal alongside visible text, even at the edges.
 
 Names, roles, and tags also collapse repeated **ordinary spaces** into one: `n/Anne-Marie   O'Connor`
-stores `Anne-Marie O'Connor`. Internal Unicode spaces are not collapsed. Addresses preserve internal
+stores `Anne-Marie O'Connor`. Other Unicode spaces are not collapsed. Addresses preserve internal
 spacing. All four fields preserve capitalisation; names, roles and addresses have no maximum length.
 Duplicate tags are combined using Unicode-aware, case-insensitive comparison, preserving the first spelling.
 
 <a id="character-counting"></a>
 
+Length limits use Java string length: most characters count as one; some, such as emoji, count as two.
 
 **Phone number limitation**
 
