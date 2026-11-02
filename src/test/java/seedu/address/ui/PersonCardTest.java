@@ -67,6 +67,10 @@ public class PersonCardTest {
             assertEquals("1. ", idLabel.getText());
             assertEquals(ALICE.getName().fullName, nameLabel.getText());
             assertEquals(ALICE.getRole().value, roleLabel.getText());
+            assertEquals(ALICE.getRole().value, roleLabel.getTooltip().getText());
+            assertTrue(roleLabel.getTooltip().isWrapText());
+            assertTrue(roleLabel.isWrapText());
+            assertTrue(roleLabel.getMinWidth() >= 50 && roleLabel.getMinWidth() <= 105);
             assertEquals(ALICE.getPhone().value, phoneLabel.getText());
             assertNull(card.getRoot().lookup("#address"));
             Label emailLabel = (Label) card.getRoot().lookup("#email");
@@ -166,6 +170,9 @@ public class PersonCardTest {
                     .build();
 
             PersonCard card = new PersonCard(personWithFollowUp, 1);
+
+            Label roleLabel = (Label) card.getRoot().lookup("#role");
+            assertEquals(0.0, roleLabel.getMinWidth());
 
             assertNull(card.getRoot().lookup("#followUpSection"));
             assertNull(card.getRoot().lookup("#followUpDueDate"));
