@@ -4,6 +4,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import seedu.address.commons.core.GuiSettings;
 
 /**
@@ -17,6 +20,14 @@ public class UserPrefs implements ReadOnlyUserPrefs {
      * Creates a {@code UserPrefs} with default values.
      */
     public UserPrefs() {}
+
+    /**
+     * Creates a {@code UserPrefs} with the given {@code guiSettings}.
+     */
+    @JsonCreator
+    public UserPrefs(@JsonProperty("guiSettings") GuiSettings guiSettings) {
+        this.guiSettings = guiSettings != null ? guiSettings : new GuiSettings();
+    }
 
     /**
      * Creates a {@code UserPrefs} with the prefs in {@code userPrefs}.

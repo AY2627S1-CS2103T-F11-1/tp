@@ -24,6 +24,13 @@ public class JsonUserPrefsStorageTest {
     public Path testFolder;
 
     @Test
+    public void getUserPrefsFilePath() {
+        Path filePath = Paths.get("preferences.json");
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(filePath);
+        assertEquals(filePath, storage.getUserPrefsFilePath());
+    }
+
+    @Test
     public void readUserPrefs_nullFilePath_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> readUserPrefs(null));
     }
@@ -41,6 +48,24 @@ public class JsonUserPrefsStorageTest {
     @Test
     public void readUserPrefs_notJsonFormat_exceptionThrown() {
         assertThrows(DataLoadingException.class, () -> readUserPrefs("NotJsonFormatUserPrefs.json"));
+    }
+
+    @Test
+    public void readUserPrefs_nullFile_throwsDataLoadingException() {
+        assertThrows(DataLoadingException.class, () -> readUserPrefs("NullUserPrefs.json"));
+    }
+
+    @Test
+    public void readUserPrefs_nullGuiSettings_returnsDefaults() throws Exception {
+        UserPrefs actual = readUserPrefs("NullGuiSettingsUserPrefs.json").get();
+        assertEquals(new GuiSettings(), actual.getGuiSettings());
+        assertEquals(new UserPrefs(), actual);
+
+        Path tempFile = testFolder.resolve("reSavedPrefs.json");
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(tempFile);
+        storage.saveUserPrefs(actual);
+        UserPrefs reloaded = storage.readUserPrefs().get();
+        assertEquals(new UserPrefs(), reloaded);
     }
 
     private Path addToTestDataPathIfNotNull(String userPrefsFileInTestDataFolder) {
