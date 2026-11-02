@@ -67,9 +67,7 @@ public class MainApp extends Application {
     }
 
     private void appendInitialStatusMessage(String message) {
-        initialStatusMessage = initialStatusMessage == null
-                ? message
-                : initialStatusMessage + "\n" + message;
+        initialStatusMessage = initialStatusMessage == null ? message : initialStatusMessage + "\n" + message;
     }
 
     /**
@@ -133,28 +131,27 @@ public class MainApp extends Application {
             initializedPrefs = prefsOptional.orElse(new UserPrefs());
         } catch (DataLoadingException e) {
             initializedPrefs = new UserPrefs();
-            if (Files.exists(prefsFilePath)) {
-                String rawCause = e.getCause() != null && e.getCause().getMessage() != null
-                        ? e.getCause().getMessage()
-                        : e.getMessage();
-                String causeMessage = (rawCause != null && !rawCause.isBlank()) ? rawCause : "unrecognized format";
-                try {
-                    Path backupPath = storage.backupUserPrefsFile();
-                    String prefsWarning = String.format(
-                            "Warning: Preference file %1$s is corrupted (%2$s). A backup was created at %3$s. "
-                                    + "Using default preferences.", prefsFilePath, causeMessage, backupPath);
-                    logger.warning(prefsWarning);
-                    appendInitialStatusMessage(prefsWarning);
-                } catch (IOException ioe) {
-                    String prefsWarning = String.format(
-                            "Warning: Preference file %1$s is corrupted (%2$s), and creating a backup failed: %3$s. "
-                                    + "Using default preferences.", prefsFilePath, causeMessage, ioe.getMessage());
-                    logger.severe(prefsWarning);
-                    appendInitialStatusMessage(prefsWarning);
-                }
-            } else {
+            if (!Files.exists(prefsFilePath)) {
                 logger.warning("Preference file at " + prefsFilePath + " could not be loaded."
                         + " Using default preferences.");
+            } else {
+                String cause = e.getCause() != null && e.getCause().getMessage() != null
+                        ? e.getCause().getMessage() : e.getMessage();
+                String causeMsg = cause != null && !cause.isBlank() ? cause : "unrecognized format";
+                try {
+                    Path backup = storage.backupUserPrefsFile();
+                    String warning = String.format("Warning: Preference file %1$s is corrupted (%2$s). "
+                            + "A backup was created at %3$s. Using default preferences.",
+                            prefsFilePath, causeMsg, backup);
+                    logger.warning(warning);
+                    appendInitialStatusMessage(warning);
+                } catch (IOException ioe) {
+                    String warning = String.format("Warning: Preference file %1$s is corrupted (%2$s), and creating "
+                            + "a backup failed: %3$s. Using default preferences.",
+                            prefsFilePath, causeMsg, ioe.getMessage());
+                    logger.severe(warning);
+                    appendInitialStatusMessage(warning);
+                }
             }
         }
 

@@ -100,33 +100,20 @@ public class FileUtil {
 
     /**
      * Creates a timestamped backup of the file at the specified {@code filePath}.
-     *
-     * @param filePath location of the file to back up. Cannot be null.
-     * @return the {@code Path} of the created backup file.
-     * @throws IOException if an error occurs while creating the backup.
      */
     public static Path createTimestampedBackup(Path filePath) throws IOException {
         requireNonNull(filePath);
-
         if (!Files.exists(filePath)) {
             throw new FileNotFoundException("Cannot backup non-existent file: " + filePath);
         }
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-        String timestamp = LocalDateTime.now().format(formatter);
-        String baseBackupName = filePath.getFileName().toString() + ".backup." + timestamp;
+        String base = filePath.getFileName() + ".backup."
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         Path parent = filePath.getParent();
-        Path backupPath = parent == null ? Path.of(baseBackupName) : parent.resolve(baseBackupName);
-
-        int counter = 1;
-        while (Files.exists(backupPath)) {
-            String collisionName = baseBackupName + "_" + counter;
-            backupPath = parent == null ? Path.of(collisionName) : parent.resolve(collisionName);
-            counter++;
+        Path backup = parent == null ? Path.of(base) : parent.resolve(base);
+        for (int i = 1; Files.exists(backup); i++) {
+            backup = parent == null ? Path.of(base + "_" + i) : parent.resolve(base + "_" + i);
         }
-
-        Files.copy(filePath, backupPath);
-        return backupPath;
+        return Files.copy(filePath, backup);
     }
 
 }

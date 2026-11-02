@@ -61,9 +61,6 @@ public class JsonUserPrefsStorage {
 
     /**
      * Creates a timestamped backup of the user prefs file at {@link #getUserPrefsFilePath()}.
-     *
-     * @return the {@code Path} of the created backup file.
-     * @throws IOException if an error occurs while creating the backup.
      */
     public Path backupUserPrefsFile() throws IOException {
         return backupUserPrefsFile(filePath);
@@ -71,10 +68,6 @@ public class JsonUserPrefsStorage {
 
     /**
      * Creates a timestamped backup of the user prefs file at the specified {@code filePath}.
-     *
-     * @param filePath location of the preferences file to back up. Cannot be null.
-     * @return the {@code Path} of the created backup file.
-     * @throws IOException if an error occurs while creating the backup.
      */
     public Path backupUserPrefsFile(Path filePath) throws IOException {
         requireNonNull(filePath);
