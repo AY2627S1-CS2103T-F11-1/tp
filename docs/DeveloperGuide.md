@@ -1537,7 +1537,7 @@ See [Persistence and failures](#persistence-and-failures) and
 * **3a.** No contacts match: show an empty list and zero-result feedback. This is a successful query.
 * **3b.** Saving fails: apply the common save failure outcome for commands without a new contact-data commit.
 * **UC5 — List contacts:** The user submits `list` instead. The system shows all contacts, retaining sorting, and requests a save. Extra arguments are ignored with a warning.
-* **UC10 — View follow-ups:** The user submits `followups`, `followups overdue`, or `followups before DATE` instead. The system replaces the filter using the whole contact book: all pending follow-ups, dates strictly before today, or dates on/before the cutoff, respectively. Invalid modes or dates are rejected. The overdue query captures the local date when run; badge refreshes do not rerun it.
+* **UC10 — View follow-ups:** The user submits `followups`, `followups overdue`, or `followups by/DATE` instead. The system replaces the filter using the whole contact book: all pending follow-ups, dates strictly before today, or dates on/before the cutoff, respectively. Invalid modes or dates are rejected. The overdue query captures the local date when run; badge refreshes do not rerun it.
 * **Select-details variant:** After browsing, the user submits `select INDEX`. The system validates the current displayed index, requests selection and display of that contact's full details, and saves. An empty list or unavailable index is rejected. Contact data, filter, sorting, and history are unchanged.
 
 **Implementation references:** [Finding contacts](#finding-contacts),
@@ -1638,170 +1638,217 @@ measured. **Pending validation** identifies targets with no recorded measurement
 
 ## **Appendix: Instructions for manual testing**
 
-Given below are instructions to test the app manually.
+These scenarios provide a starting point for exploratory testing of the current **v1.6 working
+implementation**. They describe expected results, rather than a record of tests already passed.
+For full command syntax and input rules, see the [User Guide](UserGuide.md#command-reference).
 
-<div markdown="span" class="alert alert-info">:information_source: **Note:** These instructions only provide a starting point for testers to work on;
-testers are expected to do more *exploratory* testing.
+### Test setup
 
-</div>
+* Use a JAR built from the current v1.6 working tree, such as `build/libs/keybosswarriorspro.jar`,
+  and Java 25 or above. Copy the JAR into a separate, disposable test folder.
+* Launch from that folder using `java -jar keybosswarriorspro.jar` so the data paths are predictable.
+  Unless configured otherwise, contact data is in `data/addressbook.json` and window preferences
+  are in `preferences.json`, relative to the launch folder.
+* Run each section independently using its stated setup, then run its table rows in order.
+  Enter commands separately, including when a row lists several. After a rejected command,
+  replace the text still in the command input before submitting the next command.
+* Record the source revision, OS, Java version, display resolution/scaling, and actual results when testing.
+* For validation errors below, expect unchanged contact data, view, and history. Save failures
+  have different outcomes; test those separately under [Saving data](#saving-data).
 
-### Launch and shutdown
-
-1. Initial launch
-
-   1. Download the JAR file and copy it into an empty folder.
-
-   1. Double-click the JAR file.<br>
-      Expected: The GUI opens with a set of sample contacts. The window size may not be optimal.
-
-1. Saving window preferences
-
-   1. Resize the window to an optimal size. Move the window to a different location. Close the window.
-
-   1. Relaunch the app by double-clicking the JAR file.<br>
-       Expected: The most recent window size and location are retained.
-
-1. _{ more test cases …​ }_
-
-### Selecting a contact
-
-Start with at least two sample/test contacts. Use the current displayed numbers after each search or sort.
-
-Action | Expected result
--------|----------------
-Run `select 2`. | Contact 2 is highlighted, scrolled into view, and shown in the right panel; command input keeps focus.
-Scroll the list away, then repeat `select 2`. | The same contact is revealed; the details panel keeps its reading position.
-Run `find` with a matching name, then `select 1`. | The first current search result is selected.
-Run `sort n/`, then `select 1`. | The first contact in the sorted view is selected.
-Try `select`, `select 0`, `select -1`, `select abc`, `select 1 2`, and an index beyond the list size. | An appropriate error appears; selection and details remain unchanged.
-Run a search with no matches, then `select 1`. | The empty-state prompt remains and feedback explains that no contacts are displayed.
-With enough contacts to scroll, add a contact with wrapping tags and immediately select its displayed number. | Its selected card is scrolled into view using the updated layout.
-Run `help select` while a contact is selected. | Usage appears in command feedback; selection stays unchanged and no Help window opens.
-Make one edit, undo it, run `select 1`, then redo. | Redo is still available and reapplies the edit; undo/redo clear selection.
-Restart the application. | Contact data remains available and the details panel starts in its empty state.
-
-### Deleting contacts with `delete`
-
-Start a fresh application session using a disposable copy in a separate folder.
-Run `clear` to remove the sample contacts, then enter these setup commands separately:
+**Four-contact fixture:** Whenever a section says to reset to this fixture, run these commands
+separately. This replaces the test folder's contacts and resets filtering and sorting.
 
 ```text
-add n/Alice p/81009201 e/alice@delete.example.com a/Test Address r/Employee
-add n/Bob p/81009202 e/bob@delete.example.com a/Test Address r/Supplier
-add n/Charlie p/81009203 e/charlie@delete.example.com a/Test Address r/Supplier
-```
-
-The list should show Alice, Bob, and Charlie at indices 1, 2, and 3.
-Run the rows below in order. Where a row contains several commands, enter them separately.
-Each rejected request must leave the displayed list and contact data unchanged.
-
-| Command | Expected result |
-|---------|-----------------|
-| `delete 2` | Bob is deleted. Feedback starts with `Deleted contact: Bob;`. Alice and Charlie remain at indices 1 and 2. |
-| `delete 1` | Alice is deleted. Charlie is now at index 1. |
-| `delete` | `INDEX is required.` Charlie remains. |
-| `delete 1 2` | `delete accepts only one INDEX.` Charlie remains. |
-| `delete 0`, `delete abc`, then `delete 2147483648` | Each reports `INDEX must be a whole number between 1 and 2147483647.` Charlie remains. |
-| `delete 2` | `INDEX 2 is outside the displayed contact list (valid index: 1).` Charlie remains. |
-| `delete 1` | Charlie is deleted and the list becomes empty. |
-| `delete 1` | `No contacts are currently displayed.` The list stays empty. |
-
-### Name, role, and tag formatting
-
-Use a disposable application copy and add a contact with unused phone and email details:
-
-```text
-add n/Anne-Marie   O'Connor p/81009001 e/formatting@example.com a/Test Address r/R&D   Partner t/lubed/filmed   switches
-```
-
-Expected: The contact has name `Anne-Marie O'Connor`, role `R&D Partner`, and tag
-`lubed/filmed switches`. Punctuation and capitalisation are preserved, while each
-run of internal spaces becomes one space. Run `find n/Anne-Marie O'Connor` and
-confirm there is exactly one result before using index 1 below.
-
-Command | Expected result
---------|------------------
-`find n/Anne-Marie   O'Connor`, then `find n/Anne-Marie O'Connor` | Both searches return the test contact.
-`find r/R&D   Partner`, then `find r/R&D Partner` | Both searches return the test contact.
-`find t/lubed/filmed   switches`, then `find t/lubed/filmed switches` | Both searches return the test contact.
-`edit 1 n/Anne-Marie    O'Connor r/R&D    Partner t/PCB    Supplier` | All supplied fields use single internal spaces. The new tag is `PCB Supplier`, and the existing tag remains.
-`edit 1 n/Changed xx/value` | Unknown-prefix error; the contact's name, role, and tags remain unchanged.
-Restart the application, then run `find n/Anne-Marie O'Connor`. | The normalised name, role, and both tags are retained.
-
-### Finding contacts with `find`
-
-Use a disposable application copy in a separate folder: this setup replaces saved contacts.
-Run `clear`, then `sort clear`, and execute each setup command separately:
-
-```text
+clear
+sort clear
 add n/Alice Tan p/81009101 e/alice.tan@find.example.com a/Test Address r/Employee t/tactile switch t/keycap
 add n/Alice Lee p/81009102 e/alice.lee@find.example.com a/Test Address r/Regional Supplier t/tactile switch t/trusted partner
 add n/Bob Tan p/81009103 e/bob.tan@find.example.com a/Test Address r/Regional Supplier t/keycap
 add n/Carol Lim p/81009104 e/carol.lim@find.example.com a/Test Address r/Distributor
 ```
 
-Run the rows below in order. Where a row contains several commands, enter them separately
-from left to right.
+Expected: Alice Tan, Alice Lee, Bob Tan, and Carol Lim appear at indices 1–4, with no follow-ups.
+Indices below always refer to the current displayed list. Do not assume the fixture's indices
+still apply after a filter, sort, edit, or deletion.
+
+### Launch and shutdown
+
+**Setup:** Use a new test folder with no contact-data or preferences files. Keep the same launch
+folder when restarting. Keep the window on a connected display when checking saved position.
+
+| Action | Expected result |
+|--------|-----------------|
+| Launch the JAR. | The GUI opens with six sample contacts and an empty details panel. The missing contact-data file is not yet created; no contact-data backup is made. |
+| Run `list`. | All sample contacts remain visible and `data/addressbook.json` is created. Even a successful browsing command requests a save. |
+| Resize and move the main window, then close it using its close button. Relaunch from the same folder. | The saved size and position are restored, subject to the 800×600 minimum window size. The same contacts are loaded. |
+| Run `exit`, then relaunch. | The app closes normally and the saved contacts and window preferences are available on restart. |
+
+### Manage contacts {#manual-manage-contacts}
+
+#### Adding contacts with `add`
+
+**Setup:** Run `clear`, then `sort clear`. Run the rows in order.
 
 | Command | Expected result |
 |---------|-----------------|
-| `find aLI tAN` | Alice Tan, Alice Lee, and Bob Tan; `3 contacts found.` Keywords use OR and ignore case. |
-| `find n/Alice Tan` | Alice Tan only; `1 contact found.` The value is one continuous phrase. |
-| `find r/gional supp t/tactile swi` | Alice Lee only. Both the role and tag substrings must match. |
-| `find t/tactile t/keycap` | Alice Tan, Alice Lee, and Bob Tan, each once. Either tag phrase suffices; Carol has no tags. |
-| `find n/ali n/bob r/supp` | Alice Lee and Bob Tan. The name alternatives use OR; the role condition uses AND. |
-| `find NoSuchFindContact` | An empty list and `No contacts found.` |
-| `find n/Carol`, then `find n/Alice` | First Carol Lim, then both Alice contacts. The second search checks the full contact list. |
-| `sort r/ n/`, then `find r/supp`, then `list` | Find shows Alice Lee, then Bob Tan. List restores Carol Lim, Alice Tan, Alice Lee, then Bob Tan, retaining role-then-name order. |
+| `add n/John Doe p/98765432 e/johnd@example.com a/311, Clementi Ave 2, #02-25 r/Supplier t/friends t/owesMoney` | John Doe is added with role `Supplier` and both tags. Feedback starts with `New person added: John Doe;`. Tag display order is not significant. |
+| `add n/David s\/o Muthu p/81001234 e/david@example.com a/Blk 456 Jurong r/R\/D Partner t/lubed\/filmed switches` | Slash escapes decode once: the name is `David s/o Muthu`, role `R/D Partner`, and tag `lubed/filmed switches`. |
+| `add n/Jane Doe p/98765432 e/jane@example.com a/Test Address r/Employee` | `This phone number already belongs to an existing contact.` |
+| `add n/Johnny Doe p/81009999 e/johnd@example.com a/Test Address r/Employee` | `This email address already belongs to an existing contact.` |
+| `add n/Jack Doe p/98765432 e/johnd@example.com a/Test Address r/Employee` | `This phone number and email address are already used by existing contacts.` |
+| `add n/No Role p/81005555 e/norole@example.com a/Test Address` | `Missing mandatory parameter(s): r/.` |
+| `add n/David s/o Muthu p/81008888 e/david.unescaped@example.com a/Test Address r/Supplier` | `Unrecognized prefix(es) provided: s/.` |
+| `add n/Bad Phone p/12 e/badphone@example.com a/Test Address r/Supplier` | `Phone numbers should only contain digits, and should be 3 to 20 digits long.` Also try 21 digits; the same constraint applies. |
 
-Before checking errors, run `find n/Alice Tan`. Each rejected command below must preserve
-that one-contact view and all stored contacts.
+##### Name, role, and tag formatting
+
+**Setup:** Run `clear`, then `sort clear`, and add this contact:
+
+```text
+add n/Anne-Marie   O'Connor p/81009001 e/formatting@example.com a/Test Address r/R&D   Partner t/lubed/filmed   switches
+```
+
+Expected: The name is `Anne-Marie O'Connor`, role `R&D Partner`, and tag `lubed/filmed switches`.
+Repeated internal spaces collapse; punctuation and capitalisation are preserved.
+
+| Command / action | Expected result |
+|------------------|-----------------|
+| `find n/Anne-Marie   O'Connor`, then `find n/Anne-Marie O'Connor` | Both return the test contact. Repeat with `find r/R&D   Partner` and `find t/lubed/filmed   switches`. |
+| `edit 1 n/Anne-Marie    O'Connor r/R&D    Partner t/PCB    Supplier` | Supplied text has single internal spaces; `PCB Supplier` is added and the original tag remains. |
+| `edit 1 n/Changed xx/value` | Unknown-prefix error; all fields and tags remain unchanged. |
+| `add n/Élodie p/81009002 e/unicode@example.com a/Test Address r/組立担当 t/手作り` | The Unicode name, role, and tag are accepted and displayed. |
+| `find n/élodie`, then `find n/elodie` | The accented query finds Élodie, ignoring case; the unaccented query has no result. |
+| Restart, then run `find n/Anne-Marie O'Connor` and `find n/Élodie` separately. | The normalised text, punctuation, Unicode values, and tags persist. |
+
+#### Editing contact details with `edit`
+
+**Setup:** Reset to the four-contact fixture. Run `find n/Alice Tan`, then `select 1`.
+
+| Command | Expected result |
+|---------|-----------------|
+| `edit 1 p/81009201 e/alice.updated@example.com a/New Address r/Custom Workshop Partner` | Alice Tan's supplied fields change; name and both tags remain. All four contacts are shown after the edit, and the selected contact's details refresh. The custom role is accepted. |
+| `find n/Alice Tan`, then `edit 1 p/81009102` | Duplicate-phone error, including though Alice Lee is hidden. Alice Tan and the one-contact view remain unchanged. |
+| `edit 1 n/Changed e/alice.lee@find.example.com` | Duplicate-email error. The name also remains Alice Tan: no partial edit is applied. |
+| `edit 1`, then `edit 1 r/Employee r/Supplier` | Missing-edit and duplicate-field errors, respectively. |
+| `edit 0 r/Employee`, then `edit 2 r/Employee` | Invalid-index and out-of-view-index errors, respectively. The filtered view contains only Alice Tan. |
+
+##### Editing contact tags
+
+**Setup:** Run `clear`, then `sort clear`, then add:
+
+```text
+add n/TagEditExample p/12345678 e/tagedit@example.com a/Test Address r/Employee t/trainee t/supplier
+```
+
+Before **each row**, run `find TagEditExample` again because a successful edit shows all contacts.
+Run the rows in order; tag order is not significant.
+
+| Command | Expected result |
+|---------|-----------------|
+| `edit 1 t/solderer` | Tags become `trainee`, `supplier`, and `solderer`; other fields are preserved. |
+| `edit 1 dt/TRAINEE` | Tags become `supplier` and `solderer`; removal ignores case. |
+| `edit 1 t/builder dt/solderer` | Tags become `supplier` and `builder`. |
+| `edit 1 n/Alex dt/supplier dt/trainee` | Missing-tag error for `trainee`; neither the name nor any tag changes. The filter stays unchanged. |
+| `edit 1 t/builder dt/BUILDER` | Conflict error for `builder`; data and filter stay unchanged. |
+| `edit 1 t/`, then `edit 1 dt/` | Empty-tag errors; data and filter stay unchanged. |
+| `edit 1 dt/supplier dt/builder` | Both tags are removed; no tags remain. |
+
+#### Managing and viewing follow-ups
+
+**Setup:** Reset to the four-contact fixture. Run `find n/Alice Tan`, then `select 1`.
+The fixed dates below exercise past and future dates; compare badges with the computer's local date.
+
+| Command / action | Expected result |
+|------------------|-----------------|
+| `followup 1 by/2000-01-01 abt/Confirm quotation` | An Overdue badge appears for a current date after 2000-01-01; the details panel shows the date and description. |
+| `followup 1 by/9999-12-31 abt/Review revised quotation` | Both fields replace the previous follow-up; the badge changes to Follow-up for a current date before 9999-12-31. |
+| `edit 1 r/Custom Followup Role`, then `find n/Alice Tan` | The follow-up is preserved. |
+| `followup 1 clear` | The badge and follow-up details disappear. The contact remains; no blank badge space is reserved. |
+| `followup 1 clear` | An error reports that no follow-up is present; no new history state is created. |
+| `undo`, then `redo` | The future follow-up is restored, then removed again. Undo/redo clear selection; use `find n/Alice Tan` and `select 1` to inspect the details after each. |
+| Find Alice Tan, then try `followup 1 by/2000-01-01`, `followup 1 by/2000-02-30 abt/Test`, and `followup 1 by/2000-01-01 by/2000-01-02 abt/Test`. | Missing-description, invalid-date, and duplicate-prefix errors, respectively. |
+| `followup 0 by/2000-01-01 abt/Test` | Invalid-index error. |
+| `followup 1 by/9999-12-31 abt/Confirm the revised quotation, check the available components and delivery arrangements, and contact the supplier before placing the next keyboard order.` | The long description is stored. Select the contact, resize the window, and verify the full description is accessible by scrolling the details panel. |
+| Restart, then run `find n/Alice Tan` and `select 1`. | The saved date, description, and appropriate badge are restored. |
+
+**Date-sensitive UI check:** Replace `TODAY` in `followup 1 by/TODAY abt/Check today` with the
+computer's actual local date in `YYYY-MM-DD` format; do not enter the word `TODAY` literally.
+Expect a Due today badge. Optionally repeat with yesterday and tomorrow for Overdue and Follow-up.
+When testing across local midnight, keep this contact selected with a draft in the command input.
+While the window is shown, badges update within a minute, or immediately when focus returns after
+sleep. Selection, scroll positions, and draft text remain intact. An existing overdue query retains
+its earlier date boundary until `followups overdue` is run again.
+
+#### Deleting contacts with `delete`
+
+**Setup:** Reset to the four-contact fixture. Run `followup 3 by/2000-01-01 abt/Delete check`,
+then `select 3` so Bob Tan has a pending follow-up and is selected. Run the rows in order.
+
+| Command | Expected result |
+|---------|-----------------|
+| `find r/Supplier`, then `delete 2` | The filtered list initially shows Alice Lee and Bob Tan. Bob Tan and his follow-up are deleted; Alice Lee remains as displayed index 1. Bob's selection and details clear. |
+| `list`, then `find n/Alice Lee` | List shows Alice Tan, Alice Lee, and Carol Lim; the search then shows only Alice Lee. Hidden contacts were not deleted. |
+| `delete` | `INDEX is required.` |
+| `delete 1 2` | `delete accepts only one INDEX.` |
+| `delete 0`, `delete abc`, then `delete 2147483648` | Each reports `INDEX must be a whole number between 1 and 2147483647.` |
+| `delete 2` | `INDEX 2 is outside the displayed contact list (valid index: 1).` |
+| `delete 1` | Alice Lee is deleted; feedback starts with `Deleted contact: Alice Lee;`. The retained filter now shows an empty list. |
+| `delete 1` | `No contacts are currently displayed.` |
+| `list` | Alice Tan and Carol Lim remain. |
+
+#### Clearing all contacts with `clear`
+
+**Setup:** Reset to the four-contact fixture. Run `followup 1 by/2000-01-01 abt/Test clearing`,
+then `find NoSuchClearContact` so no contacts are visible.
+
+| Command | Expected result |
+|---------|-----------------|
+| `clear`, then `list` | All four stored contacts and the pending follow-up are removed despite the empty filtered view. No confirmation prompt appears. |
+| `undo` | All four contacts and Alice Tan's follow-up return. |
+| `redo`, then `clear` | Redo clears the book again. The second command reports `KeyBossWarriorsPro is already empty; no contacts were cleared.` and creates no history snapshot. |
+| `undo`, then `clear extra` | Undo restores the four contacts; `clear extra` deletes them and includes `Warning: additional arguments after clear were ignored.` |
+
+### Browse contacts {#manual-browse-contacts}
+
+#### Listing all contacts with `list`
+
+**Setup:** Reset to the four-contact fixture.
+
+| Command | Expected result |
+|---------|-----------------|
+| `find n/Alice`, then `list` | The search shows two contacts; list shows all four in insertion order. |
+| `sort r/ n/`, then `find r/Supplier`, then `list` | The final list shows Carol Lim, Alice Tan, Alice Lee, and Bob Tan, retaining role-then-name sorting. |
+| `list extra` | All four remain visible; feedback includes a warning that extra arguments were ignored. |
+| `clear`, then `list` | The empty list remains and feedback is `No contacts found.` |
+
+#### Finding contacts with `find`
+
+**Setup:** Reset to the four-contact fixture. Run the rows in order.
+
+| Command | Expected result |
+|---------|-----------------|
+| `find aLI tAN` | Alice Tan, Alice Lee, and Bob Tan; `3 contacts found.` Simple keywords use OR and ignore case. |
+| `find n/Alice Tan` | Alice Tan only; `1 contact found.` The value is a continuous phrase. |
+| `find r/gional supp t/tactile swi` | Alice Lee only. Role and tag substrings must both match. |
+| `find t/tactile t/keycap` | Alice Tan, Alice Lee, and Bob Tan, each once. Either tag phrase suffices. |
+| `find n/ali n/bob r/supp` | Alice Lee and Bob Tan. Name alternatives use OR; the role condition uses AND. |
+| `find NoSuchFindContact` | An empty list and `No contacts found.` |
+| `find n/Carol`, then `find n/Alice` | First Carol Lim, then both Alice contacts. Each search checks the whole contact book. |
+| `sort r/ n/`, then `find r/supp`, then `list` | Find shows Alice Lee, then Bob Tan. List restores Carol Lim, Alice Tan, Alice Lee, then Bob Tan in role-then-name order. |
+
+Before the error checks, run `find n/Alice Tan`. Each rejection must preserve that one-contact view.
 
 | Command | Expected feedback |
 |---------|-------------------|
 | `find` | `find requires at least one search criterion.` |
-| `find n/Alice r/` | `find requires a non-blank value after n/, r/, t/.` A blank prefix is rejected even when another value is present. |
+| `find n/Alice r/` | `find requires a non-blank value after n/, r/, t/.` |
 | `find Alice r/Supplier` | `find cannot mix unprefixed keywords with prefixed search values.` |
 | `find p/81009101` | `Unrecognized prefix(es) provided: p/.` |
 
-### Editing contact tags
+#### Sorting contacts {#sorting-contacts-1}
 
-Create a test contact with a unique phone number and email, for example `add n/TagEditExample p/12345678 e/tagedit@example.com a/Test Address r/Employee t/trainee t/supplier`. Run `find TagEditExample` and confirm this is the only result. Before each command below, run `find TagEditExample` again because a successful edit displays all contacts. Perform the cases in the order shown.
-
-Command | Expected result
---------|------------------
-`edit 1 t/solderer` | Tags become `trainee`, `supplier`, and `solderer`; other fields are preserved.
-`edit 1 dt/TRAINEE` | Tags become `supplier` and `solderer`.
-`edit 1 t/builder dt/solderer` | Tags become `supplier` and `builder`.
-`edit 1 n/Alex dt/supplier dt/trainee` | Missing-tag error for `trainee`. The name remains `TagEditExample`, both tags remain, and the filtered list is unchanged.
-`edit 1 t/builder dt/BUILDER` | Conflict error for `builder`; the contact and filtered list are unchanged.
-`edit 1 t/` and `edit 1 dt/` (separately) | Empty-tag error; the contact and filtered list are unchanged.
-`edit 1 dt/supplier dt/builder` | Both named tags are removed, leaving no tags.
-
-### Managing and viewing follow-ups
-
-Create a contact with a unique name, phone number, and email. Run `find` with that name so only the test contact is displayed. Use valid dates relative to the computer's current local date. Select the contact to inspect its follow-up in the right details panel; select it again after undo, redo, or restarting the application.
-
-Action | Expected result
--------|----------------
-Set a follow-up using `followup 1 by/DATE abt/Confirm quotation`. | The appropriate Follow-up, Due today, or Overdue badge appears; the details panel shows the date and description.
-Set another follow-up with a different date and description. | Both values replace the existing follow-up; the badge remains.
-Run `edit 1 r/Employee`, then find the test contact again. | The follow-up is preserved.
-Run `followups overdue` with a follow-up due yesterday, then today. | Yesterday's follow-up appears; today's does not.
-Run `followups by/DATE` using the follow-up's exact due date. | The contact appears because the cutoff is inclusive.
-Run `followups by/DATE overdue` or `followups by/DATE extra`. | An invalid command format error appears without changing the view.
-Find the test contact and run `followup 1 clear`. | The badge and follow-up details disappear; the contact remains, with no reserved badge space.
-Run `undo`, then `redo`. | The follow-up and badge are restored, then removed again.
-Try a missing field, duplicate prefix, impossible date, and invalid index. | An error appears without changing data or the view.
-Restart after setting a follow-up. | The saved follow-up is restored.
-Display a long description and resize the window. | Verify the full text remains accessible through vertical scrolling in the details panel.
-Set due dates for yesterday, today, and tomorrow. | The cards show Overdue, Due today, and Follow-up respectively, including at the minimum pane width.
-Leave the window open across local midnight, or return focus after sleep. | Within the next minute, or immediately on focus return, badge urgency and selected overdue details update while selection, scrolling, and draft input remain intact. Rerun any overdue query to refresh which contacts it includes.
-
-### Sorting contacts {#sorting-contacts-1}
-
-Use a disposable application copy in a separate folder: these tests replace saved contacts.
-Run `clear`, then `sort clear`, and enter these setup commands separately, in order:
+**Setup:** Run `clear`, then `sort clear`, then enter these commands separately in this order:
 
 ```text
 add n/Zoe p/81000001 e/zoe@sort.example.com a/Test Address r/Employee
@@ -1810,102 +1857,161 @@ add n/Alice p/81000003 e/alice.supplier@sort.example.com a/Test Address r/Suppli
 add n/alice p/81000004 e/alice.distributor@sort.example.com a/Test Address r/Distributor
 ```
 
-The roles distinguish the two Alice contacts. Run the rows below in order, entering each command separately.
-
-| Action / command | Expected result |
-|------------------|-----------------|
-| Run `sort` (also try `sort n/`). | Both Alice contacts appear before ben, then Zoe, ignoring case. Feedback: `Listed all contacts in sorted order.` |
-| Run `sort n/ r/`. | Order: alice (Distributor), Alice (Supplier), ben, Zoe. Role breaks the matching-name tie. |
-| Run `sort r/ n/`. | Order: alice (Distributor), Zoe, Alice (Supplier), ben. Name breaks the Supplier tie. |
-| Run `find r/Supplier`, then `sort n/`. | Find shows two Suppliers; sort reveals all four contacts in name order. |
-| Try `sort n/ n/`, `sort n/Alice`, and `sort t/`. | Each reports the specific problem: repeated field, unexpected value, or unsupported token. Contacts and sorting remain unchanged. |
-| Run `sort clear`. | Original insertion order is restored: Zoe, ben, Alice (Supplier), alice (Distributor). Feedback: `Sorting cleared. Contacts will be displayed in insertion order.` |
-| Run `clear`, then `sort n/`. | The list is empty. An informational message says the selected sort order will apply to contacts added later. |
-| Add Zoe and Alice (Supplier) using their setup commands, in that order. | Alice appears before Zoe, showing that sorting also applies to newly added contacts. |
-
-### Adding contacts with `add`
-
-Start a fresh application session using a disposable copy in a separate folder.
-Run `clear` to remove all contacts, then enter these commands in order.
-Where a row contains several commands, enter them separately.
-Each rejected request must leave the displayed list and stored contact data unchanged.
+The roles distinguish the two Alice contacts. Run the rows in order.
 
 | Command | Expected result |
 |---------|-----------------|
-| `add n/John Doe p/98765432 e/johnd@example.com a/311, Clementi Ave 2, #02-25 r/Supplier t/friends t/owesMoney` | Adds John Doe with role `Supplier` and tags `[friends][owesMoney]`. Feedback starts with `New person added: John Doe;`. |
-| `add n/David s\/o Muthu p/81001234 e/david@example.com a/Blk 456 Jurong r/R\/D Partner t/lubed\/filmed switches` | Decodes `\/` once. Adds David with name `David s/o Muthu`, role `R/D Partner`, and tag `[lubed/filmed switches]`. |
-| `add n/Jane Doe p/98765432 e/jane@example.com a/Test Address r/Employee` | Duplicate phone error: `This phone number already belongs to an existing contact.` |
-| `add n/Johnny Doe p/81009999 e/johnd@example.com a/Test Address r/Employee` | Duplicate email error: `This email address already belongs to an existing contact.` |
-| `add n/Jack Doe p/98765432 e/johnd@example.com a/Test Address r/Employee` | Duplicate phone and email error: `This phone number and email address are already used by existing contacts.` |
-| `add n/No Role p/81005555 e/norole@example.com a/Test Address` | Missing parameter error: `Missing mandatory parameter(s): r/.` |
-| `add n/David s/o Muthu p/81008888 e/david.unescaped@example.com a/Test Address r/Supplier` | Unescaped slash is recognized as an unknown prefix: `Unrecognized prefix(es) provided: s/.` |
-| `add n/Bad Phone p/12 e/badphone@example.com a/Test Address r/Supplier` | Phone number constraint error: `Phone numbers should only contain digits, and should be at least 3 digits long.` |
+| `sort`, then `sort n/` | Both Alice contacts precede ben, then Zoe. Do not assume an order between equal names without a second sort key. Feedback is `Listed all contacts in sorted order.` |
+| `sort n/ r/` | alice (Distributor), Alice (Supplier), ben, Zoe. |
+| `sort r/ n/` | alice (Distributor), Zoe, Alice (Supplier), ben. |
+| `find r/Supplier`, then `sort n/` | Find shows two Suppliers; sort reveals all four in name order. |
+| `sort n/ n/`, `sort n/Alice`, then `sort t/` | Errors identify the repeated field, unexpected value, and unsupported token. Contacts and the view stay unchanged. |
+| `find r/Supplier`, then `sort clear` | All four appear in insertion order: Zoe, ben, Alice (Supplier), alice (Distributor). Both filter and sorting are cleared. |
+| `clear`, then `sort n/` | The list is empty; feedback says the selected sort order will apply to contacts added later. |
+| Add Zoe and Alice (Supplier) using their setup commands, in that order. | Alice appears before Zoe: sorting also applies to newly added contacts. |
 
-### Undoing and redoing commands with `undo` and `redo`
+#### Selecting a contact
 
-Use a disposable application copy in a separate folder.
-Run `clear` to remove all contacts, then add one baseline contact:
+**Setup:** Reset to the four-contact fixture.
+
+| Command / action | Expected result |
+|------------------|-----------------|
+| `select 2` | Alice Lee is highlighted and shown in the right details panel; command input keeps focus. |
+| Scroll the details panel, then repeat `select 2`. | The same contact remains selected and the details panel keeps its reading position. If needed, add more test contacts to check that selecting a contact outside the visible list scrolls it into view. |
+| `find n/Bob`, then `select 1` | Bob Tan is selected, using the current search result's index. |
+| `sort n/`, then `select 1` | Alice Lee, the first contact in name order, is selected. |
+| `select`, `select 0`, `select -1`, `select abc`, `select 1 2`, then `select 5` | Appropriate errors appear; selection and details remain unchanged. |
+| `find NoSuchSelectContact`, then `select 1` | The empty-state prompt remains; feedback explains that no contacts are displayed. |
+| `list`, then `select 1`. Type a draft such as `find n/Ali` without submitting it, place the caret within it, and select part of the draft. Click a contact or details text, then press Escape. | Focus returns to command input with the draft, caret, and text selection preserved. Clicking a card updates the selected contact's details. |
+| With focus in the contact list, press Up/Down to move the selection. | The highlighted contact and details follow the selection. These keys do not recall earlier commands. |
+| If the list is scrollable, add a contact with wrapping tags and immediately select its displayed index. | The selected card scrolls into view after the updated layout; do not reuse an index from before a sort or edit. |
+
+#### Viewing contacts with follow-ups using `followups`
+
+**Setup:** Reset to the four-contact fixture. Enter these commands separately:
+
+```text
+followup 1 by/2000-01-01 abt/Old quotation
+followup 2 by/9999-12-31 abt/Future quotation
+```
+
+For the overdue expectations below, the computer's local date must be after 2000-01-01 and before
+9999-12-31. These fixed dates avoid changing the commands each day.
+
+| Command | Expected result |
+|---------|-----------------|
+| `followups` | Alice Tan and Alice Lee; `2 follow-ups found.` Bob and Carol have no follow-ups. |
+| `followups overdue` | Alice Tan only; `1 follow-up found.` |
+| `followups by/2000-01-01` | Alice Tan is included on the exact cutoff date. |
+| `find n/Carol`, then `followups` | Both Alice contacts return: the query replaces the previous filter and checks all contacts. |
+| `sort n/`, then `followups` | Alice Lee precedes Alice Tan; the query retains sorting. |
+| `followups by/2000-01-01 overdue`, `followups overdue by/2000-01-01`, then `followups by/2000-01-01 extra` | Each is rejected without changing the previous two-contact view. Modes cannot be combined. |
+| `followups by/2000-02-30` | Invalid-date error; the view is unchanged. |
+| `find n/Alice Tan`, then `followup 1 clear`, then `followups overdue` | No overdue contacts remain; feedback is `No follow-ups found.` |
+
+### Undo and redo {#manual-undo-and-redo}
+
+#### Undoing and redoing commands with `undo` and `redo`
+
+**Setup:** In the disposable test copy, run `clear`, `sort clear`, then `exit`. Relaunch from the
+same folder so the session starts with the saved **empty** book and no earlier history. This restart
+is necessary: simply clearing the sample contacts leaves an undoable clear in the same session.
+Add the baseline contact:
 
 ```text
 add n/Alice p/81000001 e/alice@undo.example.com a/Test Address r/Employee
 ```
 
-Run the commands below in order. Where a row contains several commands, enter them separately.
-
 | Command | Expected result |
 |---------|-----------------|
-| `delete 1` | Alice is deleted; the contact list becomes empty. |
-| `undo` | `Undo success!` Alice is restored at index 1. |
-| `redo` | `Redo success!` Alice is deleted again. |
-| `undo` | `Undo success!` Alice is restored at index 1. |
+| `delete 1`, then `undo` | Alice is deleted, then restored; undo reports `Undo success!`. |
+| `redo`, then `undo` | Alice is deleted again, then restored. |
 | `add n/Bob p/81000002 e/bob@undo.example.com a/Test Address r/Supplier` | Bob is added at index 2. |
-| `followup 2 by/2026-12-01 abt/Inventory check` | Bob's follow-up is set. The Follow-up badge appears on Bob's card. |
-| `undo` | `Undo success!` Bob's follow-up is removed; Alice and Bob remain. |
-| `undo` | `Undo success!` Bob is removed; only Alice remains. |
-| `redo` | `Redo success!` Bob is restored at index 2. |
-| `redo` | `Redo success!` Bob's follow-up is restored. |
-| `undo` | `Undo success!` Bob's follow-up is removed again. |
-| `add n/Charlie p/81000003 e/charlie@undo.example.com a/Test Address r/Service Provider` | Charlie is added. This modifying command purges the redo branch. |
-| `redo` | `No more commands to redo!` Redo history was cleared when Charlie was added. |
-| `find Alice`, `list`, then `help` | Filter shows Alice, list restores all contacts, help window opens. These non-modifying commands do not change undo history. |
-| `undo` | `Undo success!` Charlie is removed; Alice and Bob remain. |
-| `undo` | `Undo success!` Bob is removed; only Alice remains. |
-| `undo` | `Undo success!` Alice is removed; the list becomes empty (reversing baseline setup). |
-| `undo` | `No more commands to undo!` |
-| `undo 2`, then `redo 2` | Each is rejected with invalid command format; history and contacts remain unchanged. |
+| `followup 2 by/2000-01-01 abt/Inventory check` | Bob's follow-up is set, with the badge appropriate to the local date. |
+| `undo`, then `undo` | First Bob's follow-up is removed; then Bob is removed, leaving Alice. |
+| `redo`, then `redo` | First Bob returns at index 2; then his follow-up returns. |
+| `undo`, then `add n/Charlie p/81000003 e/charlie@undo.example.com a/Test Address r/Service Provider` | Bob's follow-up is removed, then Charlie is added. The new commit discards the redo branch. |
+| `redo` | `No more commands to redo!` |
+| `find Alice`, `sort n/`, `select 1`, `list`, then `help select` | Browsing, selection, and contextual help do not add history snapshots. |
+| `undo` | Charlie is removed. Alice and Bob remain; all contacts are shown, selection clears, and name sorting is retained. |
+| `undo`, then `undo` | Bob is removed, then Alice is removed. The list is empty. |
+| `undo` | `No more commands to undo!` The restart makes this boundary reproducible. |
+| `clear`, then `redo` | Empty clear adds no snapshot and preserves redo; Alice is restored. |
+| `undo 2`, then `redo 2` | Invalid-command-format errors; contacts and history remain unchanged. |
+| Restart, then run `undo` and `redo`. | Alice remains saved, but both commands report that no more changes can be undone/redone: session history is not persisted. |
 
-### Viewing contextual help with `help`
+### Application commands {#manual-application-commands}
 
-Start with the application open. Commands can be run in any order.
+#### Viewing contextual help with `help`
 
-| Command | Expected result |
-|---------|-----------------|
-| `help add` | Result display shows `add` command description, parameters, and example. No popup window opens. |
-| `help followup` | Result display shows `followup` command description, parameters, and example. No popup window opens. |
-| `help select` | Result display shows `select` command description, parameters, and example. No popup window opens. |
-| `help sort` | Result display shows `sort` command description, parameters, and example. No popup window opens. |
-| `help exit` | Result display shows `exit` command description without parameters. No popup window opens. |
-| `help` | The full Help window opens, displaying all commands grouped by category (`Manage contacts`, `Browse contacts`, `Undo and redo`, `Application`). Result display shows `Opened help window.`. |
-| `help unknowncommand` | Result display shows `No command-specific help is available for 'unknowncommand'.` and lists supported commands. No window opens. |
-| `help add extra` | Syntax error: `Specify only one command after help.`. No window opens. |
+**Setup:** Any running test session with a writable data folder. Select a contact first if one exists.
+
+| Command / action | Expected result |
+|------------------|-----------------|
+| `help add`, `help followup`, `help select`, then `help sort` | Each displays the relevant description, parameters, and examples in command feedback. No Help window opens; contact selection remains unchanged. |
+| `help exit` | Contextual feedback describes exit without parameters; no Help window opens. |
+| `help` | The full Help window opens, grouped into Manage contacts, Browse contacts, Undo and redo, and Application. Feedback is `Opened help window.` |
+| Close the Help window, then run `help unknowncommand`. | Feedback states `No command-specific help is available for 'unknowncommand'.` and lists supported commands; no Help window opens. |
+| `help add extra` | `Specify only one command after help.` No Help window opens. |
+| With networking disconnected, run `help` and a contextual help command. | Local help content remains available. The external online User Guide link requires a network connection. |
+
+#### Exiting with `exit`
+
+**Setup:** Use a writable test folder; create or edit a test contact before exiting.
+
+| Command / action | Expected result |
+|------------------|-----------------|
+| `exit`, then relaunch from the same folder. | The application closes and the latest saved contact data reloads. |
+| `exit extra`, then relaunch. | The application still exits. Before closing, feedback warns that additional arguments were ignored; saved data remains available. |
 
 ### Saving data
 
-1. Dealing with missing/corrupted data files
+Use the disposable test folder for all file changes below. Close the app before editing JSON,
+except for the deliberately blocked-save checks. Restore normal file access before continuing.
 
-   1. Missing data file
-      1. Prerequisites: Close the application. Delete `data/addressbook.json` if it exists.
-      1. Test case: Launch the application.<br>
-         Expected: The application starts normally and creates a new `data/addressbook.json` file populated with sample contact data. No backup file is created.
+#### Saving and loading a complete contact book
 
-   1. Corrupted data file
-      1. Prerequisites: Close the application. Open `data/addressbook.json` in a text editor and corrupt its content (e.g., enter `{ invalid json content }` or delete required closing brackets).
-      1. Test case: Launch the application.<br>
-         Expected: The application starts with an empty contact list. A timestamped backup file named `data/addressbook.json.backup.YYYYMMDD_HHMMSS` (or with a `_1`, `_2` suffix if a file with the same name already exists) is created in the `data/` folder with the exact corrupted content. A warning message appears in the result display stating that the file is corrupted, identifying the backup path, and indicating that the application started with an empty contact book.
+**Setup:** Reset to the four-contact fixture, then run `followup 1 by/2000-01-01 abt/Persistence check`.
 
-   1. Corrupted data file with failed backup (e.g., write-protected folder)
-      1. Prerequisites: Close the application. Corrupt `data/addressbook.json` and make the `data/` directory read-only to prevent writing new files.
-      1. Test case: Launch the application.<br>
-         Expected: The application starts with an empty contact list. A warning message appears in the result display stating that the data file is corrupted and creating a backup failed.
+| Command / action | Expected result |
+|------------------|-----------------|
+| `sort n/`, then `find n/Alice`, then `select 1`. Inspect the saved JSON without editing it. | All four contacts are stored in insertion order, including hidden Bob and Carol and Alice Tan's follow-up. The displayed sorting and filter do not reorder or restrict the saved book. |
+| `exit`, then relaunch. | All four contacts appear in insertion order with no filter or selection; Alice Tan's follow-up persists. Select Alice Tan to inspect its date and description. |
+| `undo`, then `redo` | Both report no available history; snapshots, the history pointer, filters, sorting, and selection are not persisted. |
 
-1. _{ more test cases …​ }_
+#### Startup recovery
+
+Run each case independently with the application closed and a separate copy of the test files.
+For recovery cases, inspect or preserve the backup/original **before entering any command**:
+a successful command, including `list` or `exit`, can save the empty fallback over the contact-data file.
+Close using the window close button if you need to stop without requesting a contact-data save.
+
+| Setup and action | Expected result |
+|------------------|-----------------|
+| Move `data/addressbook.json` out of the test folder, then launch. | Six sample contacts load into memory; no contact-data backup or new contact-data JSON is created at startup. Run `list` to create the JSON with those samples. |
+| Replace the test JSON content with `{ invalid json content }`, then launch. | An empty contact book opens. A warning identifies the bad file and backup path. A sibling named `addressbook.json.backup.YYYYMMDD_HHMMSS` preserves the exact invalid content; a collision adds a suffix such as `_1`. |
+| In a valid four-contact JSON, replace one contact's phone with `12`, then launch. | The whole contact file is rejected, rather than loading the other three records. An empty book and recovery warning appear; the bad file is backed up if possible. |
+| Corrupt the contact JSON and use the OS's access controls to prevent the test account from creating files in `data/`, then launch. | If access is actually denied, startup still uses an empty book; the warning also reports backup failure. Restore access before further commands. A directory's read-only checkbox alone may not deny writes on every OS. |
+| Corrupt `preferences.json` while keeping contact JSON valid, then launch. | The app attempts a timestamped preferences backup, uses default preferences, and attempts to save the defaults. Contact data still loads normally. |
+| Corrupt both JSON files, then launch. | The initial feedback includes both recovery warnings. Each backup attempt is independent. |
+
+#### Save failures after commands
+
+**Setup for each row:** Reset to the four-contact fixture. Keep the app running. Move the saved
+`data/addressbook.json` to a safe location in the test folder, then put a **non-empty directory**
+named `addressbook.json` in its place (for example, containing `blocker.txt`). This prevents
+replacement with the contact JSON without relying on OS-specific read-only flags. Do not restart
+while this blocker is in place.
+
+After each row, move the blocker directory aside and restore the original JSON file to its path.
+Run `list` to retry saving the current in-memory state; only then close or restart the application.
+The temporarily moved file is a test fixture, rather than an application-generated backup.
+
+| Command | Expected result while saving is blocked |
+|---------|-----------------------------------------|
+| `add n/SaveFailure p/81009998 e/savefailure@example.com a/Test Address r/Employee` | Save-error feedback appears. The new contact is rolled back; all four original contacts remain and no new history state remains. |
+| `undo` | Save-error feedback appears, but the undo remains applied in memory: Carol Lim, the last fixture addition, is removed. After restoring the file path, `list` saves the three-contact state; `redo` can restore Carol. |
+| `find n/Alice` | Save-error feedback appears, but the two-contact filter remains applied. No contact-data snapshot was added. |
+
+These checks cover in-memory failure handling. They do not establish crash or power-loss durability;
+see [Atomic file persistence](#atomic-file-persistence) and NFR13 for the filesystem limitation.
