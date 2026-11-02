@@ -172,4 +172,25 @@ public class MainAppTest {
         assertTrue(warningMessage.contains("creating a backup failed: Disk failure during prefs backup"));
         assertTrue(warningMessage.endsWith("Using default preferences."));
     }
+
+    @Test
+    public void init_bothPrefsAndDataCorrupted_setsCombinedWarning() throws Exception {
+        Path corruptedPrefsPath = testFolder.resolve("dual_corrupted_prefs.json");
+        Path corruptedDataPath = testFolder.resolve("dual_corrupted_data.json");
+        Files.writeString(corruptedPrefsPath, "invalid prefs content");
+        Files.writeString(corruptedDataPath, "invalid data content");
+
+        JsonUserPrefsStorage prefsStorage = new JsonUserPrefsStorage(corruptedPrefsPath);
+        JsonAddressBookStorage dataStorage = new JsonAddressBookStorage(corruptedDataPath);
+        StorageManager storageManager = new StorageManager(dataStorage, prefsStorage);
+
+        UserPrefs initializedPrefs = mainApp.initPrefs(prefsStorage);
+        mainApp.initModelManager(storageManager, initializedPrefs);
+
+        String warningMessage = mainApp.getInitialStatusMessage();
+        assertTrue(warningMessage != null && !warningMessage.isBlank());
+        assertTrue(warningMessage.contains("Warning: Preference file "));
+        assertTrue(warningMessage.contains("Warning: Data file "));
+        assertTrue(warningMessage.contains("\n"));
+    }
 }

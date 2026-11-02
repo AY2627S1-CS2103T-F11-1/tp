@@ -66,6 +66,12 @@ public class MainApp extends Application {
         return initialStatusMessage;
     }
 
+    private void appendInitialStatusMessage(String message) {
+        initialStatusMessage = initialStatusMessage == null
+                ? message
+                : initialStatusMessage + "\n" + message;
+    }
+
     /**
      * Returns a {@code ModelManager} with the data from {@code storage}'s address book and {@code userPrefs}. <br>
      * The data from the sample address book will be used instead if {@code storage}'s address book is not found,
@@ -95,17 +101,13 @@ public class MainApp extends Application {
                             "Warning: Data file %1$s is corrupted. A backup was created at %2$s. "
                                     + "Starting with an empty contact book.", filePath, backupPath);
                     logger.warning(dataWarning);
-                    initialStatusMessage = initialStatusMessage == null
-                            ? dataWarning
-                            : initialStatusMessage + "\n" + dataWarning;
+                    appendInitialStatusMessage(dataWarning);
                 } catch (IOException ioe) {
                     String dataWarning = String.format(
                             "Warning: Data file %1$s is corrupted, and creating a backup failed: %2$s. "
                                     + "Starting with an empty contact book.", filePath, ioe.getMessage());
                     logger.severe(dataWarning);
-                    initialStatusMessage = initialStatusMessage == null
-                            ? dataWarning
-                            : initialStatusMessage + "\n" + dataWarning;
+                    appendInitialStatusMessage(dataWarning);
                 }
             }
         }
@@ -132,26 +134,23 @@ public class MainApp extends Application {
         } catch (DataLoadingException e) {
             initializedPrefs = new UserPrefs();
             if (Files.exists(prefsFilePath)) {
-                String causeMessage = e.getCause() != null && e.getCause().getMessage() != null
+                String rawCause = e.getCause() != null && e.getCause().getMessage() != null
                         ? e.getCause().getMessage()
                         : e.getMessage();
+                String causeMessage = (rawCause != null && !rawCause.isBlank()) ? rawCause : "unrecognized format";
                 try {
                     Path backupPath = storage.backupUserPrefsFile();
                     String prefsWarning = String.format(
                             "Warning: Preference file %1$s is corrupted (%2$s). A backup was created at %3$s. "
                                     + "Using default preferences.", prefsFilePath, causeMessage, backupPath);
                     logger.warning(prefsWarning);
-                    initialStatusMessage = initialStatusMessage == null
-                            ? prefsWarning
-                            : initialStatusMessage + "\n" + prefsWarning;
+                    appendInitialStatusMessage(prefsWarning);
                 } catch (IOException ioe) {
                     String prefsWarning = String.format(
                             "Warning: Preference file %1$s is corrupted (%2$s), and creating a backup failed: %3$s. "
                                     + "Using default preferences.", prefsFilePath, causeMessage, ioe.getMessage());
                     logger.severe(prefsWarning);
-                    initialStatusMessage = initialStatusMessage == null
-                            ? prefsWarning
-                            : initialStatusMessage + "\n" + prefsWarning;
+                    appendInitialStatusMessage(prefsWarning);
                 }
             } else {
                 logger.warning("Preference file at " + prefsFilePath + " could not be loaded."

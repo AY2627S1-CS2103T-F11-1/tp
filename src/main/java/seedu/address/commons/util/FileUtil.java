@@ -2,12 +2,15 @@ package seedu.address.commons.util;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Writes and reads files
@@ -93,6 +96,37 @@ public class FileUtil {
         } finally {
             Files.deleteIfExists(tempFile);
         }
+    }
+
+    /**
+     * Creates a timestamped backup of the file at the specified {@code filePath}.
+     *
+     * @param filePath location of the file to back up. Cannot be null.
+     * @return the {@code Path} of the created backup file.
+     * @throws IOException if an error occurs while creating the backup.
+     */
+    public static Path createTimestampedBackup(Path filePath) throws IOException {
+        requireNonNull(filePath);
+
+        if (!Files.exists(filePath)) {
+            throw new FileNotFoundException("Cannot backup non-existent file: " + filePath);
+        }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+        String timestamp = LocalDateTime.now().format(formatter);
+        String baseBackupName = filePath.getFileName().toString() + ".backup." + timestamp;
+        Path parent = filePath.getParent();
+        Path backupPath = parent == null ? Path.of(baseBackupName) : parent.resolve(baseBackupName);
+
+        int counter = 1;
+        while (Files.exists(backupPath)) {
+            String collisionName = baseBackupName + "_" + counter;
+            backupPath = parent == null ? Path.of(collisionName) : parent.resolve(collisionName);
+            counter++;
+        }
+
+        Files.copy(filePath, backupPath);
+        return backupPath;
     }
 
 }
