@@ -1287,6 +1287,189 @@ Argument and index errors leave contact data, the displayed view, and undo/redo 
 
     Use case ends.
 
+**Use Case: UC8 - Set a Follow-up**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running and a contact list is displayed.
+
+**MSS**
+
+1. User requests to set a follow-up on a specific contact by specifying its displayed index, a due date, and a description.
+2. `KeyBossWarriorsPro` attaches the follow-up to the contact, updates the displayed details, saves the address book to disk, and displays a success confirmation.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The request has missing, multiple, or malformed index arguments.
+
+  * 1a1. `KeyBossWarriorsPro` explains the input error.
+
+    Use case ends.
+
+* 1b. The request has a valid positive index, but no contacts are currently displayed.
+
+  * 1b1. `KeyBossWarriorsPro` informs the user that no contacts are currently displayed.
+
+    Use case ends.
+
+* 1c. The request has a valid positive index that is beyond the range of the displayed list.
+
+  * 1c1. `KeyBossWarriorsPro` explains the valid index range.
+
+    Use case ends.
+
+* 1d. The request is missing mandatory `by/` or `abt/` prefixes, contains duplicate prefixes, or supplies unrecognized prefixes.
+
+  * 1d1. `KeyBossWarriorsPro` displays an invalid command format error showing the correct usage.
+
+    Use case ends.
+
+* 1e. The provided due date is not in `YYYY-MM-DD` format or is not a valid calendar date.
+
+  * 1e1. `KeyBossWarriorsPro` displays a date format constraint error.
+
+    Use case ends.
+
+* 1f. The provided description is blank or exceeds 200 characters.
+
+  * 1f1. `KeyBossWarriorsPro` displays a description constraint error.
+
+    Use case ends.
+
+**Use Case: UC9 - Remove a Follow-up**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running and a contact list is displayed.
+
+**MSS**
+
+1. User requests to clear an existing follow-up by specifying the displayed index of the contact using `followup INDEX clear`.
+2. `KeyBossWarriorsPro` clears the follow-up from the contact, updates the displayed details, saves the change to disk, and displays a confirmation message.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The request has missing, multiple, or malformed index arguments.
+
+  * 1a1. `KeyBossWarriorsPro` explains the input error.
+
+    Use case ends.
+
+* 1b. The request has a valid positive index, but no contacts are currently displayed.
+
+  * 1b1. `KeyBossWarriorsPro` informs the user that no contacts are currently displayed.
+
+    Use case ends.
+
+* 1c. The request has a valid positive index that is beyond the range of the displayed list.
+
+  * 1c1. `KeyBossWarriorsPro` explains the valid index range.
+
+    Use case ends.
+
+* 1d. The request contains extraneous arguments or invalid syntax after `clear`.
+
+  * 1d1. `KeyBossWarriorsPro` displays an invalid command format error.
+
+    Use case ends.
+
+* 1e. The specified contact does not have an active follow-up to clear.
+
+  * 1e1. `KeyBossWarriorsPro` displays an error informing the user that the contact has no follow-up to clear.
+
+    Use case ends.
+
+**Use Case: UC10 - View Follow-ups**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running.
+
+**MSS**
+
+1. User requests to view contacts with follow-ups using `followups` (optionally specifying `overdue` or `by/DUE_DATE`).
+2. `KeyBossWarriorsPro` filters and displays all contacts matching the follow-up query.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The request contains invalid arguments or malformed date values.
+
+  * 1a1. `KeyBossWarriorsPro` displays an error message indicating the invalid format or date constraint.
+
+    Use case ends.
+
+* 1b. The request contains extraneous arguments (e.g., additional trailing words after `overdue`).
+
+  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
+
+    Use case ends.
+
+* 2a. No contacts match the follow-up query (or no contacts have follow-ups).
+
+  * 2a1. `KeyBossWarriorsPro` displays an empty list and informs the user that no follow-ups were found.
+
+    Use case ends.
+
+**Use Case: UC11 - Undo a Command**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running.
+
+**MSS**
+
+1. User requests to undo the most recent modifying command.
+2. `KeyBossWarriorsPro` reverts the address book state to the previous snapshot, saves the address book to disk, resets the view to show all contacts, and displays a success confirmation.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The undo history is empty (no modifying commands have been executed in the current session, or all changes have already been undone).
+
+  * 1a1. `KeyBossWarriorsPro` displays an error message indicating there are no more commands to undo.
+
+    Use case ends.
+
+* 1b. The user supplies additional arguments to `undo` (e.g., `undo 2`).
+
+  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
+
+    Use case ends.
+
+**Use Case: UC12 - Redo a Command**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running.
+
+**MSS**
+
+1. User requests to redo the previously undone command.
+2. `KeyBossWarriorsPro` restores the undone state, saves the address book to disk, resets the view to show all contacts, and displays a success confirmation.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The redo history is empty (no undone commands exist to redo, or a new modifying command was executed after an undo).
+
+  * 1a1. `KeyBossWarriorsPro` displays an error message indicating there are no more commands to redo.
+
+    Use case ends.
+
+* 1b. The user supplies additional arguments to `redo` (e.g., `redo 2`).
+
+  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
+
+    Use case ends.
+
 ### Non-Functional Requirements
 
 1.  **Operating Environment:** Should work on any _mainstream OS_ (Windows 10/11, macOS, Linux) as long as it has Java `25` or above installed.
