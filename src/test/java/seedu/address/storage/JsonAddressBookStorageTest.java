@@ -90,7 +90,7 @@ public class JsonAddressBookStorageTest {
     }
 
     @Test
-    public void readAddressBook_nullRootAddressBook_throwDataLoadingException() {
+    public void readAddressBook_nullRootAddressBook_throwsDataLoadingException() {
         assertThrows(DataLoadingException.class, () -> readAddressBook("nullRootAddressBook.json"));
     }
 

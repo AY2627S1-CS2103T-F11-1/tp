@@ -49,9 +49,16 @@ public class JsonUserPrefsStorageTest {
     }
 
     @Test
-    public void readUserPrefs_nullGuiSettings_returnsDefaults() throws DataLoadingException {
+    public void readUserPrefs_nullGuiSettings_returnsDefaults() throws Exception {
         UserPrefs actual = readUserPrefs("NullGuiSettingsUserPrefs.json").get();
         assertEquals(new GuiSettings(), actual.getGuiSettings());
+        assertEquals(new UserPrefs(), actual);
+
+        Path tempFile = testFolder.resolve("reSavedPrefs.json");
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(tempFile);
+        storage.saveUserPrefs(actual);
+        UserPrefs reloaded = storage.readUserPrefs().get();
+        assertEquals(new UserPrefs(), reloaded);
     }
 
     private Path addToTestDataPathIfNotNull(String userPrefsFileInTestDataFolder) {

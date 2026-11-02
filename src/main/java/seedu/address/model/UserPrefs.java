@@ -4,6 +4,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import seedu.address.commons.core.GuiSettings;
 
 /**
@@ -19,11 +22,19 @@ public class UserPrefs implements ReadOnlyUserPrefs {
     public UserPrefs() {}
 
     /**
+     * Creates a {@code UserPrefs} with the given {@code guiSettings}.
+     */
+    @JsonCreator
+    public UserPrefs(@JsonProperty("guiSettings") GuiSettings guiSettings) {
+        this.guiSettings = guiSettings != null ? guiSettings : new GuiSettings();
+    }
+
+    /**
      * Creates a {@code UserPrefs} with the prefs in {@code userPrefs}.
      */
     public UserPrefs(ReadOnlyUserPrefs userPrefs) {
         requireNonNull(userPrefs);
-        setGuiSettings(userPrefs.getGuiSettings() != null ? userPrefs.getGuiSettings() : new GuiSettings());
+        setGuiSettings(userPrefs.getGuiSettings());
     }
 
     public GuiSettings getGuiSettings() {
@@ -46,17 +57,17 @@ public class UserPrefs implements ReadOnlyUserPrefs {
             return false;
         }
 
-        return guiSettings.equals(otherUserPrefs.guiSettings);
+        return getGuiSettings().equals(otherUserPrefs.getGuiSettings());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(guiSettings);
+        return Objects.hash(getGuiSettings());
     }
 
     @Override
     public String toString() {
-        return "Gui Settings : " + guiSettings;
+        return "Gui Settings : " + getGuiSettings();
     }
 
 }
