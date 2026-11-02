@@ -2,7 +2,7 @@
 
 [![Java CI](https://github.com/AY2627S1-CS2103T-F11-1/tp/actions/workflows/gradle.yml/badge.svg)](https://github.com/AY2627S1-CS2103T-F11-1/tp/actions/workflows/gradle.yml)
 
-![Ui](docs/images/Ui.png)
+![Ui](docs/images/UpdatedUi.png)
 
 ## About
 KeyBossWarriorsPro is a desktop application for managing contacts for an artisan keyboard shop. It helps users keep track of suppliers, employees, customers, and other personal contacts, with support for organizing and finding contacts using tags.

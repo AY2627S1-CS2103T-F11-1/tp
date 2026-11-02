@@ -1,0 +1,47 @@
+@startuml
+skin rose
+skinparam ActivityFontSize 15
+skinparam ArrowFontSize 12
+skinparam Shadowing false
+
+start
+
+partition FindCommandParser {
+    :Validate and normalise input;
+    note right
+        Invalid input:
+        * Missing search criteria
+        * Unrecognised prefixes
+        * Blank prefix values
+        * Unprefixed text before a prefix
+    end note
+
+    if () then ([invalid input])
+        :Throw ParseException\nwith specific feedback;
+        stop
+    else ([valid input])
+    endif
+
+    if () then ([supported prefixes (n/, r/, t/) present])
+        :(Prefixed Search)\nCreate one predicate per supplied prefix type,\ncontaining all phrases for that type;
+        note left
+            For example, n/Alice n/Bob creates
+            one NameContainsKeywordsPredicate
+            containing ["Alice", "Bob"].
+        end note
+    else ([no supported prefixes])
+        :(Unprefixed Name-Only Search)\nSplit input on whitespace (e.g. spaces)\ninto separate keywords;
+        :Create one NameContainsKeywordsPredicate\ncontaining all keywords;
+    endif
+
+    :Return FindCommand\ncontaining the created predicates;
+}
+
+partition FindCommand {
+    :Create a filter requiring every\nsupplied predicate to match;
+    :Replace the displayed contact filter\nusing Model.updateFilteredPersonList();
+    :Return CommandResult\nwith search feedback;
+}
+
+stop
+@enduml
