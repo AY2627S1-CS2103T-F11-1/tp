@@ -5,7 +5,7 @@ title: Chester Wong's Project Portfolio Page
 
 ### Project: KeyBossWarriorsPro
 
-KeyBossWarriorsPro is a specialized desktop contact and vendor management application tailored for Artisan Mechanical Keyboard Shop Managers. The user interacts with it primarily through a Command Line Interface (CLI), complemented by a Graphical User Interface (GUI) created with JavaFX. It is written in Java and maintained by Team CS2103T-F11-1.
+KeyBossWarriorsPro is a desktop contact management application tailored for Artisan Mechanical Keyboard Shop Managers. It combines a fast Command Line Interface (CLI) with a JavaFX Graphical User Interface (GUI).
 
 Given below are my contributions to the project.
 
