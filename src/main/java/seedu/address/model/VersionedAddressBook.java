@@ -11,6 +11,7 @@ public class VersionedAddressBook extends AddressBook {
 
     private final List<ReadOnlyAddressBook> addressBookStateList;
     private int currentStatePointer;
+    private final List<ReadOnlyAddressBook> discardedRedoStates = new ArrayList<>();
 
     /**
      * Creates a {@code VersionedAddressBook} using the given {@code initialState}.
@@ -28,6 +29,9 @@ public class VersionedAddressBook extends AddressBook {
      * Undone states after the current pointer are removed from the state list.
      */
     public void commit() {
+        discardedRedoStates.clear();
+        discardedRedoStates.addAll(
+                addressBookStateList.subList(currentStatePointer + 1, addressBookStateList.size()));
         removeStatesAfterCurrentPointer();
         addressBookStateList.add(new AddressBook(this));
         currentStatePointer++;
@@ -44,6 +48,7 @@ public class VersionedAddressBook extends AddressBook {
         if (!canUndo()) {
             throw new NoUndoableStateException();
         }
+        discardedRedoStates.clear();
         currentStatePointer--;
         resetData(addressBookStateList.get(currentStatePointer));
     }
@@ -55,6 +60,7 @@ public class VersionedAddressBook extends AddressBook {
         if (!canRedo()) {
             throw new NoRedoableStateException();
         }
+        discardedRedoStates.clear();
         currentStatePointer++;
         resetData(addressBookStateList.get(currentStatePointer));
     }
@@ -69,6 +75,8 @@ public class VersionedAddressBook extends AddressBook {
         currentStatePointer--;
         resetData(addressBookStateList.get(currentStatePointer));
         removeStatesAfterCurrentPointer();
+        addressBookStateList.addAll(discardedRedoStates);
+        discardedRedoStates.clear();
     }
 
     /**
