@@ -1189,19 +1189,40 @@ This version has no built-in archiving command. Use the [backup instructions](#b
 
 ## Command summary
 
-Action | Format, Examples
---------|------------------
-**Add** | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…​` <br> e.g., `add n/James Ho p/22224444 e/jamesho@example.com a/123, Clementi Rd, 1234665 r/Supplier t/friend t/colleague`
-**Clear** | `clear`
-**Delete** | `delete INDEX`<br> e.g., `delete 3`
-**Edit** | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]…​ [dt/TAG_TO_DELETE]…​`<br> e.g., `edit 1 t/solderer dt/trainee` (requires contact 1 to have `trainee`)
-**Exit** | `exit` 
-**Find** | `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...`<br>or `find KEYWORD [MORE_KEYWORDS]` (legacy search)<br>e.g., `find n/John r/Supplier`, `find James Jake`
-**Help** | `help [COMMAND]`<br>e.g., `help add` displays the `add` command's usage in the result display.<br>`help` opens the full help window.
-**List** | `list`
-**Select** | `select INDEX`<br> e.g., `select 2` displays the second currently listed contact's details.
-**Redo** | `redo`
-**Undo** | `undo`
-**Follow-up** | `followup INDEX by/DUE_DATE abt/DESCRIPTION` or `followup INDEX clear`<br> e.g., `followup 1 by/2026-11-01 abt/Confirm quotation`
-**Follow-up queries** | `followups`, `followups overdue`, or `followups by/DUE_DATE`<br> e.g., `followups by/2026-11-01`
-**Sort** | `sort [n/] [r/]`
+Use this quick reference to choose a command. Follow a command name for its full instructions, input rules, and examples.
+`INDEX` always refers to the [currently displayed list](#command-conventions), including filtered or sorted results.
+Square brackets mark optional parts; `…` marks repetition. Do not type these notation symbols.
+
+**Manage contacts**
+
+Command | Format | Key points
+--------|--------|-----------
+[`add`](#adding-a-contact-add) | `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…` | All five contact fields are required. Repeat `t/` for multiple tags. Displays all contacts after adding.
+[`edit`](#editing-a-contact-edit) | `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]… [dt/TAG_TO_DELETE]…` | Supply at least one change. `t/` adds tags; `dt/` removes existing tags. Displays all contacts after editing.
+[`followup`](#managing-a-contacts-follow-up-followup) | `followup INDEX by/DUE_DATE abt/DESCRIPTION`<br>`followup INDEX clear` | Setting requires both fields and replaces the existing follow-up. Clearing requires an existing follow-up and keeps the contact.
+[`delete`](#deleting-a-contact-delete) | `delete INDEX` | Deletes one displayed contact immediately, without confirmation. Check its current index first.
+[`clear`](#clearing-all-contacts-clear) | `clear` | Deletes **all contacts**, including hidden contacts, immediately and without confirmation. Use `undo` before closing to reverse the change.
+
+**Browse contacts**
+
+Command | Format | Key points
+--------|--------|-----------
+[`list`](#listing-all-contacts-list) | `list` | Clears the active filter and shows all contacts. Retains sorting.
+[`find`](#locating-contacts-find) | `find [n/NAME_PHRASE]… [r/ROLE_PHRASE]… [t/TAG_PHRASE]…`<br>`find NAME_KEYWORD [NAME_KEYWORD]…` | Supply at least one criterion; do not mix modes. Prefixed search uses OR within a prefix and AND across prefixes. Simple name search matches any keyword.
+[`sort`](#sorting-all-contacts-sort) | `sort`<br>`sort n/`<br>`sort r/`<br>`sort n/ r/`<br>`sort r/ n/`<br>`sort clear` | No arguments means name order. The first field takes priority; each field appears at most once and takes no value. Every variant shows all contacts. `sort clear` restores insertion order.
+[`select`](#selecting-a-contact-select) | `select INDEX` | Shows one displayed contact's full details without changing the filter or sorting.
+[`followups`](#viewing-contacts-with-follow-ups-followups) | `followups`<br>`followups overdue`<br>`followups by/DUE_DATE` | Choose one mode. Searches all contacts and retains sorting. Overdue excludes today; the date cutoff includes the specified date. Dates use `YYYY-MM-DD`.
+
+**Undo and redo**
+
+Command | Format | Key points
+--------|--------|-----------
+[`undo`](#undoing-a-change-undo) | `undo` | Reverses one modifying command from the current session. Shows all contacts and clears selection.
+[`redo`](#redoing-a-change-redo) | `redo` | Reapplies one undone change. A new successful modifying command discards remaining redo history. Shows all contacts and clears selection.
+
+**Application**
+
+Command | Format | Key points
+--------|--------|-----------
+[`help`](#viewing-help-help) | `help [COMMAND]` | Omit `COMMAND` for the full Help window; supply one supported command name for targeted help.
+[`exit`](#exiting-the-program-exit) | `exit` | Closes the application and clears undo/redo history.
