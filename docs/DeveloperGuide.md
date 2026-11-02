@@ -1314,475 +1314,296 @@ _{Explain here how the data archiving feature will be implemented}_
 
 ### Product scope
 
+**Baseline:** This appendix describes the current working implementation, referred to as **v1.6**.
+It does not imply that v1.6 has been released on GitHub. Coverage statements below describe the source;
+they are not a claim that every acceptance or platform test has passed.
+
 **Target user profile**:
 
 * owns or manages a small artisan keyboard shop
-* has a need to organize and find contacts for employees, suppliers and service providers
-* prefers desktop apps over other types of applications
-* is proficient in typing
-* is reasonably comfortable using keyboard commands and CLI apps
+* needs to organise contacts for employees, suppliers, and service providers
+* prefers a desktop application and is comfortable typing commands
 
-**Value proposition**: KeyBossWarriorsPro helps small artisan keyboard shop owners and managers
-organize and find employee, supplier, and service provider contacts using keyboard commands,
-enabling experienced users to coordinate daily operaitons faster than with a typical mouse-driven
-GUI application.
+**Value proposition:** KeyBossWarriorsPro brings shop contacts, role and tag searches, and pending
+follow-ups into one local desktop application with a command input and a visual contact list.
 
+**Implemented scope:** Create, edit, delete, and clear contacts; browse, search, sort, and select them;
+manage one pending follow-up per contact; undo and redo contact-data changes within a session;
+view in-app help; and save and load contact data locally. Each contact has a name, phone number,
+email, address, one custom primary role, optional tags, and an optional pending follow-up.
+
+**Scope boundary:** This is a single-user contact-management application. Inventory, payroll, project
+records, transaction history, and external shipment services are not implemented. Tags can hold user-supplied
+labels, but do not provide structured records, verification, or calculations for those domains.
+Future and partially supported needs are retained separately below.
 
 ### User stories
 
-Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unlikely to have) - `*`
+For every story, the actor is an **artisan keyboard shop manager**. Priorities retain their original
+meaning: High (must have) — `* * *`; Medium (nice to have) — `* *`; Low (unlikely to have) — `*`.
+Priority expresses importance, not implementation status.
 
-| Priority | As  an …                      | I want to …                                                                                | So that I can…                                                            |
-|----------|-------------------------------|--------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| `* * *`  | artisan keyboard shop manager | add contacts with their names, phone numbers, emails and addresses                         | keep all shop contacts in one place.                                      |
-| `* * *`  | artisan keyboard shop manager | delete outdated contacts by index                                            | have a contact list that stays relevant.                                  |
-| `* * *`  | artisan keyboard shop manager | edit contact details                                                                       | reach the right people using updated communication details.               |
-| `* * *`  | artisan keyboard shop manager | list all contacts in a compact table                                                       | quickly review staff, suppliers and service providers.                    |
-| `* * *`  | artisan keyboard shop manager | tag contacts as employees, suppliers, or service providers                                 | distinguish staff from external partners.                                 |
-| `* * *`  | artisan keyboard shop manager | search contacts by full or partial names regardless of letter case                         | quickly find a particular contact's details.                              |
-| `* * *`  | artisan keyboard shop manager | filter contacts by component tags                                                          | find alternative suppliers when stock is low.                             |
-| `* * *`  | artisan keyboard shop manager | combine name, role, and tag search criteria                                                | narrow my search to relevant staff or suppliers.                           |
-| `* * *`  | artisan keyboard shop manager | contact and tag changes to be saved automatically to a local JSON file                     | persist changes between sessions.                                         |
-| `* * *`  | artisan keyboard shop manager | load saved contacts automatically at startup                                               | begin work without re-entering all details.                               |
-| `* * *`  | artisan keyboard shop manager | view command syntax and parameters using the help command                                  | learn commands within the application.                                    |
-| `* * *`  | artisan keyboard shop manager | exit the application using a CLI command                                                   | exit gracefully while keeping my terminal open.                           |
-| `* *`    | artisan keyboard shop manager | sort contacts by name, role, or both in my chosen priority                                  | browse contacts alphabetically or group contacts with matching roles.      |
-| `* *`    | artisan keyboard shop manager | tag contacts with finer-grain details like suppliers by the components supplied            | find suitable suppliers and service providers for custom keyboard builds. |
-| `* *`    | artisan keyboard shop manager | record suppliers' minimum order quantities                                                 | check order requirements before placing group-buy orders.                 |
-| `* *`    | artisan keyboard shop manager | record suppliers' manufacturing and shipping lead times in days                            | estimate delivery dates for keyboard pre-orders.                          |
-| `* *`    | artisan keyboard shop manager | record payment terms on supplier profiles                                                  | arrange payments according to agreements with suppliers.                  |
-| `* *`    | artisan keyboard shop manager | tag technicians by their verified assembly skills                                          | assign suitable staff for custom builds.                                  |
-| `* *`    | artisan keyboard shop manager | associate contacts with keyboard group-buy projects                                        | view all suppliers and artisans involved in a particular project.         |
-| `* *`    | artisan keyboard shop manager | record emergency phone numbers for part-time soldering staff                               | contact them during urgent builds.                                        |
-| `* *`    | artisan keyboard shop manager | record hourly pay rates of staff                                                           | calculate payroll for my employees.                                       |
-| `* *`    | artisan keyboard shop manager | record part-time staff's weekly availability                                               | schedule shifts without repeatedly asking when they are free.             |
-| `* *`    | artisan keyboard shop manager | filter staff by their availability on a specific weekend                                   | quickly arrange staffing for major assembly sessions.                     |
-| `* *`    | artisan keyboard shop manager | filter contacts using a combination of tags                                                | find contacts matching several requirements.                              |
-| `* *`    | artisan keyboard shop manager | view a supplier's notes, tags and transaction history in an expanded card                  | review the relationship before negotiating a contract renewal.            |
-| `* *`    | artisan keyboard shop manager | use single-letter command aliases and shortened prefixes                                   | manage my contacts with fewer keystrokes.                                 |
-| `* *`    | artisan keyboard shop manager | browse recent commands using the Up and Down arrow keys                                    | reuse or edit commands without retyping them.                             |
-| `* *`    | artisan keyboard shop manager | export all contacts to a formatted CSV file using one command                              | share supplier details or use them in spreadsheets.                       |
-| `* *`    | artisan keyboard shop manager | import contacts from a CSV backup with automatic format validation                         | migrate existing contact lists into KeyBossWarriorsPro.                   |
-| `*`      | artisan keyboard shop manager | create timestamped contact backups automatically after operations                          | restore data after accidental changes or deletions.                       |
-| `*`      | artisan keyboard shop manager | record defect rates and quality ratings for suppliers                                      | avoid suppliers with recurring product defects.                           |
-| `*`      | artisan keyboard shop manager | toggle terminal notifications for upcoming supplier contract expiries and restocking dates | place orders before assembly supplies run out.                            |
-| `*`      | artisan keyboard shop manager | customize CLI theme colors                                                             | personalize my workspace                                                  |
-| `*`      | artisan keyboard shop manager | check shipment tracking from a supplier's contact card using a tracking code           | monitor incoming product deliveries.                                      |
-| `*`      | artisan keyboard shop manager | track past unit-price quotes for products                                              | compare prices and negotiate better deals.                                |
+Story IDs US01–US35 follow the original story order so that moved rows remain traceable.
+US36–US43 capture existing v1.6 behaviour missing from the original list; they are **not ranked**
+until the team assigns priorities. This documentation update does not change the product backlog's priorities.
+
+#### Supported in v1.6
+
+The stories follow the same broad sequence as the User Guide: manage contacts, browse contacts,
+undo and redo, application commands, then persistence and recovery. Skill verification in US18
+happens outside the application. Multi-tag search currently matches any supplied phrase (OR);
+the broader combination-of-tags story US24 is listed as partial below because requiring all tags
+to match is not supported.
+
+| ID | Priority | I want to … | So that I can … |
+|----|----------|-------------|----------------|
+| US01 | `* * *` | add contacts with their names, phone numbers, emails, addresses, and primary roles | keep all shop contacts in one place. |
+| US03 | `* * *` | edit contact details | reach the right people using updated communication details. |
+| US38 | Not ranked | set or replace a contact's pending follow-up date and description | record the next action needed for that contact. |
+| US39 | Not ranked | remove a contact's pending follow-up | clear an action that is no longer needed. |
+| US02 | `* * *` | delete outdated contacts by their displayed indices | have a contact list that stays relevant. |
+| US36 | Not ranked | clear all contacts | reset my contact book when I no longer need its contents. |
+| US04 | `* * *` | list all contacts as compact contact cards | quickly review staff, suppliers, and service providers. |
+| US05 | `* * *` | assign primary roles such as Employee, Supplier, or Service Provider | distinguish staff from external partners. |
+| US14 | `* *` | tag contacts with finer-grain details like suppliers by the components supplied | find suitable suppliers and service providers for custom keyboard builds. |
+| US18 | `* *` | tag technicians with assembly skills verified outside the application | find staff with suitable skills for custom builds. |
+| US06 | `* * *` | search contacts by full or partial names regardless of letter case | quickly find a particular contact's details. |
+| US07 | `* * *` | filter contacts by component tags | find alternative suppliers when stock is low. |
+| US08 | `* * *` | combine name, role, and tag search criteria | narrow my search to relevant staff or suppliers. |
+| US13 | `* *` | sort contacts by name, role, or both in my chosen priority | browse contacts alphabetically or group contacts with matching roles. |
+| US37 | Not ranked | select a contact by its displayed index and view its full details | read contact fields and follow-up information in the details panel. |
+| US40 | Not ranked | view all pending follow-ups, overdue follow-ups, or those due on or before a date | identify contacts that need attention. |
+| US41 | Not ranked | undo a committed contact-data change in the current session | recover from an unwanted change. |
+| US42 | Not ranked | redo an undone contact-data change in the current session | reapply a change when appropriate. |
+| US11 | `* * *` | view command syntax and parameters using the help command | learn commands within the application. |
+| US12 | `* * *` | exit the desktop application using a command | close the application from the command input. |
+| US09 | `* * *` | contact and tag changes to be saved automatically to a local JSON file | persist changes between sessions. |
+| US10 | `* * *` | load saved contacts automatically at startup | begin work without re-entering all details. |
+| US43 | Not ranked | receive a warning and a recovery option when saved data cannot be loaded | preserve the available original or backup before continuing. |
+
+#### Future and partially supported needs
+
+These stories retain their original priorities and requested outcomes. They are **not promises of
+v1.6 functionality**. A free-form tag that happens to contain a value does not implement the
+corresponding structured feature.
+
+| ID | Priority | I want to … | So that I can … | v1.6 coverage or gap |
+|----|----------|-------------|----------------|---------------------|
+| US15 | `* *` | record suppliers' minimum order quantities | check order requirements before placing group-buy orders. | Not implemented: no dedicated minimum-order-quantity field. |
+| US16 | `* *` | record suppliers' manufacturing and shipping lead times in days | estimate delivery dates for keyboard pre-orders. | Not implemented: no manufacturing or shipping lead-time fields. |
+| US17 | `* *` | record payment terms on supplier profiles | arrange payments according to agreements with suppliers. | Not implemented: no payment-terms field. |
+| US19 | `* *` | associate contacts with keyboard group-buy projects | view all suppliers and artisans involved in a particular project. | Partial: free-form project tags can label contacts; there are no project records or dedicated project associations. |
+| US20 | `* *` | record emergency phone numbers for part-time soldering staff | contact them during urgent builds. | Not implemented: a contact has one phone field, with no separate emergency number. |
+| US21 | `* *` | record hourly pay rates of staff | calculate payroll for my employees. | Not implemented: no pay-rate or payroll fields. |
+| US22 | `* *` | record part-time staff's weekly availability | schedule shifts without repeatedly asking when they are free. | Not implemented: no structured weekly availability. |
+| US23 | `* *` | filter staff by their availability on a specific weekend | quickly arrange staffing for major assembly sessions. | Not implemented: no date-based staffing-availability query. |
+| US24 | `* *` | filter contacts using a combination of tags | find contacts matching several requirements. | Partial: multiple tag phrases use OR. Requiring every tag criterion to match (AND) is not supported. |
+| US25 | `* *` | view a supplier's notes, tags and transaction history in an expanded card | review the relationship before negotiating a contract renewal. | Partial: the details panel shows contact fields, tags, and a pending follow-up; notes and transaction history are absent. |
+| US26 | `* *` | use single-letter command aliases and shortened prefixes | manage my contacts with fewer keystrokes. | Not implemented: no single-letter command aliases. Existing field prefixes do not provide command aliases. |
+| US27 | `* *` | browse recent commands using the Up and Down arrow keys | reuse or edit commands without retyping them. | Not implemented: Up/Down navigate the contact list, rather than previous commands. |
+| US28 | `* *` | export all contacts to a formatted CSV file using one command | share supplier details or use them in spreadsheets. | Not implemented: no CSV export command. |
+| US29 | `* *` | import contacts from a CSV backup with automatic format validation | migrate existing contact lists into KeyBossWarriorsPro. | Not implemented: no CSV import command. |
+| US30 | `*` | create timestamped contact backups automatically after operations | restore data after accidental changes or deletions. | Not implemented after operations: startup recovery attempts a timestamped backup of an unreadable existing file. |
+| US31 | `*` | record defect rates and quality ratings for suppliers | avoid suppliers with recurring product defects. | Not implemented: no structured supplier-quality metrics. |
+| US32 | `*` | toggle terminal notifications for upcoming supplier contract expiries and restocking dates | place orders before assembly supplies run out. | Not implemented: no contract-expiry, restocking, or terminal-notification feature. |
+| US33 | `*` | customize CLI theme colors | personalize my workspace | Not implemented: no user-selectable CLI colour theme. |
+| US34 | `*` | check shipment tracking from a supplier's contact card using a tracking code | monitor incoming product deliveries. | Not implemented: no shipment-tracking integration. |
+| US35 | `*` | track past unit-price quotes for products | compare prices and negotiate better deals. | Not implemented: no quote or price-history records. |
 
 ### Use cases
 
-(For all use cases below, the **System** is the `KeyBossWarriorsPro` and the **Actor** is the `user`, unless specified otherwise)
+**System:** KeyBossWarriorsPro. **Actor:** the user. **Common precondition:** the application is
+running. **MSS** means main success scenario. A displayed index is a one-based position in the
+current filtered and sorted contact list, rather than a permanent contact identifier.
 
-**Use Case: UC1 - Add a Contact**
+The flows below follow the User Guide's task order. Existing UC numbers are retained for traceability:
+UC4 now covers editing fields as well as tags; UC9 is a removal variant of UC8; UC5 and UC10 are
+browsing variants of UC2; UC7 is a clearing variant of UC6; and UC12 is the redo variant of UC11.
+This avoids repeating the same validation and persistence steps in separate two-step cases.
+Help, exit, and startup behaviour are covered by the user stories and their implementation sections.
 
-**MSS**
+#### Common failure outcomes
 
-1.  User requests to add a contact, providing its name, phone number, email, address, role, and any optional tags.
-2.  `KeyBossWarriorsPro` adds the contact and confirms the addition.
+These outcomes apply at the relevant validation or save step of each flow. A save error is distinct
+from an invalid command: execution may already have changed the view or in-memory state.
 
-    Use case ends.
+| Failure | System response and resulting state |
+|---------|-------------------------------------|
+| Invalid syntax, field value, duplicate identity, or displayed index detected before mutation | Show an error. Contact data, the displayed view, and undo/redo history remain unchanged. No save is attempted. |
+| Saving fails after a new contact-data commit | Show a save error and roll back the new snapshot, restoring any displaced redo states. Show all contacts while retaining sorting; retain the original selection if it is present in the restored view. |
+| Saving fails after undo or redo | Show a save error. The restored contact data and moved history pointer remain in memory; the all-contact view and cleared selection remain applied. |
+| Saving fails after a command without a new contact-data commit | Show a save error. The command's view effects remain applied; a valid explicit selection request can still be applied. |
 
-**Extensions**
+Every successfully executed command requests a contact-data save, including browsing commands.
+See [Persistence and failures](#persistence-and-failures) and
+[Atomic file persistence](#atomic-file-persistence) for the implementation and filesystem limitations.
 
-*  1a. One or more mandatory fields are missing.
+#### UC1 — Add a contact
 
-  *  1a1. `KeyBossWarriorsPro` shows an error message indicating the missing parameter(s).
-
-     Use case ends.
-
-*  1b. A provided field value is invalid or extraneous arguments are provided.
-
-  *  1b1. `KeyBossWarriorsPro` shows an error message.
-
-     Use case ends.
-
-*  1c. The phone number or email belongs to an existing contact.
-
-  *  1c1. `KeyBossWarriorsPro` shows an error message.
-
-    Use case ends.
-
-
-**Use Case: UC2 - Find a Contact**
+**Precondition:** The user has the contact's required details.
 
 **MSS**
 
-1.  User requests to find contacts by specifying one or more search criteria
-    (by name, role, or tag).
-
-2.  `KeyBossWarriorsPro` displays all contacts matching the given criteria.
-
-    Use case ends.
+1. The user submits `add` with a name, phone number, email, address, role, and any optional tags.
+2. The system validates the fields and checks phone and email uniqueness against all stored contacts,
+   including those hidden by the current filter.
+3. The system adds the contact, commits a history snapshot, saves the contact data, and confirms the addition.
 
 **Extensions**
 
-*  1a. No search criteria are provided, or any prefixed value is blank.
-   *  1a1. `KeyBossWarriorsPro` shows an error message.
-       
-      Use case ends.
+* **1a.** Required fields are missing, repeated, or invalid, or arguments are unsupported: apply the common validation failure outcome.
+* **2a.** The phone number or email is already in use: reject the addition using the common validation failure outcome.
+* **3a.** Saving fails: apply the common new-commit save failure outcome.
 
-*  1b. An unsupported prefix is provided, or unprefixed keywords are mixed with prefixed values.
-   *  1b1. `KeyBossWarriorsPro` shows an error message.
-       
-      Use case ends.
+**Implementation reference:** [Adding a contact](#adding-a-contact).
 
-*  2a. No contacts match the given criteria.
-   *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
-       
-       Use case ends.
+#### UC4 — Edit contact details and tags
 
-
-**Use Case: UC3 - Delete a Contact**
-
-**Preconditions**
-
-*  `KeyBossWarriorsPro` is running and a contact list is displayed.
-
-**MSS**
-1.  User requests to delete a contact by specifying its index in the currently displayed contact list.
-2.  `KeyBossWarriorsPro` removes the contact, saves the change, and displays the deleted contact's
-    details, including any follow-up.
-
-    Use case ends.
-
-**Extensions**
-
-*  1a. The request has missing, multiple, or malformed index arguments.
-   *  1a1. `KeyBossWarriorsPro` explains the input error.
-
-      Use case ends.
-
-*  1b. The request has a valid positive index, but no contacts are displayed.
-   *  1b1. `KeyBossWarriorsPro` informs the user that no contacts are currently displayed.
-
-      Use case ends.
-
-*  1c. The request has a valid positive index beyond the nonempty displayed list.
-   *  1c1. `KeyBossWarriorsPro` explains the valid index or range.
-
-      Use case ends.
-
-*  2a. Saving the deletion fails.
-   *  2a1. `KeyBossWarriorsPro` rolls back the deletion, displays all contacts, and reports the saving error.
-
-      Use case ends.
-
-Argument and index errors leave contact data, the displayed view, and undo/redo history unchanged.
-
-
-**Use Case: UC4 - Add or Delete Contact Tags**
+**Precondition:** The target contact is visible in the current list.
 
 **MSS**
 
-1.  User requests to find contacts using a name keyword.
-2.  `KeyBossWarriorsPro` displays matching contacts and their details.
-3.  User requests to add or delete named tags on a contact using its displayed index. Both operations may be supplied in one edit.
-4.  `KeyBossWarriorsPro` applies the tag changes, preserves the remaining tags, and displays the updated contact information.
-
-    Use case ends.
+1. The user submits `edit` with the target's displayed index and the field replacements or tag additions/removals.
+2. The system validates the index and all requested changes, including duplicate identity and tag conflicts.
+3. The system replaces the contact, preserving omitted fields and its follow-up, commits one snapshot,
+   and resets the filter to show all contacts while retaining sorting.
+4. The system saves the contact data and confirms the edit.
 
 **Extensions**
 
-*  2a. No contacts match the keyword.
+* **1a.** No changes are supplied, the syntax is invalid, or the index is unavailable: apply the common validation failure outcome.
+* **2a.** A changed phone/email duplicates another contact, the same tag is added and removed, or a requested removal tag is absent: reject the whole edit. No partial tag or field changes are applied.
+* **4a.** Saving fails: apply the common new-commit save failure outcome.
 
-  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
+**Implementation reference:** [Editing a contact](#adding-and-deleting-contact-tags).
 
-     Use case ends.
- 
-*  3a. A tag prefix has an empty or invalid value.
+#### UC8 — Set or replace a follow-up
 
-  * 3a1. `KeyBossWarriorsPro` shows an error message and leaves all contact details unchanged.
-
-       Use case resumes at step 3.
-
-*  3b. Tags are repeated within the same operation, or an addition names a tag already on the contact.
-
-  *  3b1. `KeyBossWarriorsPro` retains one instance of each tag, comparing names case-insensitively.
-  
-     Use case resumes at step 4.
-
-*  3c. The same tag is supplied for addition and deletion, including with different letter casing.
-
-  *  3c1. `KeyBossWarriorsPro` shows a conflict error and leaves all contact details unchanged.
-
-     Use case resumes at step 3.
-
-*  3d. At least one requested deletion names a tag the contact does not have.
-
-  *  3d1. `KeyBossWarriorsPro` identifies a missing tag and rejects the entire edit. Valid deletions, additions, and other field edits in the same command are not applied.
-
-     Use case resumes at step 3.
-
-
-**Use Case: UC5 - List Contacts**
+**Precondition:** The target contact is visible in the current list.
 
 **MSS**
 
-1.  User requests to list contacts.
-2.  `KeyBossWarriorsPro` resets the active search filter (if any) and shows a list of contacts.
-    
-    Use case ends.
+1. The user submits `followup` with the target's displayed index, a date, and a description.
+2. The system validates the index, date, and description. Dates use `YYYY-MM-DD` with years 0000–9999;
+   past dates are permitted. Descriptions must be nonblank and at most 200 UTF-16 units after decoding and stripping.
+3. The system sets the contact's single pending follow-up, replacing both fields if one already exists,
+   commits a snapshot, and refreshes the displayed contact information while retaining the filter and sorting.
+4. The system saves the contact data and confirms the change.
 
 **Extensions**
 
-*  1a. The user supplies additional arguments.
-  *  1a1. `KeyBossWarriorsPro` displays a warning that additional arguments are ignored.
+* **1a–2a.** Syntax, index, date, or description is invalid: apply the common validation failure outcome.
+* **3a.** The changed contact no longer matches the current follow-up query: it leaves the displayed list and its selection clears.
+* **4a.** Saving fails: apply the common new-commit save failure outcome.
+* **UC9 — Remove a follow-up:** In step 1, the user submits `followup INDEX clear` instead. The system validates the index and presence of a pending follow-up, removes it, then follows steps 3–4. If none exists, it reports an error without changing data or history. Removal does not create a completed-follow-up record.
 
-     Use case resumes at step 2.
+**Implementation reference:** [Contact follow-up management](#contact-follow-up-management).
 
-*  2a. The address book is empty.
+#### UC3 — Delete contacts
 
-  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
-
-     Use case ends.
-
-**Use Case: UC6 - Sort Contacts**
+**Precondition:** For single-contact deletion, the target is visible in the current list.
 
 **MSS**
 
-1. User requests to sort contacts, optionally specifying name, role,
-   or both in the desired priority.
-2. `KeyBossWarriorsPro` displays all contacts in ascending,
-   case-insensitive order using the requested criteria, defaulting
-   to name when none are specified.
-
-   Use case ends.
+1. The user submits `delete` with the target's displayed index.
+2. The system validates the index, removes the contact and its pending follow-up, commits one snapshot,
+   and retains the filter and sorting.
+3. The system saves the contact data and confirms the deletion.
 
 **Extensions**
 
-* 1a. The sorting criteria are invalid, such as repeated fields,
-  unsupported fields, or values supplied after a sorting field.
+* **1a–2a.** Syntax or index is invalid, including an empty displayed list: apply the common validation failure outcome.
+* **3a.** Saving fails: apply the common new-commit save failure outcome.
+* **Clear-all variant:** The user submits `clear` instead of an index-based deletion. The system immediately removes all stored contacts, including hidden contacts and their follow-ups, without a confirmation prompt, then commits and saves. An already empty book produces no new snapshot and preserves redo history, although a save is still requested. Additional arguments are ignored, with a warning when contacts are cleared.
 
-  * 1a1. `KeyBossWarriorsPro` explains the error and leaves the
-    displayed list and active sorting criteria unchanged.
+**Implementation references:** [Deleting a contact](#deleting-a-contact) and
+[Clearing all contacts](#clearing-all-contacts-clear).
 
-    Use case ends.
+#### UC2 — Find and browse contacts
 
-* 2a. The address book contains no contacts.
-
-  * 2a1. `KeyBossWarriorsPro` displays an informational message instead of an
-    error. The selected sorting criteria remain active for contacts added
-    afterwards.
-
-    Use case ends.
-
-**Use Case: UC7 - Clear Sort Order**
+**Precondition:** None beyond the common precondition; an empty contact book is permitted.
 
 **MSS**
 
-1. User requests to clear the active sort order using `sort clear`.
-2. `KeyBossWarriorsPro` displays all contacts in their original insertion order.
-
-   Use case ends.
+1. The user submits `find` with simple name keywords or prefixed name, role, and/or tag phrases.
+2. The system validates the criteria and searches the whole contact book, replacing the previous filter.
+   Matching is case-insensitive substring matching; repeated phrases within a field use OR, and different
+   fields use AND. Simple name keywords also use OR.
+3. The system displays the matching contacts and a result count while retaining sorting, then saves the contact data.
 
 **Extensions**
 
-* 1a. The address book contains no contacts.
+* **1a–2a.** Criteria are missing, blank, or unsupported, or simple keywords are mixed with prefixes: apply the common validation failure outcome.
+* **3a.** No contacts match: show an empty list and zero-result feedback. This is a successful query.
+* **3b.** Saving fails: apply the common save failure outcome for commands without a new contact-data commit.
+* **UC5 — List contacts:** The user submits `list` instead. The system shows all contacts, retaining sorting, and requests a save. Extra arguments are ignored with a warning.
+* **UC10 — View follow-ups:** The user submits `followups`, `followups overdue`, or `followups before DATE` instead. The system replaces the filter using the whole contact book: all pending follow-ups, dates strictly before today, or dates on/before the cutoff, respectively. Invalid modes or dates are rejected. The overdue query captures the local date when run; badge refreshes do not rerun it.
+* **Select-details variant:** After browsing, the user submits `select INDEX`. The system validates the current displayed index, requests selection and display of that contact's full details, and saves. An empty list or unavailable index is rejected. Contact data, filter, sorting, and history are unchanged.
 
-  * 1a1. `KeyBossWarriorsPro` displays an empty list and confirms that sorting
-    has been cleared.
+**Implementation references:** [Finding contacts](#finding-contacts),
+[Listing all contacts](#listing-all-contacts-list), [Querying follow-ups](#querying-follow-ups), and
+[Selecting contacts](#selecting-contacts-with-select-index).
 
-    Use case ends.
+#### UC6 — Sort contacts
 
-**Use Case: UC8 - Set a Follow-up**
-
-**Preconditions**
-
-* `KeyBossWarriorsPro` is running and a contact list is displayed.
+**Precondition:** None beyond the common precondition; an empty contact book is permitted.
 
 **MSS**
 
-1. User requests to set a follow-up on a specific contact by specifying its displayed index, a due date, and a description.
-2. `KeyBossWarriorsPro` attaches the follow-up to the contact, updates the displayed details, saves the address book to disk, and displays a success confirmation.
-
-   Use case ends.
+1. The user submits `sort` with no keys, one supported key, or name and role keys in the desired priority.
+2. The system validates the keys, shows all contacts, and sorts them in ascending, case-insensitive order.
+   With no keys, the system sorts by name.
+3. The system confirms the sort and saves contact data. Stored contact order and undo/redo history are unchanged.
 
 **Extensions**
 
-* 1a. The request has missing, multiple, or malformed index arguments.
+* **1a–2a.** Keys are unsupported, repeated, or mixed with invalid arguments: apply the common validation failure outcome.
+* **3a.** Saving fails: apply the common save failure outcome for commands without a new contact-data commit.
+* **UC7 — Clear sort order:** The user submits `sort clear` instead. The system resets both the filter and comparator, showing all contacts in insertion order, then confirms and saves. This does not restore an earlier filter or change history. Sorting is session-only and is also reset on restart.
 
-  * 1a1. `KeyBossWarriorsPro` explains the input error.
+**Implementation reference:** [Sorting contacts](#sorting-contacts).
 
-    Use case ends.
+#### UC11 — Undo a contact-data change
 
-* 1b. The request has a valid positive index, but no contacts are currently displayed.
-
-  * 1b1. `KeyBossWarriorsPro` informs the user that no contacts are currently displayed.
-
-    Use case ends.
-
-* 1c. The request has a valid positive index that is beyond the range of the displayed list.
-
-  * 1c1. `KeyBossWarriorsPro` explains the valid index range.
-
-    Use case ends.
-
-* 1d. The request is missing mandatory `by/` or `abt/` prefixes, contains duplicate prefixes, or supplies unrecognized prefixes.
-
-  * 1d1. `KeyBossWarriorsPro` displays an invalid command format error showing the correct usage.
-
-    Use case ends.
-
-* 1e. The provided due date is not in `YYYY-MM-DD` format or is not a valid calendar date.
-
-  * 1e1. `KeyBossWarriorsPro` displays a date format constraint error.
-
-    Use case ends.
-
-* 1f. The provided description is blank or exceeds 200 characters.
-
-  * 1f1. `KeyBossWarriorsPro` displays a description constraint error.
-
-    Use case ends.
-
-**Use Case: UC9 - Remove a Follow-up**
-
-**Preconditions**
-
-* `KeyBossWarriorsPro` is running and a contact list is displayed.
+**Precondition:** A previous contact-data snapshot exists in the current session.
 
 **MSS**
 
-1. User requests to clear an existing follow-up by specifying the displayed index of the contact using `followup INDEX clear`.
-2. `KeyBossWarriorsPro` clears the follow-up from the contact, updates the displayed details, saves the change to disk, and displays a confirmation message.
-
-   Use case ends.
-
-**Extensions**
-
-* 1a. The request has missing, multiple, or malformed index arguments.
-
-  * 1a1. `KeyBossWarriorsPro` explains the input error.
-
-    Use case ends.
-
-* 1b. The request has a valid positive index, but no contacts are currently displayed.
-
-  * 1b1. `KeyBossWarriorsPro` informs the user that no contacts are currently displayed.
-
-    Use case ends.
-
-* 1c. The request has a valid positive index that is beyond the range of the displayed list.
-
-  * 1c1. `KeyBossWarriorsPro` explains the valid index range.
-
-    Use case ends.
-
-* 1d. The request contains extraneous arguments or invalid syntax after `clear`.
-
-  * 1d1. `KeyBossWarriorsPro` displays an invalid command format error.
-
-    Use case ends.
-
-* 1e. The specified contact does not have an active follow-up to clear.
-
-  * 1e1. `KeyBossWarriorsPro` displays an error informing the user that the contact has no follow-up to clear.
-
-    Use case ends.
-
-**Use Case: UC10 - View Follow-ups**
-
-**Preconditions**
-
-* `KeyBossWarriorsPro` is running.
-
-**MSS**
-
-1. User requests to view contacts with follow-ups using `followups` (optionally specifying `overdue` or `by/DUE_DATE`).
-2. `KeyBossWarriorsPro` filters and displays all contacts matching the follow-up query.
-
-   Use case ends.
+1. The user submits `undo` without additional arguments.
+2. The system restores the previous snapshot and moves the history pointer back, showing all contacts,
+   clearing selection, and retaining sorting.
+3. The system saves the restored contact data and confirms the undo.
 
 **Extensions**
 
-* 1a. The request contains invalid arguments or malformed date values.
+* **1a.** Additional arguments are supplied, or no previous snapshot exists: report an error without changing contacts, the view, or history.
+* **3a.** Saving fails: apply the common undo/redo save failure outcome; the applied undo remains in memory.
+* **UC12 — Redo a contact-data change:** The user submits `redo` instead. When a later snapshot exists, the system moves the pointer forward and follows steps 2–3 with that snapshot. Otherwise it reports that no more changes can be redone. A new committed change discards redo states; browsing commands, validation failures, and an already empty `clear` do not. History is not retained after restart.
 
-  * 1a1. `KeyBossWarriorsPro` displays an error message indicating the invalid format or date constraint.
-
-    Use case ends.
-
-* 1b. The request contains extraneous arguments (e.g., additional trailing words after `overdue`).
-
-  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
-
-    Use case ends.
-
-* 2a. No contacts match the follow-up query (or no contacts have follow-ups).
-
-  * 2a1. `KeyBossWarriorsPro` displays an empty list and informs the user that no follow-ups were found.
-
-    Use case ends.
-
-**Use Case: UC11 - Undo a Command**
-
-**Preconditions**
-
-* `KeyBossWarriorsPro` is running.
-
-**MSS**
-
-1. User requests to undo the most recent modifying command.
-2. `KeyBossWarriorsPro` reverts the address book state to the previous snapshot, saves the address book to disk, resets the view to show all contacts, and displays a success confirmation.
-
-   Use case ends.
-
-**Extensions**
-
-* 1a. The undo history is empty (no modifying commands have been executed in the current session, or all changes have already been undone).
-
-  * 1a1. `KeyBossWarriorsPro` displays an error message indicating there are no more commands to undo.
-
-    Use case ends.
-
-* 1b. The user supplies additional arguments to `undo` (e.g., `undo 2`).
-
-  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
-
-    Use case ends.
-
-**Use Case: UC12 - Redo a Command**
-
-**Preconditions**
-
-* `KeyBossWarriorsPro` is running.
-
-**MSS**
-
-1. User requests to redo the previously undone command.
-2. `KeyBossWarriorsPro` restores the undone state, saves the address book to disk, resets the view to show all contacts, and displays a success confirmation.
-
-   Use case ends.
-
-**Extensions**
-
-* 1a. The redo history is empty (no undone commands exist to redo, or a new modifying command was executed after an undo).
-
-  * 1a1. `KeyBossWarriorsPro` displays an error message indicating there are no more commands to redo.
-
-    Use case ends.
-
-* 1b. The user supplies additional arguments to `redo` (e.g., `redo 2`).
-
-  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
-
-    Use case ends.
+**Implementation reference:** [Undo/redo feature](#undoredo-feature).
 
 ### Non-Functional Requirements
 
-1.  **Operating Environment:** Should work on any _mainstream OS_ (Windows 10/11, macOS, Linux) as long as it has Java `25` or above installed.
-2.  **Portability:** The application should be packaged as a single standalone executable JAR file that runs without requiring an installer.
-3.  **Network Independence:** Should function fully offline without requiring an active internet connection or any remote server.
-4.  **Capacity:** Should be able to store and manage up to 1,000 contacts and 5,000 tags without noticeable sluggishness in performance for typical usage.
-5.  **Responsiveness:** All standard commands (such as `list`, `filter`, `find`, `add`, `delete`) should respond and update the interface within 1.0 second under normal workloads.
-6.  **Package Size:** The packaged application JAR file should not exceed 100 MB.
-7.  **Data Persistence:** Data must be stored in a human-editable text file (JSON format) located at `data/addressbook.json`.
-8.  **Fault Tolerance:** If the data file is corrupted or formatted incorrectly, the application should start gracefully (e.g., discard or isolate corrupted state and notify the user) without unexpected crashes.
-9.  **Database Independence:** The system should not depend on a Relational Database Management System (RDBMS) like MySQL or SQLite.
-10. **Typing-Preferred Usability:** A user with above-average typing speed for regular English text should be able to accomplish all routine contact and inventory management tasks faster using CLI commands than using a mouse.
-11. **Display Adaptability:** The user interface should remain fully functional and legible on screen resolutions of 1920x1080 with display scaling up to 150%, and on 1280x720 at 100% scaling (effective minimum viewport of 1280x720).
-12. **Single-User Scope:** The software is designed for a single artisan keyboard shop manager working locally; concurrent multi-user access is out of scope.
-13. **Data Integrity:** File saves must be atomic so that unexpected crashes or disk write errors do not leave data files truncated or partially written.
+The IDs below retain the original requirement order. **Source-backed** means the implementation
+provides the stated mechanism, not that platform, performance, or usability acceptance has been
+measured. **Pending validation** identifies targets with no recorded measurements in this appendix;
+**Partial** identifies a known implementation limitation.
+
+| ID | Requirement or target | Current evidence and acceptance status |
+|----|-----------------------|----------------------------------------|
+| NFR01 | **Operating environment:** Run on Windows 10/11, macOS, and Linux with Java 25 or above. | **Pending validation.** The build targets Java 25. Launch and core workflows must be checked on the named operating systems and intended Java runtimes; build settings alone do not establish compatibility. |
+| NFR02 | **Portability:** Distribute a single executable JAR that requires no application installer, with a Java runtime installed separately. | **Source-backed packaging; packaged launch pending validation.** The Shadow JAR configuration names the artifact `keybosswarriorspro.jar`. |
+| NFR03 | **Network independence:** Support core contact workflows and in-app help offline without a remote server. | **Source-backed.** Data and help content are local. Opening the external online User Guide from help requires an internet connection; this is outside the offline core workflows. |
+| NFR04 | **Capacity:** Manage 1,000 contacts and 5,000 tags without noticeable sluggishness in typical usage. | **Pending validation.** Agree whether 5,000 means distinct tags or tag assignments and define a representative fixture before measuring. This is a workload target, not a hard storage limit established by tests here. |
+| NFR05 | **Responsiveness:** Standard commands such as `list`, `find`, `add`, and `delete` should update feedback and the displayed contact list within 1.0 second under normal workloads. | **Pending validation.** Measure from command submission to feedback/list refresh using an agreed workload, including the capacity fixture. Record OS, CPU, RAM, Java version, and cold/warm conditions. There is no `filter` command. |
+| NFR06 | **Package size:** The release JAR must not exceed 100 MB. | **Pending validation.** Measure the actual v1.6 distribution artifact and record its size; an older build is not evidence for this baseline. |
+| NFR07 | **Data persistence:** Store contact data as human-editable JSON at the default path `data/addressbook.json`. | **Source-backed.** The configured path is relative to the launch folder; editing must preserve the JSON schema and field constraints. See [Startup loading and recovery](#startup-loading-and-recovery). |
+| NFR08 | **Fault tolerance:** An unreadable or invalid contact-data file should trigger a warning and a usable fallback rather than an unexpected startup crash. | **Source-backed; recovery acceptance pending validation.** Startup attempts a timestamped backup of an existing bad file and starts with an empty contact book, warning even if backup creation fails. One invalid contact rejects the whole file. Existing `MainAppTest` cases cover corrupt-file and backup-failure paths; no new test result is asserted here. |
+| NFR09 | **Database independence:** Do not require an RDBMS such as MySQL or SQLite. | **Source-backed.** The storage implementation uses local JSON files. |
+| NFR10 | **Typing-preferred usability:** A user with above-average English typing speed should complete routine contact-management tasks faster with commands than with a mouse. | **Pending validation.** Define comparable tasks and measure completion times with representative users. Inventory management is outside the implemented scope. |
+| NFR11 | **Display adaptability:** Keep the UI functional and legible at 1920×1080 with scaling up to 150%, and at 1280×720 with 100% scaling. | **Pending validation.** Check both configurations, including long fields and help/details panels. The configured minimum window size of 800×600 does not prove that these display targets pass. |
+| NFR12 | **Single-user scope:** Support one manager working locally; concurrent multi-user access is outside scope. | **Source-backed scope constraint.** No shared multi-user synchronisation is implemented. |
+| NFR13 | **Data integrity:** Saves must be atomic so unexpected crashes or write errors cannot leave truncated or partially written contact-data files. | **Partial; strict guarantee not met on every filesystem.** `FileUtil` writes a temporary sibling file and requests an atomic replacement, but falls back to a non-atomic replacement when atomic moves are unsupported. There is no guaranteed power-loss durability. See [Atomic file persistence](#atomic-file-persistence); do not report this requirement as universally satisfied. |
 
 ### Glossary
 
@@ -1798,16 +1619,20 @@ Argument and index errors leave contact data, the displayed view, and undo/redo 
 
 * **Contact**: A person or commercial entity stored in the address book.
 * **Duplicate contact**: Two contact entries that share either the same phone number or the same email address.
-* **Private contact detail**: A contact detail that is not meant to be shared with others
 * **Primary role**: The required custom-text classification assigned to a contact. Examples include `Employee`, `Supplier`, and `Service Provider`; these are not an exhaustive set of permitted values. Every contact has exactly one role.
 * **Tag**: An optional label added to a contact to record categories, supplied parts (such as `switches` or `keycaps`), or services. A contact can have zero or more tags.
+* **Pending follow-up**: A contact's optional next action, consisting of a due date and description. A contact has at most one pending follow-up, with no completed-action history.
+* **Displayed index**: A one-based contact position in the current filtered and sorted list. It can change when the view or contact data changes.
 
 #### Technical terms
 
-* **Mainstream OS**: Windows, Linux, Unix, or macOS.
+* **Mainstream OS**: For this guide's operating-environment target, Windows 10/11, macOS, or Linux.
 * **CLI (Command Line Interface)**: A text-based interface where the user types commands into a prompt to operate the application.
 * **GUI (Graphical User Interface)**: A visual interface created with JavaFX that displays contact cards, command outputs, and application status.
 * **JSON (JavaScript Object Notation)**: A lightweight, human-readable text file format used to save address book records locally on disk.
+* **MSS (Main Success Scenario)**: The normal sequence of actor and system steps that achieves a use case's goal.
+* **NFR (Non-Functional Requirement)**: A quality target or operating constraint, such as responsiveness, portability, or data integrity.
+* **Session history**: In-memory contact-data snapshots used by undo and redo until the application closes; not a persistent backup or command-input history.
 
 --------------------------------------------------------------------------------------------------------------------
 
