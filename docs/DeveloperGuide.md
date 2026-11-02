@@ -9,9 +9,11 @@ title: Developer Guide
 
 ## **Acknowledgements**
 
-* KeyBossWarriorsPro is based on AddressBook-Level3 from the [SE-EDU initiative](https://se-education.org).
+* Based on [AddressBook-Level 3](https://github.com/se-edu/addressbook-level3) by the [SE-EDU initiative](https://se-education.org), adapting its code, architecture, and documentation.
+* Libraries used: [JavaFX](https://openjfx.io/), [Jackson](https://github.com/FasterXML/jackson), and [JUnit 5](https://junit.org/junit5/).
 * `Email.VALIDATION_REGEX` adapts the regex published in the
   [WHATWG HTML Standard](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address).
+* AI assistance: OpenAI Codex, Anthropic Claude, and Google Gemini were used during development and documentation.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -87,181 +89,15 @@ The `UI` component,
 
 #### Contact details and selection
 
-`MainWindow.fxml` places the contact list and details placeholder in a horizontal `SplitPane`, initially around
-45% list and 55% details. The minimum window width is 800 pixels, with minimum pane widths of 340 and 400 pixels.
-The minimum height is 600 pixels. `MainWindow` clamps smaller restored dimensions in the UI without changing the
-preferences data structure.
+`MainWindow` displays `PersonListPanel` and `PersonDetailsPanel` side by side. Each `PersonCard` provides a compact contact summary, while the details panel displays the selected contact’s complete information.
 
-`PersonCard` uses `PersonListCard.fxml` for a compact summary: displayed index, name, role, phone, email, and sorted tags.
-The header contains one name, one coloured role badge, and an optional follow-up indicator. Phone and email appear
-beneath the header, followed by a single tag container. A small minimum name width keeps an ellipsis visible when
-long roles and follow-up badges share the header. Names and emails use single-line ellipses with full-text tooltips;
-roles and tags wrap. Address and complete follow-up content appear in the right details panel. Empty tags and absent
-follow-up indicators are hidden and unmanaged.
+The contact interface:
 
-The follow-up indicator displays `Follow-up` for future dates, `Due today` for the shared local date, or `Overdue`
-for past dates. It measures all three labels in the resolved font and regular/bold variants, including padding and
-borders, to reserve stable dimensions. All urgency states share a bold font; overdue text is also underlined.
-Font and inset changes update the reserved size, while date changes retain the same dimensions and resolved font.
-`PersonListViewCell` lets the viewport determine cell width and binds each card's width to the available cell width,
-preventing long summary content from widening the list. The existing selected-cell background and `#cardPane` border
-remain visible when keyboard focus moves to command input. Selected and unselected cards reserve the same border
-width, so selection does not change row heights or tag wrapping and invalidate the virtual list's cached geometry.
-
-`MainWindow#fillInnerParts()` mounts `PersonDetailsPanel` in the right placeholder. The panel extends `UiPart<Region>`
-and exposes `showPerson(Person)` and `clear()`. A fit-to-width `ScrollPane`, viewport-based label width bindings,
-and a wrapping tag `FlowPane` keep long details accessible through vertical scrolling. Empty tags and absent follow-ups
-are hidden and unmanaged. The panel marks follow-ups strictly before the shared local date as overdue;
-the package-private clock constructor supports deterministic tests.
-
-`MainWindow` owns one `UiDateTracker`, backed by `Clock.systemDefaultZone()`, and passes it to the list and details
-panels. A single JavaFX `Timeline` checks the local date once per minute while the window is shown, stops when hidden,
-and refreshes immediately on showing or regaining focus. Only calendar-day changes notify observers, including when
-the clock moves backwards. A package-private interval constructor allows timer tests without a one-minute wait.
-The date refresh changes badge text/pseudo-classes and the details due-date label directly, preserving selection,
-scroll positions, and command drafts. It does not rerun filters, execute commands, or modify Model/Storage data.
-`PersonCard` uses a weak date listener; each list cell retains its current card controller so it remains subscribed
-while displayed and can be collected after replacement. `PersonDetailsPanel` clears its retained follow-up on
-`clear()` so subsequent date notifications cannot restore stale content.
-
-`PersonListPanel#selectedPersonProperty()` exposes a read-only property for the displayed contact selection.
-`MainWindow` observes it and calls `showPerson()` for a selected contact or `clear()` for null selection.
-Mouse selection and arrow-key navigation use the existing JavaFX ListView behaviour, and displaying details does not
-request keyboard focus.
-
-An unmodified Escape key press in the main window returns focus to `CommandBox`, retaining its draft, anchor, and
-caret position. A Stage event filter handles Escape before a text control can consume it; disabled command input
-during exit is excluded. `CommandBox` remembers caret and anchor changes while command input owns focus, ignoring
-JavaFX's selection reset on focus loss and select-all during explicit focus restoration. Arrow keys in the list continue to
-navigate contacts without automatically focusing input. The list and details ScrollPane handle scrolling separately.
-
-The displayed list is the model's `SortedList` over a `FilteredList`. Its events alone cannot reliably associate
-contacts across edits: replacing a contact that no longer matches a filter can emit only a removal, followed by an
-addition of several contacts when the edit resets the filter. Matching by index, name, phone/email, or Person equality
-would also be unreliable because all identifying fields can be edited.
-
-During command execution, `LogicManager` temporarily listens to the underlying address book list. A one-for-one
-replacement supplies the exact old and new `Person` references. The listener is removed in a `finally` block, and an
-immutable `CommandSelectionChange` copies these relationships into an identity-based map. Successful undo and redo
-request a selection reset, including when snapshots contain equal contact data. The information is available through
-`Logic#getSelectionChange()` before saving. If a storage failure rolls back a committed change, `LogicManager`
-discards the failed command's replacement and selection requests. The panel then reconciles the original selected
-contact against the restored list by identity, retaining it when present or clearing it otherwise. A save failure
-without a rollback, including after `select`, retains the command's selection information.
-Each command attempt resets this information before parsing; failed parsing or validation therefore preserves selection.
-
-`MainWindow` snapshots selection and calls `PersonListPanel#beginCommand()` before executing a command. The panel
-suppresses native ListView selection notifications during that execution, preventing automatic neighbour selection
-from being published. In a `finally` block, `MainWindow` applies the command's selection change and calls
-`PersonListPanel#endCommand(Person)`. The panel searches the current displayed list by object identity and selects the
-resulting current index, or clears selection if the contact is absent. It also refreshes the native selection model for
-equal but distinct replacement objects. It first resolves pending styling/layout and scrolls immediately, then verifies
-visibility after the scene's layout pass. Visibility is checked against the live `VirtualFlow` row and clipped viewport,
-excluding cells retained only for measurement or reuse. A request finishes after two consecutive visible layout passes.
-If needed, it makes up to three corrective scrolls, with one scrolling operation per pulse. While the native item count
-is stale, an index-scroll event lets the skin synchronize it. Once the count matches, the first and last rows use the
-native start/end position; other rows use `VirtualFlow.scrollTo(index)` with measured geometry. A correction does not
-also repeat an index-scroll event in the same pulse. Each request retains the exact contact reference and resolves its current
-index again. A later command, selection change, mouse/key/wheel interaction, scene change,
-or window closure cancels pending scrolling. Scene listeners and window handlers are removed when a request finishes
-or is cancelled, and stale callbacks cannot affect a newer request. This retains visible contacts across filtering, sorting, and unrelated changes;
-it clears deleted or filtered-out contacts and restores the empty state after undo/redo. Changes outside this command
-path still conservatively clear selection. Model and Storage data structures remain unchanged.
-`CommandResult` supports an optional exact-contact selection request. `SelectCommand` supplies the contact resolved
-from the displayed list; commands without an explicit request retain their existing selection policy.
-
-`MainWindowTest` covers mouse and arrow-key events, null selection, actual edit/delete/filter/list/sort/clear/follow-up
-commands, equal replacements, contacts sharing a name, undo/redo, and saving failures through the real list pipeline.
-`LogicManagerTest` additionally verifies replacement identity and reset of command selection information after failures.
-Save-failure fixtures commit their initial contacts to model history and verify restored selection for both I/O and
-access-denied errors. Compact-card tests compare tag-row spacing and the last visible field's bottom gap across font
-sizes, and verify that focus changes preserve the actual themed selection border rather than assuming a pixel width.
-Saving-failure fixtures commit their starting contacts to model history. Regression tests verify restored data, filters,
-selection, and history after edit/delete failures, including both I/O and access-denied errors.
-`PersonDetailsPanelTest` covers field rendering, optional sections, long content, scrolling, and overdue boundaries.
-`MainWindowTest` also verifies compact card height, empty-tag spacing, long-name/email tooltips, tag wrapping,
-follow-up badge updates through commands and undo/redo, badge/role layout at divider limits, selected-card styling
-without list focus, and access to the complete selected contact details. Date-transition tests check that all three
-badge states preserve card dimensions, selection, both scroll positions, and draft text/cursor selection.
-Badge layout tests also exercise different font families, sizes, and padding, and report rendered text, font, and
-available dimensions when clipping occurs.
-Compact-card checks compare the space occupied by the tags and the gap below the last field at different font sizes,
-instead of imposing a platform-dependent pixel-height limit. Off-screen selection tests wait up to ten seconds for
-the requested row to fit in the list for two consecutive frames, retaining full-visibility checks without issuing
-another scroll. Timeouts report the selected index, window/list bounds, and visible rows. Gradle logs full exception
-details on test failure so CI diagnostics include assertion messages and stack traces.
-Temporary Windows CI instrumentation is enabled only by the select/new-contact UI test. Its trace records native
-row counts, scroll positions, selection identities, retry numbers, and cancellation/stop reasons under
-`build/ui-diagnostics/select-new-contact/`. A failed test also captures the scene before cleanup hides the window.
-CI uploads these files and the test reports with a three-day retention period; diagnostic files are not committed.
-Remove the diagnostic hooks, capture callback, upload step, and temporary `fail-fast: false` setting after diagnosis.
-The newly added-row regression deliberately drops scroll requests made before the first layout pass, exercising
-early-request loss without relying on a particular operating system. Additional regressions discard all index-scroll
-events and move a briefly visible row away during the next layout pass, verifying viewport correction and stable
-visibility respectively. An endpoint regression simulates stale layout offsets after index-scroll events and verifies
-recovery without repeating those events. Tests inspect live rows inside the clipped viewport, without accepting
-measurement cells. Selection tests also verify unchanged card dimensions, and urgency tests retain the same resolved
-font across all three badge states.
-Further checks ensure delayed requests respect later commands, changed
-selection, and manual scrolling without moving keyboard focus or resetting the details panel's reading position.
-`UiDateTrackerTest` covers local midnight, unchanged days, clock corrections, periodic refresh, hidden/shown windows,
-and focus return. `PersonDetailsPanelTest` checks that date refresh cannot revive a cleared follow-up section.
-Further UI tests cover Escape from the list, details, and feedback, draft/cursor preservation after focus settles,
-independent mouse-wheel scrolling, access to the bottom of long details, and long content at divider limits after
-resizing between minimum and larger windows.
-
-#### Selecting contacts with `select INDEX`
-
-`AddressBookParser` dispatches `select` to `SelectCommandParser`, which accepts exactly one positive integer using
-`ParserUtil.parseIndex()`. `SelectCommand#execute()` resolves the index against `Model#getFilteredPersonList()`, the
-current filtered and sorted view. It returns feedback and the exact `Person` reference without modifying data,
-filter predicates, comparators, or history. The command does not call `commitAddressBook()`.
-
-`CommandResult#getSelectedPerson()` carries an optional explicit selection request. Existing constructors default to
-no request; `CommandResult(String, Person)` retains the exact immutable contact reference. Equality, hashing, and the
-string representation include the request. `LogicManager` forwards it into `CommandSelectionChange` before saving.
-Each command attempt resets this information before parsing. Selection precedence is:
-
-1. Successful undo/redo resets clear selection.
-2. An explicit selection request chooses its target, even when there was no previous selection.
-3. Otherwise, retain the previous contact or its recorded replacement when it remains visible.
-
-`MainWindow` applies the result through its existing `finally` block and `PersonListPanel#endCommand(Person)`.
-The panel resolves the current index by object identity, updates the highlight, and scrolls to the contact without
-moving focus out of command input. It resolves pending styling/layout and completes any required scroll after the
-scene's layout pass so freshly added rows are positioned correctly. Repeated selection of the same object retains
-the details panel's reading position.
-There are no new Model or Storage fields and no selection data is persisted.
-
-The existing automatic saving flow still runs after selection. Because the explicit request is recorded before
-saving, a storage exception does not discard a valid selection. Rejected parsing or index validation leaves no
-new request, so the UI preserves the previous selection. `help select` returns usage with no selection request;
-it neither executes a selection nor opens the full Help window.
-
-Condition | Handling
-----------|---------
-Missing index | `ParseException` with `SelectCommand.MESSAGE_INDEX_REQUIRED`.
-Extra arguments | `ParseException` with `SelectCommand.MESSAGE_EXTRA_ARGUMENTS`.
-Malformed, non-positive, or overflowing integer | `ParseException` with `ParserUtil.MESSAGE_INVALID_INDEX`.
-Empty displayed list | `CommandException` with `SelectCommand.MESSAGE_NO_CONTACTS_TO_SELECT`.
-Index outside the current view | `CommandException` with the range message, or the single-valid-index variant.
-
-Tests cover the command through the real parser, logic, storage, and JavaFX UI pipeline:
-
-* `SelectCommandParserTest` and `AddressBookParserTest`: argument validation, integer boundaries, and dispatch.
-* `SelectCommandTest`: exact targets, filtered/sorted indexes, unchanged model state, and invalid displayed indexes.
-* `CommandResultTest` and `CommandSelectionChangeTest`: request defaults, value methods, identity, and reset precedence.
-* `LogicManagerTest`: request forwarding/reset, unchanged saved contact JSON, undo/redo preservation, and storage failures.
-  A package-private parser-injection constructor also supports isolated command-result tests.
-* `MainWindowTest`: focus, duplicate names, invalid-input recovery, empty results, edits/deletion after selection,
-  saving errors, off-screen and newly added rows, and repeated selection retaining the details scroll position.
-  Visibility checks wait for the real viewport row rather than a fixed number of frames, without issuing extra scrolls.
-  Regression tests cover dropped index-scroll events, stale endpoint offsets, transient visibility, and cancellation
-  after another command, selection, or manual scroll. Failures report the target/selected indexes and visible row bounds.
-* `HelpCommandTest` and `HelpWindowTest`: targeted usage, supported-command guidance, browse-category placement,
-  formatting, and absence of a selection side effect.
-
-The existing generic command/parser class diagrams cover `SelectCommand` without additional class boxes.
+* observes `PersonListPanel#selectedPersonProperty()` to update the details panel when selection changes.
+* uses `CommandSelectionChange` to preserve selection across edits and sorting, and clears selection when the contact is removed, filtered out, or after undo/redo.
+* supports mouse selection, arrow-key navigation, and [`select INDEX`](#selecting-contacts-with-select-index). Escape returns focus to command input while preserving the draft.
+* uses a shared `UiDateTracker` to refresh follow-up urgency indicators when the local date changes.
+* supports independent scrolling and wrapping content so full contact details remain accessible.
 
 ### Logic component
 
@@ -436,6 +272,95 @@ with duplicate checks across all numbers. These enhancements are deferred beyond
   * Pros: Simpler parsing code.
   * Cons: Causes silent input drops where mistyped fields are omitted without warning the user.
 
+### Finding contacts
+
+`find` filters the displayed contacts using either prefixed name, role, and tag phrases
+or quick name search keywords. The [User Guide](UserGuide.md#locating-contacts-find)
+describes both command formats and their user-facing behaviour.
+
+#### Parsing and validation
+
+`AddressBookParser#parseCommand()` delegates the arguments to `FindCommandParser#parse()`.
+It uses the shared parser classes shown in the [Logic component](#logic-component) and
+processes input in this order:
+
+1. Reject empty or whitespace-only arguments, then reject prefixes other than `n/`, `r/`, and `t/`
+   using `ArgumentTokenizer#verifyNoUnrecognizedPrefixes()`.
+2. Tokenize the supported prefixes. `ArgumentMultimap#getAllValues()` retains every value
+   for a repeated prefix, and tokenization trims leading and trailing whitespace.
+   `normaliseSearchPhrases()` collapses repeated ordinary spaces within each value without
+   splitting a phrase into separate keywords.
+3. If any supported prefix is present, reject any blank value, then reject a nonempty
+   preamble (unprefixed keywords before the first prefix). Create one predicate for each
+   supplied field, containing all its search phrases.
+4. Otherwise, if no supported prefixes are present, default to performing a quick name search: split the trimmed arguments on whitespace and
+   create one `NameContainsKeywordsPredicate` containing the resulting keywords.
+
+Invalid input raises a `ParseException` with a specific reason before a command is executed,
+so the current filter and contact data are preserved. Prefix recognition follows the
+shared syntax described under [Name, role, and tag formatting](#name-role-and-tag-formatting).
+
+#### Predicate composition and execution
+
+`NameContainsKeywordsPredicate`, `RoleContainsKeywordsPredicate`, and
+`TagContainsKeywordsPredicate` implement `Predicate<Person>`. They use `Locale.ROOT`
+to lowercase both field values and search criteria, then apply `String#contains()`.
+Each predicate uses `anyMatch()` to implement OR within its field. The tag predicate
+matches when at least one tag contains at least one supplied phrase; a contact with
+no tags cannot satisfy a tag criterion.
+
+`FindCommand#execute()` combines the field predicates using `allMatch()`, implementing
+AND across fields. For example, `find n/ali n/bob r/supp` creates a name predicate for
+`ali` OR `bob` and a role predicate for `supp`; both predicates must match the contact.
+A contact appears once even when several criteria match it.
+
+The command passes this combined predicate to `Model#updateFilteredPersonList()`.
+`ModelManager` replaces the predicate on its `FilteredList<Person>`, which is backed by
+the full contact list. Each search therefore replaces the previous filter. The wrapping
+`SortedList<Person>` retains its comparator, so the selected sort order still applies.
+The [model view diagram](#model-integration-persistence-and-history) shows these source
+relationships. `Messages#getContactsFoundMessage()` uses the displayed list's size to
+produce singular, plural, or `No contacts found.` feedback in a `CommandResult`.
+
+Search changes only the displayed view and does not call `commitAddressBook()`, so it
+neither creates an undo snapshot nor discards redo history. `LogicManager` still saves
+the underlying address book after successful execution; the search filter is not serialized.
+
+The activity diagram below summarises validation, both parsing paths, and filter execution.
+It focuses on `FindCommandParser` and `FindCommand`.
+
+<!-- Render diagrams/FindActivityDiagram.puml to images/FindActivityDiagram.png. -->
+![Find command activity diagram](images/FindActivityDiagram.png)
+
+The [find command sequence diagram](diagrams/FindSequenceDiagram.puml) shows the parsing
+and execution of `find n/Alice n/Bob r/Supplier`. It focuses on search-specific interactions;
+shared `LogicManager` bookkeeping and storage calls are omitted. Predicate creation is
+summarised in a note: both `n/` values belong to one name predicate, while `r/` produces
+a separate role predicate. Quick name search follows the same execution flow, using one
+`NameContainsKeywordsPredicate` containing all whitespace-separated keywords.
+
+<!-- Render diagrams/FindSequenceDiagram.puml to images/FindSequenceDiagram.png. -->
+![Find command sequence diagram](images/FindSequenceDiagram.png)
+
+#### Design considerations
+
+* **Separate field predicates:** Keeping OR matching inside each predicate and AND matching
+  in `FindCommand` allows alternatives within a field while narrowing across fields. Both
+  search formats reuse the name predicate.
+* **Accept partial phrases:** Search criteria do not pass through `ParserUtil`'s whole-field
+  validation. This allows useful substrings, including partial phrases containing punctuation,
+  while the parser still enforces command syntax and nonblank values.
+
+#### Test coverage
+
+`FindCommandParserTest` covers both formats, multiword phrases, repeated prefixes and spaces,
+and the missing-criteria, blank-value, mixed-format, and unsupported-prefix errors.
+The three `*ContainsKeywordsPredicateTest` classes cover field-specific substring and case
+matching. `FindCommandTest` checks combined predicates and overlapping matches.
+`LogicManagerTest` covers adding and searching normalised fields, OR/AND composition,
+restoring all contacts with `list`, and preserving sorting across searches.
+The [manual find tests](#finding-contacts-with-find) provide a reproducible dataset and
+expected results for these user-visible behaviours.
 ### Deleting a contact
 
 `delete` removes one contact identified by its position in the current displayed list.
@@ -501,6 +426,59 @@ failed validation. `LogicManagerTest` covers sorted deletion, history, and savin
 `MainWindowTest` covers selection updates after deletion.
 The [manual delete tests](#deleting-contacts-with-delete) provide reproducible acceptance cases.
 
+### Selecting contacts with `select INDEX`
+
+`AddressBookParser` dispatches `select` to `SelectCommandParser`, which accepts exactly one positive integer using
+`ParserUtil.parseIndex()`. `SelectCommand#execute()` resolves the index against `Model#getFilteredPersonList()`, the
+current filtered and sorted view. It returns feedback and the exact `Person` reference without modifying data,
+filter predicates, comparators, or history. The command does not call `commitAddressBook()`.
+
+`CommandResult#getSelectedPerson()` carries an optional explicit selection request. Existing constructors default to
+no request; `CommandResult(String, Person)` retains the exact immutable contact reference. Equality, hashing, and the
+string representation include the request. `LogicManager` forwards it into `CommandSelectionChange` before saving.
+Each command attempt resets this information before parsing. Selection precedence is:
+
+1. Successful undo/redo resets clear selection.
+2. An explicit selection request chooses its target, even when there was no previous selection.
+3. Otherwise, retain the previous contact or its recorded replacement when it remains visible.
+
+`MainWindow` applies the result through its existing `finally` block and `PersonListPanel#endCommand(Person)`.
+The panel resolves the current index by object identity, updates the highlight, and scrolls to the contact without
+moving focus out of command input. It resolves pending styling/layout and completes any required scroll after the
+scene's layout pass so freshly added rows are positioned correctly. Repeated selection of the same object retains
+the details panel's reading position.
+There are no new Model or Storage fields and no selection data is persisted.
+
+The existing automatic saving flow still runs after selection. Because the explicit request is recorded before
+saving, a storage exception does not discard a valid selection. Rejected parsing or index validation leaves no
+new request, so the UI preserves the previous selection. `help select` returns usage with no selection request;
+it neither executes a selection nor opens the full Help window.
+
+Condition | Handling
+----------|---------
+Missing index | `ParseException` with `SelectCommand.MESSAGE_INDEX_REQUIRED`.
+Extra arguments | `ParseException` with `SelectCommand.MESSAGE_EXTRA_ARGUMENTS`.
+Malformed, non-positive, or overflowing integer | `ParseException` with `ParserUtil.MESSAGE_INVALID_INDEX`.
+Empty displayed list | `CommandException` with `SelectCommand.MESSAGE_NO_CONTACTS_TO_SELECT`.
+Index outside the current view | `CommandException` with the range message, or the single-valid-index variant.
+
+Tests cover the command through the real parser, logic, storage, and JavaFX UI pipeline:
+
+* `SelectCommandParserTest` and `AddressBookParserTest`: argument validation, integer boundaries, and dispatch.
+* `SelectCommandTest`: exact targets, filtered/sorted indexes, unchanged model state, and invalid displayed indexes.
+* `CommandResultTest` and `CommandSelectionChangeTest`: request defaults, value methods, identity, and reset precedence.
+* `LogicManagerTest`: request forwarding/reset, unchanged saved contact JSON, undo/redo preservation, and storage failures.
+  A package-private parser-injection constructor also supports isolated command-result tests.
+* `MainWindowTest`: focus, duplicate names, invalid-input recovery, empty results, edits/deletion after selection,
+  saving errors, off-screen and newly added rows, and repeated selection retaining the details scroll position.
+  Visibility checks wait for the real viewport row rather than a fixed number of frames, without issuing extra scrolls.
+  Regression tests cover dropped index-scroll events, stale endpoint offsets, transient visibility, and cancellation
+  after another command, selection, or manual scroll. Failures report the target/selected indexes and visible row bounds.
+* `HelpCommandTest` and `HelpWindowTest`: targeted usage, supported-command guidance, browse-category placement,
+  formatting, and absence of a selection side effect.
+
+The existing generic command/parser class diagrams cover `SelectCommand` without additional class boxes.
+
 ### Command-specific help
 
 `AddressBookParser` parses the optional command name after `help` and creates a `HelpCommand`. Bare `help` opens the full help window, while `help COMMAND` displays usage for a supported command in the result area.
@@ -519,7 +497,11 @@ Each user command defines its help text in the command class. `COMMAND_USAGE` is
 
 * Use `COMMAND_WORD`, `COMMAND_DESCRIPTION`, and `COMMAND_USAGE` for help content.
 * Commands without parameters define `COMMAND_USAGE` as `COMMAND_WORD + ": " + COMMAND_DESCRIPTION`. Do not add parameter or example fields for these commands.
-* Commands with required or optional parameters also define `COMMAND_PARAMETERS` and `COMMAND_EXAMPLE`. Their `COMMAND_USAGE` combines the description with `Parameters:` and `Example:` lines. Commands with optional arguments, such as `help`, `sort`, and `followups`, follow this format even though they can run without arguments.
+* Most commands with required or optional parameters define `COMMAND_PARAMETERS` and `COMMAND_EXAMPLE`.
+  Their `COMMAND_USAGE` combines the description with `Parameters:` and `Example:` lines. Commands
+  with optional arguments, such as `help`, `sort`, and `followups`, follow this format even though
+  they can run without arguments. `find` instead uses `COMMAND_FORMATS` and `COMMAND_EXAMPLES`
+  with separate `Formats:` and `Examples:` blocks to distinguish prefixed search from quick name search.
 * Use the `MESSAGE_` prefix for result feedback and errors, such as `MESSAGE_SUCCESS` and `MESSAGE_FAILURE`. Parsers that include usage instructions in an error should reference `COMMAND_USAGE` rather than duplicate its text.
 
 #### Help window categories
@@ -609,6 +591,29 @@ The abstract `FollowUpCommand` holds the shared command word and usage message.
 The parser uses the existing tokenizer and prefix-validation utilities. Both set fields are mandatory, duplicate and unknown prefixes are rejected, and clear syntax cannot be combined with set parameters. `ParserUtil.parseFollowUpDate()` enforces the exact four-digit-year format and rejects impossible calendar dates.
 
 Each modifying command resolves the index against the currently displayed list, constructs a replacement `Person`, calls `Model#setPerson()`, and commits once to undo history. Other contact fields and the current filter are preserved. Failed validation does not modify data or history. Automatic persistence uses the existing logic/storage flow.
+
+The sequence diagram below illustrates how a `followup` command travels through `Logic` and `Model` components when a user executes `followup 1 by/2026-11-01 abt/Confirm quotation`:
+
+![FollowUpSequenceDiagram](images/FollowUpSequenceDiagram.png)
+
+How the command parsing and execution works:
+
+1. `LogicManager#execute()` calls `AddressBookParser#parseCommand()`.
+2. `AddressBookParser` instantiates a `FollowUpCommandParser` and invokes its `parse()` method.
+3. `FollowUpCommandParser` performs validation:
+   * `ArgumentTokenizer#verifyNoUnrecognizedPrefixes()` ensures no unrecognized prefixes are supplied.
+   * `ArgumentMultimap#verifyNoMissingPrefixesFor()` verifies that both `by/` and `abt/` prefixes are present.
+   * `ArgumentMultimap#verifyNoDuplicatePrefixesFor()` rejects repeated prefixes.
+   * `ParserUtil#parseIndex()` parses the target contact index.
+   * `ParserUtil#parseFollowUpDate()` parses the due date into a `LocalDate`.
+   * `ParserUtil#unescapeSlashes()` and `FollowUp#isValidDescription()` validate the description string.
+4. A `SetFollowUpCommand` object (labeled `f`) containing the parsed index and new `FollowUp` is returned. The transient `FollowUpCommandParser` is discarded immediately after `parse()` completes, as indicated by the destroy marker (`X`).
+5. `LogicManager` executes `SetFollowUpCommand#execute(Model)`:
+   * The command retrieves `personToUpdate` from the filtered list using the zero-based index.
+   * `createPersonWithFollowUp()` constructs a replacement `Person` entity `updatedPerson` containing the new `FollowUp`.
+   * `Model#setPerson(personToUpdate, updatedPerson)` updates the contact in the address book.
+   * `Model#commitAddressBook()` saves the state to history for undo/redo support.
+6. A `CommandResult` object (labeled `r`) containing the success feedback is created and returned to `LogicManager`.
 
 #### Querying follow-ups
 `FollowUpsCommandParser` supports an empty query, `overdue`, or a single `by/` date cutoff. These map to the `all()`, `overdue()`, and `dueBy()` factories of `FollowUpsCommand`.
@@ -914,38 +919,39 @@ GUI application.
 
 Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unlikely to have) - `*`
 
-| Priority | As  an …                      | I want to …                                                                            | So that I can…                                                            |
-|----------|-------------------------------|----------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| `* * *`  | artisan keyboard shop manager | add contacts with their names, phone numbers, emails and addresses                     | keep all shop contacts in one place.                                      |
+| Priority | As  an …                      | I want to …                                                                                | So that I can…                                                            |
+|----------|-------------------------------|--------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| `* * *`  | artisan keyboard shop manager | add contacts with their names, phone numbers, emails and addresses                         | keep all shop contacts in one place.                                      |
 | `* * *`  | artisan keyboard shop manager | delete outdated contacts by index                                            | have a contact list that stays relevant.                                  |
-| `* * *`  | artisan keyboard shop manager | edit contact details                                                                   | reach the right people using updated communication details.               |
-| `* * *`  | artisan keyboard shop manager | list all contacts in a compact table                                                   | quickly review staff, suppliers and service providers.                    |
-| `* * *`  | artisan keyboard shop manager | tag contacts as employees, suppliers, or service providers                             | distinguish staff from external partners.                                 |
-| `* * *`  | artisan keyboard shop manager | search contacts by full or partial names regardless of letter case                     | quickly find a particular contact's details.                              |
-| `* * *`  | artisan keyboard shop manager | filter contacts by component tags                                                      | find alternative suppliers when stock is low.                             |
-| `* * *`  | artisan keyboard shop manager | contact and tag changes to be saved automatically to a local JSON file                 | persist changes between sessions.                                         |
-| `* * *`  | artisan keyboard shop manager | load saved contacts automatically at startup                                           | begin work without re-entering all details.                               |
-| `* * *`  | artisan keyboard shop manager | view command syntax and parameters using the help command                              | learn commands within the application.                                    |
-| `* * *`  | artisan keyboard shop manager | exit the application using a CLI command                                               | exit gracefully while keeping my terminal open.                           |
-| `* *`    | artisan keyboard shop manager | sort contacts by name, role, or both in my chosen priority                              | browse contacts alphabetically or group contacts with matching roles.      |
-| `* *`    | artisan keyboard shop manager | tag contacts with finer-grain details like suppliers by the components supplied        | find suitable suppliers and service providers for custom keyboard builds. |
-| `* *`    | artisan keyboard shop manager | record suppliers' minimum order quantities                                             | check order requirements before placing group-buy orders.                 |
-| `* *`    | artisan keyboard shop manager | record suppliers' manufacturing and shipping lead times in days                        | estimate delivery dates for keyboard pre-orders.                          |
-| `* *`    | artisan keyboard shop manager | record payment terms on supplier profiles                                              | arrange payments according to agreements with suppliers.                  |
-| `* *`    | artisan keyboard shop manager | tag technicians by their verified assembly skills                                      | assign suitable staff for custom builds.                                  |
-| `* *`    | artisan keyboard shop manager | associate contacts with keyboard group-buy projects                                    | view all suppliers and artisans involved in a particular project.         |
-| `* *`    | artisan keyboard shop manager | record emergency phone numbers for part-time soldering staff                           | contact them during urgent builds.                                        |
-| `* *`    | artisan keyboard shop manager | record hourly pay rates of staff                                                       | calculate payroll for my employees.                                       |
-| `* *`    | artisan keyboard shop manager | record part-time staff's weekly availability                                           | schedule shifts without repeatedly asking when they are free.             |
-| `* *`    | artisan keyboard shop manager | filter staff by their availability on a specific weekend                               | quickly arrange staffing for major assembly sessions.                     |
-| `* *`    | artisan keyboard shop manager | filter contacts using a combination of tags                                            | find contacts matching several requirements.                              |
-| `* *`    | artisan keyboard shop manager | view a supplier's notes, tags and transaction history in an expanded card              | review the relationship before negotiating a contract renewal.            |
-| `* *`    | artisan keyboard shop manager | use single-letter command aliases and shortened prefixes                               | manage my contacts with fewer keystrokes.                                 |
-| `* *`    | artisan keyboard shop manager | browse recent commands using the Up and Down arrow keys                                | reuse or edit commands without retyping them.                             |
-| `* *`    | artisan keyboard shop manager | export all contacts to a formatted CSV file using one command                          | share supplier details or use them in spreadsheets.                       |
-| `* *`    | artisan keyboard shop manager | import contacts from a CSV backup with automatic format validation                     | migrate existing contact lists into KeyBossWarriorsPro.                   |
-| `*`      | artisan keyboard shop manager | create timestamped contact backups automatically after operations                      | restore data after accidental changes or deletions.                       |
-| `*`      | artisan keyboard shop manager | record defect rates and quality ratings for suppliers                                  | avoid suppliers with recurring product defects.                           |
+| `* * *`  | artisan keyboard shop manager | edit contact details                                                                       | reach the right people using updated communication details.               |
+| `* * *`  | artisan keyboard shop manager | list all contacts in a compact table                                                       | quickly review staff, suppliers and service providers.                    |
+| `* * *`  | artisan keyboard shop manager | tag contacts as employees, suppliers, or service providers                                 | distinguish staff from external partners.                                 |
+| `* * *`  | artisan keyboard shop manager | search contacts by full or partial names regardless of letter case                         | quickly find a particular contact's details.                              |
+| `* * *`  | artisan keyboard shop manager | filter contacts by component tags                                                          | find alternative suppliers when stock is low.                             |
+| `* * *`  | artisan keyboard shop manager | combine name, role, and tag search criteria                                                | narrow my search to relevant staff or suppliers.                           |
+| `* * *`  | artisan keyboard shop manager | contact and tag changes to be saved automatically to a local JSON file                     | persist changes between sessions.                                         |
+| `* * *`  | artisan keyboard shop manager | load saved contacts automatically at startup                                               | begin work without re-entering all details.                               |
+| `* * *`  | artisan keyboard shop manager | view command syntax and parameters using the help command                                  | learn commands within the application.                                    |
+| `* * *`  | artisan keyboard shop manager | exit the application using a CLI command                                                   | exit gracefully while keeping my terminal open.                           |
+| `* *`    | artisan keyboard shop manager | sort contacts by name, role, or both in my chosen priority                                  | browse contacts alphabetically or group contacts with matching roles.      |
+| `* *`    | artisan keyboard shop manager | tag contacts with finer-grain details like suppliers by the components supplied            | find suitable suppliers and service providers for custom keyboard builds. |
+| `* *`    | artisan keyboard shop manager | record suppliers' minimum order quantities                                                 | check order requirements before placing group-buy orders.                 |
+| `* *`    | artisan keyboard shop manager | record suppliers' manufacturing and shipping lead times in days                            | estimate delivery dates for keyboard pre-orders.                          |
+| `* *`    | artisan keyboard shop manager | record payment terms on supplier profiles                                                  | arrange payments according to agreements with suppliers.                  |
+| `* *`    | artisan keyboard shop manager | tag technicians by their verified assembly skills                                          | assign suitable staff for custom builds.                                  |
+| `* *`    | artisan keyboard shop manager | associate contacts with keyboard group-buy projects                                        | view all suppliers and artisans involved in a particular project.         |
+| `* *`    | artisan keyboard shop manager | record emergency phone numbers for part-time soldering staff                               | contact them during urgent builds.                                        |
+| `* *`    | artisan keyboard shop manager | record hourly pay rates of staff                                                           | calculate payroll for my employees.                                       |
+| `* *`    | artisan keyboard shop manager | record part-time staff's weekly availability                                               | schedule shifts without repeatedly asking when they are free.             |
+| `* *`    | artisan keyboard shop manager | filter staff by their availability on a specific weekend                                   | quickly arrange staffing for major assembly sessions.                     |
+| `* *`    | artisan keyboard shop manager | filter contacts using a combination of tags                                                | find contacts matching several requirements.                              |
+| `* *`    | artisan keyboard shop manager | view a supplier's notes, tags and transaction history in an expanded card                  | review the relationship before negotiating a contract renewal.            |
+| `* *`    | artisan keyboard shop manager | use single-letter command aliases and shortened prefixes                                   | manage my contacts with fewer keystrokes.                                 |
+| `* *`    | artisan keyboard shop manager | browse recent commands using the Up and Down arrow keys                                    | reuse or edit commands without retyping them.                             |
+| `* *`    | artisan keyboard shop manager | export all contacts to a formatted CSV file using one command                              | share supplier details or use them in spreadsheets.                       |
+| `* *`    | artisan keyboard shop manager | import contacts from a CSV backup with automatic format validation                         | migrate existing contact lists into KeyBossWarriorsPro.                   |
+| `*`      | artisan keyboard shop manager | create timestamped contact backups automatically after operations                          | restore data after accidental changes or deletions.                       |
+| `*`      | artisan keyboard shop manager | record defect rates and quality ratings for suppliers                                      | avoid suppliers with recurring product defects.                           |
 | `*`      | artisan keyboard shop manager | toggle terminal notifications for upcoming supplier contract expiries and restocking dates | place orders before assembly supplies run out.                            |
 | `*`      | artisan keyboard shop manager | customize CLI theme colors                                                             | personalize my workspace                                                  |
 | `*`      | artisan keyboard shop manager | check shipment tracking from a supplier's contact card using a tracking code           | monitor incoming product deliveries.                                      |
@@ -998,18 +1004,18 @@ Priorities: High (must have) - `* * *`, Medium (nice to have) - `* *`, Low (unli
 
 **Extensions**
 
-*  1a. No search criteria are provided, or all provided values are blank.
-  *  1a1. `KeyBossWarriorsPro` shows an error message.
+*  1a. No search criteria are provided, or any prefixed value is blank.
+   *  1a1. `KeyBossWarriorsPro` shows an error message.
        
-       Use case ends.
+      Use case ends.
 
-*  1b. A provided search criterion is invalid (e.g. unrecognised prefix).
-  *  1b1. `KeyBossWarriorsPro` shows an error message.
+*  1b. An unsupported prefix is provided, or unprefixed keywords are mixed with prefixed values.
+   *  1b1. `KeyBossWarriorsPro` shows an error message.
        
-     Use case ends.
+      Use case ends.
 
 *  2a. No contacts match the given criteria.
-  *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
+   *  2a1. `KeyBossWarriorsPro` informs the user that no contacts were found.
        
        Use case ends.
 
@@ -1166,6 +1172,189 @@ Argument and index errors leave contact data, the displayed view, and undo/redo 
 
     Use case ends.
 
+**Use Case: UC8 - Set a Follow-up**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running and a contact list is displayed.
+
+**MSS**
+
+1. User requests to set a follow-up on a specific contact by specifying its displayed index, a due date, and a description.
+2. `KeyBossWarriorsPro` attaches the follow-up to the contact, updates the displayed details, saves the address book to disk, and displays a success confirmation.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The request has missing, multiple, or malformed index arguments.
+
+  * 1a1. `KeyBossWarriorsPro` explains the input error.
+
+    Use case ends.
+
+* 1b. The request has a valid positive index, but no contacts are currently displayed.
+
+  * 1b1. `KeyBossWarriorsPro` informs the user that no contacts are currently displayed.
+
+    Use case ends.
+
+* 1c. The request has a valid positive index that is beyond the range of the displayed list.
+
+  * 1c1. `KeyBossWarriorsPro` explains the valid index range.
+
+    Use case ends.
+
+* 1d. The request is missing mandatory `by/` or `abt/` prefixes, contains duplicate prefixes, or supplies unrecognized prefixes.
+
+  * 1d1. `KeyBossWarriorsPro` displays an invalid command format error showing the correct usage.
+
+    Use case ends.
+
+* 1e. The provided due date is not in `YYYY-MM-DD` format or is not a valid calendar date.
+
+  * 1e1. `KeyBossWarriorsPro` displays a date format constraint error.
+
+    Use case ends.
+
+* 1f. The provided description is blank or exceeds 200 characters.
+
+  * 1f1. `KeyBossWarriorsPro` displays a description constraint error.
+
+    Use case ends.
+
+**Use Case: UC9 - Remove a Follow-up**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running and a contact list is displayed.
+
+**MSS**
+
+1. User requests to clear an existing follow-up by specifying the displayed index of the contact using `followup INDEX clear`.
+2. `KeyBossWarriorsPro` clears the follow-up from the contact, updates the displayed details, saves the change to disk, and displays a confirmation message.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The request has missing, multiple, or malformed index arguments.
+
+  * 1a1. `KeyBossWarriorsPro` explains the input error.
+
+    Use case ends.
+
+* 1b. The request has a valid positive index, but no contacts are currently displayed.
+
+  * 1b1. `KeyBossWarriorsPro` informs the user that no contacts are currently displayed.
+
+    Use case ends.
+
+* 1c. The request has a valid positive index that is beyond the range of the displayed list.
+
+  * 1c1. `KeyBossWarriorsPro` explains the valid index range.
+
+    Use case ends.
+
+* 1d. The request contains extraneous arguments or invalid syntax after `clear`.
+
+  * 1d1. `KeyBossWarriorsPro` displays an invalid command format error.
+
+    Use case ends.
+
+* 1e. The specified contact does not have an active follow-up to clear.
+
+  * 1e1. `KeyBossWarriorsPro` displays an error informing the user that the contact has no follow-up to clear.
+
+    Use case ends.
+
+**Use Case: UC10 - View Follow-ups**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running.
+
+**MSS**
+
+1. User requests to view contacts with follow-ups using `followups` (optionally specifying `overdue` or `by/DUE_DATE`).
+2. `KeyBossWarriorsPro` filters and displays all contacts matching the follow-up query.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The request contains invalid arguments or malformed date values.
+
+  * 1a1. `KeyBossWarriorsPro` displays an error message indicating the invalid format or date constraint.
+
+    Use case ends.
+
+* 1b. The request contains extraneous arguments (e.g., additional trailing words after `overdue`).
+
+  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
+
+    Use case ends.
+
+* 2a. No contacts match the follow-up query (or no contacts have follow-ups).
+
+  * 2a1. `KeyBossWarriorsPro` displays an empty list and informs the user that no follow-ups were found.
+
+    Use case ends.
+
+**Use Case: UC11 - Undo a Command**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running.
+
+**MSS**
+
+1. User requests to undo the most recent modifying command.
+2. `KeyBossWarriorsPro` reverts the address book state to the previous snapshot, saves the address book to disk, resets the view to show all contacts, and displays a success confirmation.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The undo history is empty (no modifying commands have been executed in the current session, or all changes have already been undone).
+
+  * 1a1. `KeyBossWarriorsPro` displays an error message indicating there are no more commands to undo.
+
+    Use case ends.
+
+* 1b. The user supplies additional arguments to `undo` (e.g., `undo 2`).
+
+  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
+
+    Use case ends.
+
+**Use Case: UC12 - Redo a Command**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running.
+
+**MSS**
+
+1. User requests to redo the previously undone command.
+2. `KeyBossWarriorsPro` restores the undone state, saves the address book to disk, resets the view to show all contacts, and displays a success confirmation.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The redo history is empty (no undone commands exist to redo, or a new modifying command was executed after an undo).
+
+  * 1a1. `KeyBossWarriorsPro` displays an error message indicating there are no more commands to redo.
+
+    Use case ends.
+
+* 1b. The user supplies additional arguments to `redo` (e.g., `redo 2`).
+
+  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
+
+    Use case ends.
+
 ### Non-Functional Requirements
 
 1.  **Operating Environment:** Should work on any _mainstream OS_ (Windows 10/11, macOS, Linux) as long as it has Java `25` or above installed.
@@ -1301,6 +1490,42 @@ Command | Expected result
 `edit 1 n/Changed xx/value` | Unknown-prefix error; the contact's name, role, and tags remain unchanged.
 Restart the application, then run `find n/Anne-Marie O'Connor`. | The normalised name, role, and both tags are retained.
 
+### Finding contacts with `find`
+
+Use a disposable application copy in a separate folder: this setup replaces saved contacts.
+Run `clear`, then `sort clear`, and execute each setup command separately:
+
+```text
+add n/Alice Tan p/81009101 e/alice.tan@find.example.com a/Test Address r/Employee t/tactile switch t/keycap
+add n/Alice Lee p/81009102 e/alice.lee@find.example.com a/Test Address r/Regional Supplier t/tactile switch t/trusted partner
+add n/Bob Tan p/81009103 e/bob.tan@find.example.com a/Test Address r/Regional Supplier t/keycap
+add n/Carol Lim p/81009104 e/carol.lim@find.example.com a/Test Address r/Distributor
+```
+
+Run the rows below in order. Where a row contains several commands, enter them separately
+from left to right.
+
+| Command | Expected result |
+|---------|-----------------|
+| `find aLI tAN` | Alice Tan, Alice Lee, and Bob Tan; `3 contacts found.` Keywords use OR and ignore case. |
+| `find n/Alice Tan` | Alice Tan only; `1 contact found.` The value is one continuous phrase. |
+| `find r/gional supp t/tactile swi` | Alice Lee only. Both the role and tag substrings must match. |
+| `find t/tactile t/keycap` | Alice Tan, Alice Lee, and Bob Tan, each once. Either tag phrase suffices; Carol has no tags. |
+| `find n/ali n/bob r/supp` | Alice Lee and Bob Tan. The name alternatives use OR; the role condition uses AND. |
+| `find NoSuchFindContact` | An empty list and `No contacts found.` |
+| `find n/Carol`, then `find n/Alice` | First Carol Lim, then both Alice contacts. The second search checks the full contact list. |
+| `sort r/ n/`, then `find r/supp`, then `list` | Find shows Alice Lee, then Bob Tan. List restores Carol Lim, Alice Tan, Alice Lee, then Bob Tan, retaining role-then-name order. |
+
+Before checking errors, run `find n/Alice Tan`. Each rejected command below must preserve
+that one-contact view and all stored contacts.
+
+| Command | Expected feedback |
+|---------|-------------------|
+| `find` | `find requires at least one search criterion.` |
+| `find n/Alice r/` | `find requires a non-blank value after n/, r/, t/.` A blank prefix is rejected even when another value is present. |
+| `find Alice r/Supplier` | `find cannot mix unprefixed keywords with prefixed search values.` |
+| `find p/81009101` | `Unrecognized prefix(es) provided: p/.` |
+
 ### Editing contact tags
 
 Create a test contact with a unique phone number and email, for example `add n/TagEditExample p/12345678 e/tagedit@example.com a/Test Address r/Employee t/trainee t/supplier`. Run `find TagEditExample` and confirm this is the only result. Before each command below, run `find TagEditExample` again because a successful edit displays all contacts. Perform the cases in the order shown.
@@ -1338,7 +1563,7 @@ Leave the window open across local midnight, or return focus after sleep. | With
 ### Sorting contacts
 
 Use a disposable application copy in a separate folder: these tests replace saved contacts.
-Before each numbered group, run `clear` and execute these setup commands separately, in order:
+Run `clear`, then `sort clear`, and enter these setup commands separately, in order:
 
 ```text
 add n/Zoe p/81000001 e/zoe@sort.example.com a/Test Address r/Employee
@@ -1347,59 +1572,84 @@ add n/Alice p/81000003 e/alice.supplier@sort.example.com a/Test Address r/Suppli
 add n/alice p/81000004 e/alice.distributor@sort.example.com a/Test Address r/Distributor
 ```
 
-The roles and phone numbers distinguish the two Alice contacts. Perform each group's cases in order.
+The roles distinguish the two Alice contacts. Run the rows below in order, entering each command separately.
 
-1. Sorting criteria
+| Action / command | Expected result |
+|------------------|-----------------|
+| Run `sort` (also try `sort n/`). | Both Alice contacts appear before ben, then Zoe, ignoring case. Feedback: `Listed all contacts in sorted order.` |
+| Run `sort n/ r/`. | Order: alice (Distributor), Alice (Supplier), ben, Zoe. Role breaks the matching-name tie. |
+| Run `sort r/ n/`. | Order: alice (Distributor), Zoe, Alice (Supplier), ben. Name breaks the Supplier tie. |
+| Run `find r/Supplier`, then `sort n/`. | Find shows two Suppliers; sort reveals all four contacts in name order. |
+| Try `sort n/ n/`, `sort n/Alice`, and `sort t/`. | Each reports the specific problem: repeated field, unexpected value, or unsupported token. Contacts and sorting remain unchanged. |
+| Run `sort clear`. | Original insertion order is restored: Zoe, ben, Alice (Supplier), alice (Distributor). Feedback: `Sorting cleared. Contacts will be displayed in insertion order.` |
+| Run `clear`, then `sort n/`. | The list is empty. An informational message says the selected sort order will apply to contacts added later. |
+| Add Zoe and Alice (Supplier) using their setup commands, in that order. | Alice appears before Zoe, showing that sorting also applies to newly added contacts. |
 
-   1. Test case: `sort` (also try `sort n/`).<br>
-      Expected: Both Alice contacts precede ben, then Zoe, ignoring case.
-      Feedback: `Listed all contacts in sorted order.`
+### Adding contacts with `add`
 
-   1. Test case: `sort n/ r/`.<br>
-      Expected: alice (Distributor), Alice (Supplier), ben, Zoe. Role breaks the matching-name tie.
+Start a fresh application session using a disposable copy in a separate folder.
+Run `clear` to remove all contacts, then enter these commands in order.
+Where a row contains several commands, enter them separately.
+Each rejected request must leave the displayed list and stored contact data unchanged.
 
-   1. Test case: `sort r/ n/`.<br>
-      Expected: alice (Distributor), Zoe, Alice (Supplier), ben. Name breaks the Supplier tie.
+| Command | Expected result |
+|---------|-----------------|
+| `add n/John Doe p/98765432 e/johnd@example.com a/311, Clementi Ave 2, #02-25 r/Supplier t/friends t/owesMoney` | Adds John Doe with role `Supplier` and tags `[friends][owesMoney]`. Feedback starts with `New person added: John Doe;`. |
+| `add n/David s\/o Muthu p/81001234 e/david@example.com a/Blk 456 Jurong r/R\/D Partner t/lubed\/filmed switches` | Decodes `\/` once. Adds David with name `David s/o Muthu`, role `R/D Partner`, and tag `[lubed/filmed switches]`. |
+| `add n/Jane Doe p/98765432 e/jane@example.com a/Test Address r/Employee` | Duplicate phone error: `This phone number already belongs to an existing contact.` |
+| `add n/Johnny Doe p/81009999 e/johnd@example.com a/Test Address r/Employee` | Duplicate email error: `This email address already belongs to an existing contact.` |
+| `add n/Jack Doe p/98765432 e/johnd@example.com a/Test Address r/Employee` | Duplicate phone and email error: `This phone number and email address are already used by existing contacts.` |
+| `add n/No Role p/81005555 e/norole@example.com a/Test Address` | Missing parameter error: `Missing mandatory parameter(s): r/.` |
+| `add n/David s/o Muthu p/81008888 e/david.unescaped@example.com a/Test Address r/Supplier` | Unescaped slash is recognized as an unknown prefix: `Unrecognized prefix(es) provided: s/.` |
+| `add n/Bad Phone p/12 e/badphone@example.com a/Test Address r/Supplier` | Phone number constraint error: `Phone numbers should only contain digits, and should be at least 3 digits long.` |
 
-1. Filtering while sorting
+### Undoing and redoing commands with `undo` and `redo`
 
-   1. Test case: `find r/Supplier`, followed by `sort n/`.<br>
-      Expected: Find shows two Suppliers; sort reveals all four contacts in name order.
+Use a disposable application copy in a separate folder.
+Run `clear` to remove all contacts, then add one baseline contact:
 
-   1. Test case: `sort r/ n/`, then `find r/Supplier`, then `list`.<br>
-      Expected: Find shows Alice (Supplier), then ben. List restores all four in role-then-name order.
+```text
+add n/Alice p/81000001 e/alice@undo.example.com a/Test Address r/Employee
+```
 
-1. Editing and deleting by displayed index
+Run the commands below in order. Where a row contains several commands, enter them separately.
 
-   1. Prerequisites: Run `sort n/ r/`.
+| Command | Expected result |
+|---------|-----------------|
+| `delete 1` | Alice is deleted; the contact list becomes empty. |
+| `undo` | `Undo success!` Alice is restored at index 1. |
+| `redo` | `Redo success!` Alice is deleted again. |
+| `undo` | `Undo success!` Alice is restored at index 1. |
+| `add n/Bob p/81000002 e/bob@undo.example.com a/Test Address r/Supplier` | Bob is added at index 2. |
+| `followup 2 by/2026-12-01 abt/Inventory check` | Bob's follow-up is set. The Follow-up badge appears on Bob's card. |
+| `undo` | `Undo success!` Bob's follow-up is removed; Alice and Bob remain. |
+| `undo` | `Undo success!` Bob is removed; only Alice remains. |
+| `redo` | `Redo success!` Bob is restored at index 2. |
+| `redo` | `Redo success!` Bob's follow-up is restored. |
+| `undo` | `Undo success!` Bob's follow-up is removed again. |
+| `add n/Charlie p/81000003 e/charlie@undo.example.com a/Test Address r/Service Provider` | Charlie is added. This modifying command purges the redo branch. |
+| `redo` | `No more commands to redo!` Redo history was cleared when Charlie was added. |
+| `find Alice`, `list`, then `help` | Filter shows Alice, list restores all contacts, help window opens. These non-modifying commands do not change undo history. |
+| `undo` | `Undo success!` Charlie is removed; Alice and Bob remain. |
+| `undo` | `Undo success!` Bob is removed; only Alice remains. |
+| `undo` | `Undo success!` Alice is removed; the list becomes empty (reversing baseline setup). |
+| `undo` | `No more commands to undo!` |
+| `undo 2`, then `redo 2` | Each is rejected with invalid command format; history and contacts remain unchanged. |
 
-   1. Test case: `edit 1 n/Zara`.<br>
-      Expected: Contact `81000004` is renamed and repositioned. Order: Alice (Supplier), ben, Zara, Zoe.
+### Viewing contextual help with `help`
 
-   1. Test case: `delete 3`, then `undo`, then `redo`.<br>
-      Expected: Zara (`81000004`) is deleted, restored, then deleted again. Other contacts remain;
-      name-then-role sorting is retained throughout.
+Start with the application open. Commands can be run in any order.
 
-1. Invalid arguments and empty contacts
-
-   1. Prerequisites: Run `sort r/ n/`, then `find r/Supplier`.
-
-   1. Test cases: `sort n/ n/`, `sort n/Alice`, and `sort t/` (separately).<br>
-      Expected: Duplicate-field, unexpected-value, and unexpected-token errors respectively.
-      Feedback: `sort accepts each field only once: n/.`,
-      `sort does not accept values after n/.`, and
-      `sort expects clear, n/, or r/, but received: t/.` respectively.
-      The two displayed Suppliers and their details remain unchanged. Afterwards, `list` restores all four
-      contacts in role-then-name order, confirming the comparator is unchanged.
-
-   1. Test case: `clear`, then `sort n/`.<br>
-      Expected: Empty list and feedback
-      `No contacts are currently available. The selected sort order will apply to contacts added later.`
-      Add Zoe and Alice (Supplier) using their setup commands: Alice appears before Zoe.
-
-   1. Test case: `sort r/`, then `sort clear`.<br>
-      Expected: Contacts return to their original insertion order: Zoe, ben, Alice, alice.
-      Feedback: `Sorting cleared. Contacts will be displayed in insertion order.`
+| Command | Expected result |
+|---------|-----------------|
+| `help add` | Result display shows `add` command description, parameters, and example. No popup window opens. |
+| `help followup` | Result display shows `followup` command description, parameters, and example. No popup window opens. |
+| `help select` | Result display shows `select` command description, parameters, and example. No popup window opens. |
+| `help sort` | Result display shows `sort` command description, parameters, and example. No popup window opens. |
+| `help exit` | Result display shows `exit` command description without parameters. No popup window opens. |
+| `help` | The full Help window opens, displaying all commands grouped by category (`Manage contacts`, `Browse contacts`, `Undo and redo`, `Application`). Result display shows `Opened help window.`. |
+| `help unknowncommand` | Result display shows `No command-specific help is available for 'unknowncommand'.` and lists supported commands. No window opens. |
+| `help add extra` | Syntax error: `Specify only one command after help.`. No window opens. |
 
 ### Saving data
 

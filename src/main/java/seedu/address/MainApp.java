@@ -89,17 +89,26 @@ public class MainApp extends Application {
             initialData = new AddressBook();
             Path filePath = storage.getAddressBookFilePath();
             if (Files.exists(filePath)) {
+                String cause = e.getCause() != null && e.getCause().getMessage() != null
+                        ? e.getCause().getMessage() : e.getMessage();
+                String causeMsg = cause != null && !cause.isBlank() ? cause : "unrecognized format error";
                 try {
                     Path backupPath = storage.backupAddressBookFile();
-                    initialStatusMessage = String.format(
-                            "Warning: Data file %1$s is corrupted. A backup was created at %2$s. "
-                                    + "Starting with an empty contact book.", filePath, backupPath);
-                    logger.warning(initialStatusMessage);
+                    String warning = String.format("Warning: Data file %1$s is corrupted (%2$s). "
+                            + "A backup was created at %3$s. Starting with an empty contact book.",
+                            filePath, causeMsg, backupPath);
+                    logger.warning(warning);
+                    initialStatusMessage = initialStatusMessage == null
+                            ? warning
+                            : initialStatusMessage + "\n" + warning;
                 } catch (IOException ioe) {
-                    initialStatusMessage = String.format(
-                            "Warning: Data file %1$s is corrupted, and creating a backup failed: %2$s. "
-                                    + "Starting with an empty contact book.", filePath, ioe.getMessage());
-                    logger.severe(initialStatusMessage);
+                    String warning = String.format("Warning: Data file %1$s is corrupted (%2$s), and creating "
+                            + "a backup failed: %3$s. Starting with an empty contact book.",
+                            filePath, causeMsg, ioe.getMessage());
+                    logger.severe(warning);
+                    initialStatusMessage = initialStatusMessage == null
+                            ? warning
+                            : initialStatusMessage + "\n" + warning;
                 }
             }
         }

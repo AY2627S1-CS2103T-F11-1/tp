@@ -1,0 +1,87 @@
+@startuml
+!include style.puml
+skinparam ArrowFontStyle plain
+
+box Logic LOGIC_COLOR_T1
+participant ":LogicManager" as LogicManager LOGIC_COLOR
+participant ":AddressBookParser" as AddressBookParser LOGIC_COLOR
+participant ":FollowUpCommandParser" as FollowUpCommandParser LOGIC_COLOR
+participant "f:SetFollowUpCommand" as SetFollowUpCommand LOGIC_COLOR
+participant "r:CommandResult" as CommandResult LOGIC_COLOR
+end box
+
+box Model MODEL_COLOR_T1
+participant "m:Model" as Model MODEL_COLOR
+end box
+
+[-> LogicManager : execute("followup 1 by/2026-11-01 abt/Confirm quotation")
+activate LogicManager
+
+LogicManager -> AddressBookParser : parseCommand("followup 1 by/2026-11-01 abt/Confirm quotation")
+activate AddressBookParser
+
+create FollowUpCommandParser
+AddressBookParser -> FollowUpCommandParser
+activate FollowUpCommandParser
+
+FollowUpCommandParser --> AddressBookParser
+deactivate FollowUpCommandParser
+
+AddressBookParser -> FollowUpCommandParser : parse("1 by/2026-11-01 abt/Confirm quotation")
+activate FollowUpCommandParser
+
+create SetFollowUpCommand
+FollowUpCommandParser -> SetFollowUpCommand
+activate SetFollowUpCommand
+
+SetFollowUpCommand --> FollowUpCommandParser : f
+deactivate SetFollowUpCommand
+
+FollowUpCommandParser --> AddressBookParser : f
+deactivate FollowUpCommandParser
+'Hidden arrow to position the destroy marker below the end of the activation bar.
+FollowUpCommandParser -[hidden]-> AddressBookParser
+destroy FollowUpCommandParser
+
+AddressBookParser --> LogicManager : f
+deactivate AddressBookParser
+
+LogicManager -> SetFollowUpCommand : execute(m)
+activate SetFollowUpCommand
+
+SetFollowUpCommand -> Model : getFilteredPersonList()
+activate Model
+
+Model --> SetFollowUpCommand : lastShownList
+deactivate Model
+
+note right of SetFollowUpCommand
+updatedPerson is the Person entity
+with the new FollowUp attached
+end note
+
+SetFollowUpCommand -> Model : setPerson(personToUpdate, updatedPerson)
+activate Model
+
+Model --> SetFollowUpCommand
+deactivate Model
+
+SetFollowUpCommand -> Model : commitAddressBook()
+activate Model
+
+Model --> SetFollowUpCommand
+deactivate Model
+
+create CommandResult
+SetFollowUpCommand -> CommandResult
+activate CommandResult
+
+CommandResult --> SetFollowUpCommand
+deactivate CommandResult
+
+SetFollowUpCommand --> LogicManager : r
+deactivate SetFollowUpCommand
+
+[<--LogicManager
+deactivate LogicManager
+@enduml

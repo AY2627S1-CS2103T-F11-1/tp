@@ -82,7 +82,8 @@ public class MainAppTest {
         String warningMessage = mainApp.getInitialStatusMessage();
         assertTrue(warningMessage != null && !warningMessage.isBlank());
         assertTrue(warningMessage.startsWith("Warning: Data file "));
-        assertTrue(warningMessage.contains("is corrupted. A backup was created at "));
+        assertTrue(warningMessage.contains("is corrupted ("));
+        assertTrue(warningMessage.contains("). A backup was created at "));
         assertTrue(warningMessage.endsWith("Starting with an empty contact book."));
 
         // Verify model starts with an empty address book
@@ -121,7 +122,8 @@ public class MainAppTest {
         String warningMessage = mainApp.getInitialStatusMessage();
         assertTrue(warningMessage != null && !warningMessage.isBlank());
         assertTrue(warningMessage.startsWith("Warning: Data file "));
-        assertTrue(warningMessage.contains("is corrupted, and creating a backup failed: Simulated disk write error."));
+        assertTrue(warningMessage.contains("is corrupted ("));
+        assertTrue(warningMessage.contains("), and creating a backup failed: Simulated disk write error."));
         assertTrue(warningMessage.endsWith("Starting with an empty contact book."));
         assertEquals(new AddressBook(), new AddressBook(model.getAddressBook()));
     }

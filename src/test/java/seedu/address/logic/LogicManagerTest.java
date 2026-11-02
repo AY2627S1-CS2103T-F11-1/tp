@@ -268,6 +268,38 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_savingFailureAfterUndo_restoresRedoHistory() throws Exception {
+        model = new ModelManager();
+        model.addPerson(ALICE);
+        model.commitAddressBook();
+        logic = new LogicManager(model, storage);
+        logic.execute("delete 1");
+        logic.execute("undo");
+        assertTrue(model.canRedoAddressBook());
+
+        Path failingPath = temporaryFolder.resolve("failing-redo-history.json");
+        JsonAddressBookStorage failingStorage = new JsonAddressBookStorage(failingPath) {
+            @Override
+            public void saveAddressBook(ReadOnlyAddressBook addressBook) throws IOException {
+                throw DUMMY_IO_EXCEPTION;
+            }
+        };
+        StorageManager failingManager = new StorageManager(failingStorage,
+                new JsonUserPrefsStorage(temporaryFolder.resolve("prefs-redo.json")));
+        logic = new LogicManager(model, failingManager);
+
+        Assertions.assertThrows(CommandException.class, () -> logic.execute("delete 1"));
+        assertTrue(model.hasPerson(ALICE));
+        assertTrue(model.canUndoAddressBook());
+        assertTrue(model.canRedoAddressBook());
+
+        // Redo remains available and functions normally
+        logic = new LogicManager(model, storage);
+        logic.execute("redo");
+        assertFalse(model.hasPerson(ALICE));
+    }
+
+    @Test
     public void execute_savingFailureDuringUndoOrRedo_keepsRestoredStateAndClearsSelection() {
         for (IOException failure : List.of(DUMMY_IO_EXCEPTION, DUMMY_AD_EXCEPTION)) {
             for (String command : List.of(UndoCommand.COMMAND_WORD, RedoCommand.COMMAND_WORD)) {
