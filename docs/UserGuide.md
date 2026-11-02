@@ -697,6 +697,8 @@ _Details coming soon ..._
 
 1. **When using multiple screens**, if you move the application to a secondary screen, and later switch to using only the primary screen, the GUI will open off-screen. The remedy is to delete the `preferences.json` file created by the application before running the application again.
 2. **If you minimize the Help Window** and then run the `help` command (or use the `Help` menu, or the keyboard shortcut `F1`) again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
+3. **Role styling disparity between contact card and details panel**: When a contact is selected, the role is presented as a color-coded pill badge on the contact list card, but appears as unstyled plain text (`Role: <value>`) in the right details panel. This is a cosmetic presentation difference and does not affect contact data, selection behavior, or application functionality. Harmonized pill badge styling across both panes is planned for a future version.
+4. **Compact vertical clearance on contact card role badges**: Contact card role pill badges use compact vertical padding and typography, which may cause letter descenders (e.g., `g`, `p`, `y`) or uppercase ascenders to appear vertically snug against the pill border on certain display scalings. All badge text remains fully readable, and contact management is unaffected. Relaxed vertical padding and refined typography are planned for a future version.
 
 --------------------------------------------------------------------------------------------------------------------
 
