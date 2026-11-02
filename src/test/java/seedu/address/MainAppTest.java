@@ -7,13 +7,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import seedu.address.commons.core.GuiSettings;
+import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
+import seedu.address.model.ReadOnlyUserPrefs;
 import seedu.address.model.UserPrefs;
 import seedu.address.model.util.SampleDataUtil;
 import seedu.address.storage.JsonAddressBookStorage;
@@ -192,5 +196,82 @@ public class MainAppTest {
         assertTrue(warningMessage.contains("Warning: Preference file "));
         assertTrue(warningMessage.contains("Warning: Data file "));
         assertTrue(warningMessage.contains("\n"));
+    }
+
+    @Test
+    public void initPrefs_missingFile_returnsDefaultsAndSavesNewFile() {
+        Path missingPrefsPath = testFolder.resolve("missing_prefs.json");
+        JsonUserPrefsStorage prefsStorage = new JsonUserPrefsStorage(missingPrefsPath);
+
+        UserPrefs initializedPrefs = mainApp.initPrefs(prefsStorage);
+
+        assertEquals(new UserPrefs(), initializedPrefs);
+        assertNull(mainApp.getInitialStatusMessage());
+        assertTrue(Files.exists(missingPrefsPath));
+    }
+
+    @Test
+    public void initPrefs_validFile_loadsCustomPrefsAndNoWarning() throws Exception {
+        Path validPrefsPath = testFolder.resolve("valid_prefs.json");
+        JsonUserPrefsStorage prefsStorage = new JsonUserPrefsStorage(validPrefsPath);
+        UserPrefs customPrefs = new UserPrefs();
+        customPrefs.setGuiSettings(new GuiSettings(1024, 768, 50, 50));
+        prefsStorage.saveUserPrefs(customPrefs);
+
+        UserPrefs initializedPrefs = mainApp.initPrefs(prefsStorage);
+
+        assertEquals(customPrefs, initializedPrefs);
+        assertNull(mainApp.getInitialStatusMessage());
+    }
+
+    @Test
+    public void initPrefs_corruptedFileWithBlankCause_usesFallbackWarningText() throws Exception {
+        Path corruptedPrefsPath = testFolder.resolve("blank_cause_prefs.json");
+        Files.writeString(corruptedPrefsPath, "invalid");
+
+        JsonUserPrefsStorage blankCauseStorage = new JsonUserPrefsStorage(corruptedPrefsPath) {
+            @Override
+            public Optional<UserPrefs> readUserPrefs() throws DataLoadingException {
+                throw new DataLoadingException(new Exception("   "));
+            }
+        };
+
+        UserPrefs resultPrefs = mainApp.initPrefs(blankCauseStorage);
+
+        assertEquals(new UserPrefs(), resultPrefs);
+        String warningMessage = mainApp.getInitialStatusMessage();
+        assertTrue(warningMessage != null && !warningMessage.isBlank());
+        assertTrue(warningMessage.contains("(unrecognized format)"));
+    }
+
+    @Test
+    public void initPrefs_nonExistentFileThrowsDataLoadingException_doesNotAttemptBackup() {
+        Path nonExistentPath = testFolder.resolve("non_existent_prefs.json");
+        JsonUserPrefsStorage nonExistentFaultyStorage = new JsonUserPrefsStorage(nonExistentPath) {
+            @Override
+            public Optional<UserPrefs> readUserPrefs() throws DataLoadingException {
+                throw new DataLoadingException(new Exception("Simulated read failure"));
+            }
+        };
+
+        UserPrefs resultPrefs = mainApp.initPrefs(nonExistentFaultyStorage);
+
+        assertEquals(new UserPrefs(), resultPrefs);
+        assertNull(mainApp.getInitialStatusMessage());
+    }
+
+    @Test
+    public void initPrefs_saveUserPrefsThrowsIoException_returnsPrefs() {
+        Path validPrefsPath = testFolder.resolve("save_ioe_prefs.json");
+        JsonUserPrefsStorage faultySaveStorage = new JsonUserPrefsStorage(validPrefsPath) {
+            @Override
+            public void saveUserPrefs(ReadOnlyUserPrefs prefs) throws IOException {
+                throw new IOException("Simulated disk error");
+            }
+        };
+
+        UserPrefs resultPrefs = mainApp.initPrefs(faultySaveStorage);
+
+        assertEquals(new UserPrefs(), resultPrefs);
     }
 }
