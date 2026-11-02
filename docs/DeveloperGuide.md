@@ -9,7 +9,9 @@ title: Developer Guide
 
 ## **Acknowledgements**
 
-* _{List the sources of reused or adapted ideas, code, documentation, and third-party libraries here, with links to the originals.}_
+* Based on [AddressBook-Level 3](https://github.com/se-edu/addressbook-level3) by the [SE-EDU initiative](https://se-education.org), adapting its code, architecture, and documentation.
+* Libraries used: [JavaFX](https://openjfx.io/), [Jackson](https://github.com/FasterXML/jackson), and [JUnit 5](https://junit.org/junit5/).
+* AI assistance: OpenAI Codex, Anthropic Claude, and Google Gemini were used during development and documentation.
 
 --------------------------------------------------------------------------------------------------------------------
 
