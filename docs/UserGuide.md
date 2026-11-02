@@ -150,51 +150,81 @@ When exactly one contact is displayed, an out-of-range error states that the onl
 
 Adds a contact to KeyBossWarriorsPro.
 
-**Format:** `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…​`
-* `ROLE` represents the contact's role or affiliation in your keyboard shop (e.g., `Supplier`, `Employee`, `Partner`, `Customer`). It cannot be empty. Multiple consecutive spaces are collapsed into a single space, and role comparisons are case-insensitive.
-* Contacts are identified as duplicates by phone number or email address (email comparisons are case-insensitive). You cannot add a contact who shares a phone number or email address with an existing contact, but contacts may share the same name.
-* Unrecognized prefixes are rejected with an error message identifying them. Text after a valid prefix belongs to that field until the next prefix.
+**Format:** `add n/NAME p/PHONE_NUMBER e/EMAIL a/ADDRESS r/ROLE [t/TAG]…`
 
-**Field Constraints**
+* Name, phone number, email, address and role are required. Supply each once, in any order.
+* Tags are optional. Repeat `t/` to add multiple tags; there is no limit on the number of tags.
+* Separate fields with a space. Unknown prefixes are rejected, and a recognised prefix starts the next field.
 
-Field | Constraint
---------|------------------
-`NAME` | May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character. Multiple consecutive spaces are collapsed into a single space.
-`PHONE_NUMBER` | Must contain at least 3 digits. Only digits are accepted.
-`EMAIL` | Must follow a valid email format, such as `john@example.com`.
-`ADDRESS` | May contain spaces and special characters.
-`ROLE` | May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character. Multiple consecutive spaces are collapsed into a single space.
-`TAG` | Optional. May contain alphanumeric characters, spaces, and punctuation (`-`, `/`, `&`, `'`). Must start and end with an alphanumeric character, and cannot exceed 50 characters. Multiple consecutive spaces are collapsed into a single space. Tag comparisons and deduplication are case-insensitive.
+<a id="contact-input-rules"></a>
 
-Names, roles, and tags follow the same character and spacing rules. Leading and trailing
-spaces around command values are ignored, repeated internal spaces become one space,
-and capitalisation and punctuation are preserved. For example, `n/Anne-Marie   O'Connor`
-is stored as `Anne-Marie O'Connor`. Only tags have a 50-character limit, checked before
-repeated spaces are collapsed. Alphanumeric characters here mean `A`–`Z`, `a`–`z`,
-and `0`–`9`; internal tabs and line breaks are not accepted.
+**Input rules**
+
+Surrounding spaces are ignored. In the table below, *alphanumeric* means ASCII
+letters (`A`–`Z`, `a`–`z`) and digits (`0`–`9`).
+
+Field | Accepted input
+------|---------------
+`NAME` | Alphanumeric characters, ordinary spaces and `-`, `/`, `&`, `'`. Must start and end with an alphanumeric character.
+`PHONE_NUMBER` | At least 3 digits. Spaces, `+`, hyphens, brackets and extensions are not accepted.
+`EMAIL` | A valid email address such as `john@example.com`.
+`ADDRESS` | Text containing spaces and special characters. Cannot be blank or consist only of whitespace or invisible formatting characters.
+`ROLE` | Your contact's role or affiliation, such as `Supplier`, `Employee`, `Partner` or `Customer`. Uses the same character rules as `NAME`.
+`TAG` | Uses the same character rules as `NAME`. Maximum **50 characters after slash decoding, before repeated spaces are collapsed**. Duplicate tags are combined, ignoring case.
+
+Names, roles and tags collapse repeated internal spaces into one, while preserving
+capitalisation and punctuation. For example, `n/Anne-Marie   O'Connor` stores
+`Anne-Marie O'Connor`. Internal tabs and line breaks are not accepted in these fields.
+Address values preserve internal spacing. Names, roles and addresses have no maximum length.
+
+<a id="contact-duplicates"></a>
+
+**Duplicate contacts**
+
+A new contact is rejected if **either** its phone number **or** its email matches
+any existing contact, including contacts hidden by the current filter:
+
+* Phone numbers must differ from all existing phone numbers.
+* Email addresses must differ from all existing email addresses, ignoring case. For example, `John@example.com` and `john@example.com` are treated as the same email.
+* Names are not used to detect duplicates. Contacts with identical or similar names can be added if both their phone numbers and emails differ.
+
+<a id="slash-escaping"></a>
 
 <div markdown="block" class="alert alert-warning">
 
-**:warning: Slash-containing values**
+**:warning: Entering `/` as part of a value**
 
-A slash is supported, but some values conflict with the command's prefix syntax:
+**Write `\/` when text after a space looks like a command prefix but belongs to
+your value.** For example, `n/David s/o John` is rejected because `s/` is treated
+as an unknown prefix. Write `n/David s\/o John` to store `David s/o John`.
+A recognised prefix such as `p/` after a space starts another field; escape its slash
+too if it belongs to the value.
 
-* `t/key/board` is accepted.
-* `t/ key/board` and `n/David s/o Me` are rejected because `key/` and `s/` are interpreted as unknown prefixes.
-* A recognised prefix such as `p/` after a space starts another field instead of remaining part of the current value.
+Field value entered | Stored value
+--------------------|-------------
+`n/David s\/o John` | `David s/o John`
+`r/Supplier p\/Manufacturer` | `Supplier p/Manufacturer`
+`t/parts xx\/custom` | `parts xx/custom`
+`a/123 Street c\/o John` | `123 Street c/o John`
 
-This limitation applies to names, roles, and tags.
+A slash within a word does not need escaping: `t/key/board` works as written.
+However, `t/ key/board` is rejected because the space before `key/` makes it look
+like a prefix; write `t/ key\/board` instead.
 
-</div>
+**If unsure, escape any slash inside a text value.** Both `n/John\/Tan` and
+`n/John/Tan` store `John/Tan`. Keep actual field prefixes such as `n/` unchanged.
 
+* This rule applies to names, roles, tags and addresses in `add`/`edit`, tags removed with `dt/`, name/role/tag searches in `find`, and descriptions in `followup`.
+* Each `\/` becomes `/` once, before validation and length checks. The removed backslash does not count towards a length limit. Saving and reloading do not change the decoded value.
+* Other backslashes remain literal. Names, roles and tags currently reject them. Addresses and descriptions permit them: `a/C:\Users\John` is unchanged. To retain a backslash immediately before a slash, enter two: `a/Archive \\/` stores `Archive \/`.
+* Phone numbers, email addresses and dates do not use this escape syntax.
 
-<div markdown="span" class="alert alert-primary">:bulb: **Tip:**
-A contact can have any number of tags, including zero.
 </div>
 
 Examples:
+
 * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01 r/Supplier`
-* `add n/Betsy Crowe t/friend e/betsycrowe@example.com a/Newgate Prison p/1234567 r/Employee t/criminal`
+* `add n/David s\/o John p/91234567 e/david@example.com a/123 Street c\/o John r/Supplier t/parts xx\/custom`
 
 
 ### Clearing all entries: `clear`
@@ -228,9 +258,9 @@ Edits an existing contact in KeyBossWarriorsPro.
 * `INDEX` must be a positive integer and must refer to a contact in the currently displayed list.
 * At least one field or tag operation must be provided.
 * Supplied name, phone number, email address, address, and role values replace the corresponding existing values. Omitted fields keep their existing values.
-* Field constraints described under `add` apply to every field supplied with `edit`.
+* The [input rules](#contact-input-rules) and [slash-escaping rules](#slash-escaping) under `add` also apply here, including `dt/`. For example, `edit 1 n/David s\/o John dt/parts xx\/custom`.
 * Unrecognized prefixes are rejected. For example, `edit 1 xx/value` is invalid. Text after a valid prefix belongs to that field until the next prefix.
-* You cannot edit a contact's phone number or email address to match another existing contact in KeyBossWarriorsPro (email comparisons are case-insensitive).
+* The [duplicate-contact rules](#contact-duplicates) also apply: neither the new phone number nor the new email may match another contact, including one hidden by the current filter. Keeping the selected contact's own phone or email is allowed.
 * `t/TAG_TO_ADD` adds the named tag while preserving the contact's existing tags. Adding a tag the contact already has succeeds without creating a duplicate.
 * `dt/TAG_TO_DELETE` removes the named tag while preserving all other tags. Every tag requested for deletion must already belong to the selected contact.
 * Repeat `t/` or `dt/` to add or delete several tags. Both operations can be used in the same command, in any order.
@@ -271,9 +301,9 @@ Creates, replaces, or removes a contact's pending follow-up. Each contact can ha
 * Both `by/` and `abt/` are mandatory and must appear exactly once. They may appear in either order.
 * Setting a follow-up replaces any existing follow-up in full. To change only the date or description, supply both fields again.
 * `DUE_DATE` must be a valid calendar date in `YYYY-MM-DD` format, with a year from `0000` to `9999`. Past dates are accepted.
-* `DESCRIPTION` must not be blank and must not exceed 200 Java string characters after surrounding whitespace is removed. Most ordinary characters count as one; some characters, such as emoji, count as two.
+* `DESCRIPTION` must not be blank and must not exceed 200 Java string characters after slash decoding and removal of surrounding whitespace. Most ordinary characters count as one; some characters, such as emoji, count as two.
 * Description casing and internal spacing are preserved. Internal control characters, such as tabs and newlines, and Unicode line or paragraph separators are not permitted.
-* Prefix-like text preceded by a space is interpreted as command syntax. Avoid text such as ` by/`, ` abt/`, or ` date/` inside descriptions; these can produce duplicate-prefix, unknown-prefix, or invalid-value errors.
+* Descriptions use the same [slash-escaping rules](#slash-escaping): `abt/Confirm PCB\/Case quotation` stores `Confirm PCB/Case quotation`. Escape prefix-like text inside the description; keep actual `by/` and `abt/` prefixes unchanged.
 * Successful changes preserve other contact details and the current filter. A contact may disappear from the results if it no longer matches that filter.
 * Contacts with a follow-up show **Follow-up**, **Due today**, or **Overdue** in the left list according to the due date.
   The date and description are displayed in the selected contact's details panel and saved automatically.
@@ -392,6 +422,11 @@ For example, `exit -f` exits in the same way as `exit`.
 ### Locating contacts: `find`
 
 Finds contacts matching one or more name, role, or tag criteria. All searches are case-insensitive and support partial matching (substring matching).
+
+Use the same [slash-escaping rules](#slash-escaping) in search values:
+`find n/David s\/o John` searches for the phrase `David s/o John`, and
+`find s\/o` searches names for `s/o` using the legacy format.
+
 
 #### Prefixed Search
 

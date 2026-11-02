@@ -61,7 +61,7 @@ public class FollowUpCommandParser implements Parser<FollowUpCommand> {
         arguments.verifyNoDuplicatePrefixesFor(PREFIX_FOLLOW_UP_DATE, PREFIX_FOLLOW_UP_DESCRIPTION);
 
         LocalDate dueDate = ParserUtil.parseFollowUpDate(arguments.getValue(PREFIX_FOLLOW_UP_DATE).orElseThrow());
-        String description = arguments.getValue(PREFIX_FOLLOW_UP_DESCRIPTION).orElseThrow();
+        String description = ParserUtil.unescapeSlashes(arguments.getValue(PREFIX_FOLLOW_UP_DESCRIPTION).orElseThrow());
 
         if (!FollowUp.isValidDescription(description)) {
             throw new ParseException(FollowUp.MESSAGE_CONSTRAINTS);
