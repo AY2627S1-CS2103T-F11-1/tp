@@ -203,8 +203,6 @@ The `Storage` component,
   see [Atomic file persistence](#atomic-file-persistence) for the guarantee boundary.
 * depends on some classes in the `Model` component (because the `Storage` component's job is to save/retrieve objects that belong to the `Model`).
 
-The sequence diagram below shows how the application recovers when a corrupted data file is encountered at startup:
-
 The startup sequence below shows an existing invalid contact-data file whose backup succeeds.
 `JsonAddressBookStorage` delegates the copy to `FileUtil`; `MainApp` records a warning and creates an empty model.
 Preference loading and failed backups are described under [Startup loading and recovery](#startup-loading-and-recovery).
@@ -703,8 +701,8 @@ and result construction are omitted from the sequence diagram. Quick name search
 
 `FindCommandParserTest` covers both formats, multiword phrases, repeated prefixes and spaces,
 and the missing-criteria, blank-value, mixed-format, and unsupported-prefix errors.
-The three `*ContainsKeywordsPredicateTest` classes cover field-specific substring and case
-matching. `FindCommandTest` checks combined predicates and overlapping matches.
+`NameContainsKeywordsPredicateTest`, `RoleContainsKeywordsPredicateTest`, and
+`TagContainsKeywordsPredicateTest` cover field-specific substring and case matching. `FindCommandTest` checks combined predicates and overlapping matches.
 `LogicManagerTest` covers adding and searching normalised fields, OR/AND composition,
 restoring all contacts with `list`, and preserving sorting across searches.
 The [manual find tests](#finding-contacts-with-find) provide a reproducible dataset and
@@ -1292,7 +1290,7 @@ the application therefore cannot guarantee atomic replacement on every filesyste
 After a command executes successfully, `LogicManager` requests `Storage` to persist the current address book.
 The following steps describe a contact-data save; preference JSON uses the same file-writing utility.
 
-1. `JsonAddressBookStorage` serializes the address book into JSON via `JsonUtil#saveJsonFile`.
+1. `JsonAddressBookStorage` first calls `FileUtil#createIfMissing()`, which creates an empty destination and missing parent directories when needed. It then serializes the address book into JSON via `JsonUtil#saveJsonFile`. Preference saves use `JsonUtil` directly without this initial empty-file creation.
 2. `JsonUtil` delegates writing to `FileUtil#writeToFile(Path file, String content)`.
 3. `FileUtil#writeToFile` creates any missing parent directories, then creates a temporary file in the same parent directory (`tmp_<filename>.<rand>.tmp`). Using the same directory ensures the temporary file resides on the same filesystem volume, enabling atomic file replacement.
 4. The serialized JSON content is written to the temporary file using UTF-8 encoding.
@@ -1302,8 +1300,12 @@ The following steps describe a contact-data save; preference JSON uses the same 
 8. For contact-data saves during command execution, `LogicManager` converts `AccessDeniedException` or another `IOException` into `CommandException` feedback.
    In-memory recovery follows [Persistence and failures](#persistence-and-failures). Preference-save errors are handled separately by `MainApp`.
 
-Failures before replacement leave the destination unmodified. The non-atomic fallback does not provide the same all-or-nothing replacement guarantee;
-callers must not assume every reported failure means the old file is intact. This mechanism also does not establish a power-loss durability guarantee.
+Within `FileUtil#writeToFile()`, failures before replacement leave an existing destination unmodified.
+For a first contact-data save, the earlier `createIfMissing()` call can leave an empty file if the
+subsequent write fails. An exception during final cleanup can also be reported after replacement
+has already completed. The non-atomic fallback provides no all-or-nothing replacement guarantee.
+Consequently, a reported save failure and in-memory rollback do not prove that disk contents are
+unchanged. This mechanism also does not establish a power-loss durability guarantee.
 
 The sequence diagram shows the successful atomic-move path across components. Parameters are
 abbreviated, and self-messages summarise `FileUtil`'s internal file operations. The fallback and
