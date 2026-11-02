@@ -54,6 +54,22 @@ public class AddCommandParserTest {
     private AddCommandParser parser = new AddCommandParser();
 
     @Test
+    public void parse_phoneLengthBoundaries_acceptsValidLengthsAndRejectsInvalidLengths() {
+        // BVA: add accepts 3 and 20 digits and preserves leading zeroes after trimming.
+        for (int length : new int[] {3, 20}) {
+            String phone = "0" + "9".repeat(length - 1);
+            Person expectedPerson = new PersonBuilder(BOB).withPhone(phone).withTags().build();
+            assertParseSuccess(parser, NAME_DESC_BOB + " p/  " + phone + "  " + EMAIL_DESC_BOB
+                    + ADDRESS_DESC_BOB + ROLE_DESC_BOB, new AddCommand(expectedPerson));
+        }
+        // BVA: 2 and 21 digits; EP: long inputs must produce the phone constraint error.
+        for (int length : new int[] {2, 21, 300, 500}) {
+            assertParseFailure(parser, NAME_DESC_BOB + " p/" + "9".repeat(length) + EMAIL_DESC_BOB
+                    + ADDRESS_DESC_BOB + ROLE_DESC_BOB, Phone.MESSAGE_CONSTRAINTS);
+        }
+    }
+
+    @Test
     public void parse_allFieldsPresent_success() {
         Person expectedPerson = new PersonBuilder(BOB).withTags(VALID_TAG_FRIEND).build();
 

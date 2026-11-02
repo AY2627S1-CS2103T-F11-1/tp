@@ -63,6 +63,20 @@ public class EditCommandParserTest {
     private EditCommandParser parser = new EditCommandParser();
 
     @Test
+    public void parse_phoneLengthBoundaries_acceptsValidLengthsAndRejectsInvalidLengths() {
+        // BVA: edit accepts 3 and 20 digits and preserves leading zeroes after trimming.
+        for (int length : new int[] {3, 20}) {
+            String phone = "0" + "9".repeat(length - 1);
+            EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withPhone(phone).build();
+            assertParseSuccess(parser, "1 p/  " + phone + "  ", new EditCommand(INDEX_FIRST_PERSON, descriptor));
+        }
+        // BVA: 2 and 21 digits; EP: long inputs must produce the phone constraint error.
+        for (int length : new int[] {2, 21, 300, 500}) {
+            assertParseFailure(parser, "1 p/" + "9".repeat(length), Phone.MESSAGE_CONSTRAINTS);
+        }
+    }
+
+    @Test
     public void parse_missingParts_failure() {
         // no index specified
         assertParseFailure(parser, NAME_DESC_AMY, Messages.MESSAGE_INDEX_REQUIRED);

@@ -88,6 +88,23 @@ public class JsonAdaptedPersonTest {
     }
 
     @Test
+    public void toModelType_phoneLengthBoundaries_enforcesModelConstraints() throws Exception {
+        // BVA: stored phone numbers at the minimum/maximum lengths retain their digits.
+        for (int length : new int[] {3, 20}) {
+            String phone = "0" + "9".repeat(length - 1);
+            JsonAdaptedPerson person = new JsonAdaptedPerson(VALID_NAME, phone, VALID_EMAIL,
+                    VALID_ADDRESS, VALID_ROLE, VALID_TAGS);
+            assertEquals(phone, person.toModelType().getPhone().value);
+        }
+        // BVA: just outside both limits; EP: excessively long stored numbers are rejected with the same message.
+        for (int length : new int[] {2, 21, 500}) {
+            JsonAdaptedPerson person = new JsonAdaptedPerson(VALID_NAME, "9".repeat(length), VALID_EMAIL,
+                    VALID_ADDRESS, VALID_ROLE, VALID_TAGS);
+            assertThrows(IllegalValueException.class, Phone.MESSAGE_CONSTRAINTS, person::toModelType);
+        }
+    }
+
+    @Test
     public void toModelType_nullPhone_throwsIllegalValueException() {
         JsonAdaptedPerson person = new JsonAdaptedPerson(VALID_NAME, null, VALID_EMAIL, VALID_ADDRESS,
                 VALID_ROLE, VALID_TAGS);

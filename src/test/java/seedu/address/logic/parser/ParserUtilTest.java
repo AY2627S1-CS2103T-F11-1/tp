@@ -187,6 +187,20 @@ public class ParserUtilTest {
     }
 
     @Test
+    public void parsePhone_lengthBoundaries_trimsValidValuesAndRejectsInvalidLengths() throws Exception {
+        // BVA: accepted minimum/maximum lengths; surrounding whitespace does not count towards the limit.
+        for (int length : new int[] {3, 20}) {
+            String phone = "0" + "9".repeat(length - 1);
+            assertEquals(phone, ParserUtil.parsePhone(WHITESPACE + phone + WHITESPACE).value);
+        }
+        // BVA: just outside both limits; EP: excessively long digit-only input must fail gracefully.
+        for (int length : new int[] {2, 21, 500}) {
+            assertThrows(ParseException.class, Phone.MESSAGE_CONSTRAINTS, () ->
+                    ParserUtil.parsePhone("9".repeat(length)));
+        }
+    }
+
+    @Test
     public void parsePhone_validValueWithoutWhitespace_returnsPhone() throws Exception {
         Phone expectedPhone = new Phone(VALID_PHONE);
         assertEquals(expectedPhone, ParserUtil.parsePhone(VALID_PHONE));
