@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -167,6 +168,43 @@ public class FileUtilTest {
     @Test
     public void constructor_instantiatesWithoutError() {
         assertNotNull(new FileUtil());
+    }
+
+    @Test
+    public void createTimestampedBackup_nullFilePath_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> FileUtil.createTimestampedBackup(null));
+    }
+
+    @Test
+    public void createTimestampedBackup_nonExistentFile_throwsFileNotFoundException() {
+        Path nonExistent = testFolder.resolve("non_existent.txt");
+        assertThrows(FileNotFoundException.class, () -> FileUtil.createTimestampedBackup(nonExistent));
+    }
+
+    @Test
+    public void createTimestampedBackup_existingFile_backupCreatedSuccessfully() throws Exception {
+        Path file = testFolder.resolve("data.json");
+        Files.writeString(file, "content");
+
+        Path backupPath = FileUtil.createTimestampedBackup(file);
+
+        assertTrue(Files.exists(backupPath));
+        assertTrue(backupPath.getFileName().toString().startsWith("data.json.backup."));
+        assertEquals("content", Files.readString(backupPath));
+    }
+
+    @Test
+    public void createTimestampedBackup_filenameCollision_appendsCounter() throws Exception {
+        Path file = testFolder.resolve("collision.json");
+        Files.writeString(file, "collision content");
+
+        Path backup1 = FileUtil.createTimestampedBackup(file);
+        Path backup2 = FileUtil.createTimestampedBackup(file);
+
+        assertTrue(Files.exists(backup1));
+        assertTrue(Files.exists(backup2));
+        assertFalse(backup1.equals(backup2));
+        assertTrue(backup2.getFileName().toString().contains("_1"));
     }
 
     private void assertNoTempFilesRemain(Path directory) throws IOException {

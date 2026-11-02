@@ -194,6 +194,36 @@ public class VersionedAddressBookTest {
     }
 
     @Test
+    public void rollbackCommit_afterUndoThenCommit_restoresDiscardedRedoStates() {
+        VersionedAddressBook versionedAddressBook = prepareAddressBookList(
+                emptyAddressBook, addressBookWithAmy, addressBookWithBob);
+        versionedAddressBook.undo();
+
+        versionedAddressBook.resetData(addressBookWithCarl);
+        versionedAddressBook.commit();
+
+        versionedAddressBook.rollbackCommit();
+        assertAddressBookListStatus(versionedAddressBook,
+                Collections.singletonList(emptyAddressBook),
+                addressBookWithAmy,
+                Collections.singletonList(addressBookWithBob));
+        assertTrue(versionedAddressBook.canUndo());
+        assertTrue(versionedAddressBook.canRedo());
+        versionedAddressBook.redo();
+        assertEquals(addressBookWithBob, versionedAddressBook);
+    }
+
+    @Test
+    public void rollbackCommit_atBeginningOfStateList_clearsDiscardedRedoStates() {
+        VersionedAddressBook versionedAddressBook = prepareAddressBookList(emptyAddressBook);
+        versionedAddressBook.rollbackCommit();
+        assertAddressBookListStatus(versionedAddressBook,
+                Collections.emptyList(),
+                emptyAddressBook,
+                Collections.emptyList());
+    }
+
+    @Test
     public void undo_multipleAddressBookPointerAtStartOfStateList_throwsNoUndoableStateException() {
         VersionedAddressBook versionedAddressBook = prepareAddressBookList(
                 emptyAddressBook, addressBookWithAmy, addressBookWithBob);

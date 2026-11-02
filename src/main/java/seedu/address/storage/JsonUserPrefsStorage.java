@@ -1,10 +1,15 @@
 package seedu.address.storage;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.logging.Logger;
 
+import seedu.address.commons.core.LogsCenter;
 import seedu.address.commons.exceptions.DataLoadingException;
+import seedu.address.commons.util.FileUtil;
 import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.ReadOnlyUserPrefs;
 import seedu.address.model.UserPrefs;
@@ -13,6 +18,8 @@ import seedu.address.model.UserPrefs;
  * A class to access UserPrefs stored on the hard disk as a JSON file
  */
 public class JsonUserPrefsStorage {
+
+    private static final Logger logger = LogsCenter.getLogger(JsonUserPrefsStorage.class);
 
     private Path filePath;
 
@@ -50,6 +57,23 @@ public class JsonUserPrefsStorage {
      */
     public void saveUserPrefs(ReadOnlyUserPrefs userPrefs) throws IOException {
         JsonUtil.saveJsonFile(userPrefs, filePath);
+    }
+
+    /**
+     * Creates a timestamped backup of the user prefs file at {@link #getUserPrefsFilePath()}.
+     */
+    public Path backupUserPrefsFile() throws IOException {
+        return backupUserPrefsFile(filePath);
+    }
+
+    /**
+     * Creates a timestamped backup of the user prefs file at the specified {@code filePath}.
+     */
+    public Path backupUserPrefsFile(Path filePath) throws IOException {
+        requireNonNull(filePath);
+        Path backupPath = FileUtil.createTimestampedBackup(filePath);
+        logger.info("Created backup of user preferences file from " + filePath + " to " + backupPath);
+        return backupPath;
     }
 
 }

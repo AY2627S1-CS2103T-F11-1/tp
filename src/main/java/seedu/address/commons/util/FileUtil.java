@@ -2,12 +2,15 @@ package seedu.address.commons.util;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Writes and reads files
@@ -93,6 +96,24 @@ public class FileUtil {
         } finally {
             Files.deleteIfExists(tempFile);
         }
+    }
+
+    /**
+     * Creates a timestamped backup of the file at the specified {@code filePath}.
+     */
+    public static Path createTimestampedBackup(Path filePath) throws IOException {
+        requireNonNull(filePath);
+        if (!Files.exists(filePath)) {
+            throw new FileNotFoundException("Cannot backup non-existent file: " + filePath);
+        }
+        String base = filePath.getFileName() + ".backup."
+                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        Path parent = filePath.getParent();
+        Path backup = parent == null ? Path.of(base) : parent.resolve(base);
+        for (int i = 1; Files.exists(backup); i++) {
+            backup = parent == null ? Path.of(base + "_" + i) : parent.resolve(base + "_" + i);
+        }
+        return Files.copy(filePath, backup);
     }
 
 }
