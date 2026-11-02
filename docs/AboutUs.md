@@ -43,10 +43,10 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 <img src="images/noyoth.png" width="200px">
 
 [[github](https://github.com/Noyoth)]
-[[portfolio](team/johndoe.md)]
+[[portfolio](team/noyoth.md)]
 
 * Role: Developer
-* Responsibilities: Storage & Data Persistence
+* Responsibilities: Storage architecture, atomic file persistence, undo/redo & state synchronization
 
 ### Ken Tay
 
