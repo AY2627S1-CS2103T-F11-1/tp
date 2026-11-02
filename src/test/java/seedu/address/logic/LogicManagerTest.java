@@ -480,6 +480,21 @@ public class LogicManagerTest {
     }
 
     @Test
+    public void execute_findUnicodeEdgeWhitespace_matchesNormalisedStoredFields() throws Exception {
+        // Workflow: identical Unicode-padded input finds the fields normalised by add.
+        logic.execute("add n/\u2003Jos\u00E9   Tan\u2003 p/91234567 e/jose@example.com a/Test Street"
+                + " r/\u2003Regional   Supplier\u2003 t/\u2003Tactile   Switch\u2003");
+        Person expectedPerson = model.getAddressBook().getPersonList().getFirst();
+        model.addPerson(AMY);
+        for (String command : List.of("find n/\u2003Jos\u00E9   Tan\u2003",
+                "find r/\u2003Regional   Supplier\u2003", "find t/\u2003Tactile   Switch\u2003",
+                "find n/\u2003s\u00E9   ta\u2003 r/\u2003gional   supp\u2003 t/\u2003ctile   swi\u2003")) {
+            logic.execute(command);
+            assertEquals(List.of(expectedPerson), logic.getFilteredPersonList(), command);
+        }
+    }
+
+    @Test
     public void execute_findRepeatedSpaces_preservesOrAndLogic() throws Exception {
         Person alice = new PersonBuilder(ALICE).withName("Alice Tan")
                 .withRole("Regional Supplier").withTags("Good Friend").build();

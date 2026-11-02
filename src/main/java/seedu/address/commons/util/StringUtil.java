@@ -15,7 +15,6 @@ public class StringUtil {
     /**
      * Returns whether text contains meaningful content and no control characters or Unicode line/paragraph separators.
      * Whitespace, Unicode spaces and formatting characters alone do not count as meaningful content.
-     * Callers apply any field-specific trimming and length limits separately.
      */
     public static boolean isValidText(String text) {
         requireNonNull(text);
@@ -36,7 +35,6 @@ public class StringUtil {
 
     /**
      * Trims surrounding whitespace and collapses repeated ordinary spaces, preserving other internal characters.
-     * This does not validate text; callers must still reject prohibited characters.
      */
     public static String normalizeSpaces(String text) {
         requireNonNull(text);
