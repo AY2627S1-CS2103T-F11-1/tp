@@ -16,24 +16,30 @@ partition FindCommandParser {
         * Unprefixed text before a prefix
     end note
 
-    if () then ([valid input])
-    else ([invalid input])
+    if () then ([invalid input])
         :Throw ParseException\nwith specific feedback;
         stop
+    else ([valid input])
     endif
 
-    if () then ([prefixes present])
-        :Build prefixed search:\nOne predicate per field, OR within fields;
-    else ([no prefixes])
-        :Build quick name search:\nOne name predicate, OR across keywords;
+    if () then ([supported prefixes (n/, r/, t/) present])
+        :(Prefixed Search)\nCreate one predicate per supplied prefix type,\ncontaining all phrases for that type;
+        note left
+            For example, n/Alice n/Bob creates
+            one NameContainsKeywordsPredicate
+            containing ["Alice", "Bob"].
+        end note
+    else ([no supported prefixes])
+        :(Unprefixed Name-Only Search)\nSplit input on whitespace (e.g. spaces)\ninto separate keywords;
+        :Create one NameContainsKeywordsPredicate\ncontaining all keywords;
     endif
 
-    :Return FindCommand;
+    :Return FindCommand\ncontaining the created predicates;
 }
 
 partition FindCommand {
-    :Combine field predicates using AND;
-    :Replace the displayed contact filter;
+    :Create a filter requiring every\nsupplied predicate to match;
+    :Replace the displayed contact filter\nusing Model.updateFilteredPersonList();
     :Return CommandResult\nwith search feedback;
 }
 

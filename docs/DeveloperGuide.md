@@ -482,6 +482,16 @@ It focuses on `FindCommandParser` and `FindCommand`.
 <!-- Render diagrams/FindActivityDiagram.puml to images/FindActivityDiagram.png. -->
 ![Find command activity diagram](images/FindActivityDiagram.png)
 
+The [find command sequence diagram](diagrams/FindSequenceDiagram.puml) shows the parsing
+and execution of `find n/Alice n/Bob r/Supplier`. It focuses on search-specific interactions;
+shared `LogicManager` bookkeeping and storage calls are omitted. Predicate creation is
+summarised in a note: both `n/` values belong to one name predicate, while `r/` produces
+a separate role predicate. Quick name search follows the same execution flow, using one
+`NameContainsKeywordsPredicate` containing all whitespace-separated keywords.
+
+<!-- Render diagrams/FindSequenceDiagram.puml to images/FindSequenceDiagram.png. -->
+![Find command sequence diagram](images/FindSequenceDiagram.png)
+
 #### Design considerations
 
 * **Separate field predicates:** Keeping OR matching inside each predicate and AND matching
