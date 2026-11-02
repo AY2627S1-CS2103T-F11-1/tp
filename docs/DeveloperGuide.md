@@ -1351,7 +1351,7 @@ Leave the window open across local midnight, or return focus after sleep. | With
 ### Sorting contacts
 
 Use a disposable application copy in a separate folder: these tests replace saved contacts.
-Before each numbered group, run `clear` and execute these setup commands separately, in order:
+Run `clear`, then `sort clear`, and enter these setup commands separately, in order:
 
 ```text
 add n/Zoe p/81000001 e/zoe@sort.example.com a/Test Address r/Employee
@@ -1360,59 +1360,18 @@ add n/Alice p/81000003 e/alice.supplier@sort.example.com a/Test Address r/Suppli
 add n/alice p/81000004 e/alice.distributor@sort.example.com a/Test Address r/Distributor
 ```
 
-The roles and phone numbers distinguish the two Alice contacts. Perform each group's cases in order.
+The roles distinguish the two Alice contacts. Run the rows below in order, entering each command separately.
 
-1. Sorting criteria
-
-   1. Test case: `sort` (also try `sort n/`).<br>
-      Expected: Both Alice contacts precede ben, then Zoe, ignoring case.
-      Feedback: `Listed all contacts in sorted order.`
-
-   1. Test case: `sort n/ r/`.<br>
-      Expected: alice (Distributor), Alice (Supplier), ben, Zoe. Role breaks the matching-name tie.
-
-   1. Test case: `sort r/ n/`.<br>
-      Expected: alice (Distributor), Zoe, Alice (Supplier), ben. Name breaks the Supplier tie.
-
-1. Filtering while sorting
-
-   1. Test case: `find r/Supplier`, followed by `sort n/`.<br>
-      Expected: Find shows two Suppliers; sort reveals all four contacts in name order.
-
-   1. Test case: `sort r/ n/`, then `find r/Supplier`, then `list`.<br>
-      Expected: Find shows Alice (Supplier), then ben. List restores all four in role-then-name order.
-
-1. Editing and deleting by displayed index
-
-   1. Prerequisites: Run `sort n/ r/`.
-
-   1. Test case: `edit 1 n/Zara`.<br>
-      Expected: Contact `81000004` is renamed and repositioned. Order: Alice (Supplier), ben, Zara, Zoe.
-
-   1. Test case: `delete 3`, then `undo`, then `redo`.<br>
-      Expected: Zara (`81000004`) is deleted, restored, then deleted again. Other contacts remain;
-      name-then-role sorting is retained throughout.
-
-1. Invalid arguments and empty contacts
-
-   1. Prerequisites: Run `sort r/ n/`, then `find r/Supplier`.
-
-   1. Test cases: `sort n/ n/`, `sort n/Alice`, and `sort t/` (separately).<br>
-      Expected: Duplicate-field, unexpected-value, and unexpected-token errors respectively.
-      Feedback: `sort accepts each field only once: n/.`,
-      `sort does not accept values after n/.`, and
-      `sort expects clear, n/, or r/, but received: t/.` respectively.
-      The two displayed Suppliers and their details remain unchanged. Afterwards, `list` restores all four
-      contacts in role-then-name order, confirming the comparator is unchanged.
-
-   1. Test case: `clear`, then `sort n/`.<br>
-      Expected: Empty list and feedback
-      `No contacts are currently available. The selected sort order will apply to contacts added later.`
-      Add Zoe and Alice (Supplier) using their setup commands: Alice appears before Zoe.
-
-   1. Test case: `sort r/`, then `sort clear`.<br>
-      Expected: Contacts return to their original insertion order: Zoe, ben, Alice, alice.
-      Feedback: `Sorting cleared. Contacts will be displayed in insertion order.`
+| Action / command | Expected result |
+|------------------|-----------------|
+| Run `sort` (also try `sort n/`). | Both Alice contacts appear before ben, then Zoe, ignoring case. Feedback: `Listed all contacts in sorted order.` |
+| Run `sort n/ r/`. | Order: alice (Distributor), Alice (Supplier), ben, Zoe. Role breaks the matching-name tie. |
+| Run `sort r/ n/`. | Order: alice (Distributor), Zoe, Alice (Supplier), ben. Name breaks the Supplier tie. |
+| Run `find r/Supplier`, then `sort n/`. | Find shows two Suppliers; sort reveals all four contacts in name order. |
+| Try `sort n/ n/`, `sort n/Alice`, and `sort t/`. | Each reports the specific problem: repeated field, unexpected value, or unsupported token. Contacts and sorting remain unchanged. |
+| Run `sort clear`. | Original insertion order is restored: Zoe, ben, Alice (Supplier), alice (Distributor). Feedback: `Sorting cleared. Contacts will be displayed in insertion order.` |
+| Run `clear`, then `sort n/`. | The list is empty. An informational message says the selected sort order will apply to contacts added later. |
+| Add Zoe and Alice (Supplier) using their setup commands, in that order. | Alice appears before Zoe, showing that sorting also applies to newly added contacts. |
 
 ### Saving data
 
