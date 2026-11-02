@@ -53,6 +53,7 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 <img src="images/ken-tat.png" width="200px">
 
 [[github](https://github.com/Ken-Tat)]
+[[portfolio](team/ken-tat.md)]
 
 * Role: Developer
-* Responsibilities: Testing & DevOps
+* Responsibilities: Contact selection & details panel, incremental tag editing, command-specific help, testing & documentation
