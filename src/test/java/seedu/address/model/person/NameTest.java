@@ -10,6 +10,16 @@ import org.junit.jupiter.api.Test;
 public class NameTest {
 
     @Test
+    public void equals_unicodeCaseVariants_remainsCaseSensitive() {
+        // EP: Unicode searching may ignore case, but name identity and stored spelling remain case-sensitive.
+        Name name = new Name("Jos\u00E9 \u03C3");
+        assertEquals(name, new Name("Jos\u00E9 \u03C3"));
+        assertEquals(name.hashCode(), new Name("Jos\u00E9 \u03C3").hashCode());
+        assertFalse(name.equals(new Name("JOS\u00C9 \u03C2")));
+        assertEquals("Jos\u00E9 \u03C3", name.fullName);
+    }
+
+    @Test
     public void constructor_null_throwsNullPointerException() {
         assertThrows(NullPointerException.class, () -> new Name(null));
     }

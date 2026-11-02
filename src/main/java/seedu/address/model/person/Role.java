@@ -63,6 +63,6 @@ public class Role {
 
     @Override
     public int hashCode() {
-        return value.toLowerCase().hashCode();
+        return StringUtil.normalizeCase(value).hashCode();
     }
 }

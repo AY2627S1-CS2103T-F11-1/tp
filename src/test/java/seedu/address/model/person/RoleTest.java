@@ -6,9 +6,46 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+
 import org.junit.jupiter.api.Test;
 
 public class RoleTest {
+
+    @Test
+    public void equalsAndHashCode_unicodeVariants_workInHashSets() {
+        // EP: Greek sigma, Turkish I and supplementary case pairs must satisfy the equality/hash contract.
+        String[][] pairs = {{"\u03C3", "\u03C2"}, {"I", "\u0131"}, {"i", "\u0130"},
+            {"\uD801\uDC00", "\uD801\uDC28"}};
+        for (String[] pair : pairs) {
+            Role first = new Role(pair[0]);
+            Role second = new Role(pair[1]);
+            assertEquals(first, second);
+            assertEquals(first.hashCode(), second.hashCode());
+            HashSet<Role> roles = new HashSet<>(List.of(first));
+            assertTrue(roles.contains(second));
+            assertFalse(roles.add(second));
+            assertTrue(roles.remove(second));
+            assertTrue(roles.isEmpty());
+            assertEquals(pair[0], first.value); // comparison must not alter display casing
+        }
+    }
+
+    @Test
+    public void hashCode_turkishDefaultLocale_doesNotChangeResult() {
+        Role role = new Role("SUPPLIER");
+        int originalHash = role.hashCode();
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals(originalHash, role.hashCode());
+            assertEquals(new Role("supplier").hashCode(), role.hashCode());
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
 
     @Test
     public void constructor_null_throwsNullPointerException() {

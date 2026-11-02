@@ -44,6 +44,16 @@ public class StringUtil {
     }
 
     /**
+     * Returns a locale-independent comparison form consistent with {@link String#equalsIgnoreCase(String)}.
+     * Maps Unicode code points individually, including supplementary characters, without changing stored text.
+     */
+    public static String normalizeCase(String text) {
+        requireNonNull(text);
+        return text.codePoints().map(codePoint -> Character.toLowerCase(Character.toUpperCase(codePoint)))
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+    }
+
+    /**
      * Returns true if the {@code sentence} contains the {@code word}.
      *   Ignores case, but a full word match is required.
      *   <br>examples:<pre>

@@ -3,8 +3,6 @@ package seedu.address.model.tag;
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
 
-import java.util.Locale;
-
 import seedu.address.commons.util.StringUtil;
 
 /**
@@ -63,7 +61,7 @@ public class Tag {
 
     @Override
     public int hashCode() {
-        return tagName.toLowerCase(Locale.ROOT).hashCode();
+        return StringUtil.normalizeCase(tagName).hashCode();
     }
 
     /**

@@ -54,6 +54,32 @@ public class SlashEscapingIntegrationTest {
     }
 
     @Test
+    public void addEditAndFind_unicodeCaseVariants_preserveSpellingAfterReload() throws Exception {
+        // Workflow: Unicode tags deduplicate, search consistently and can be deleted through equivalent spellings.
+        logic.execute("add n/Jos\u00E9 \u039F\u03A3 \u0130 p/91234567 e/original@example.com a/Test Street"
+                + " r/Supplier \u03C3 \u0130 \uD801\uDC00"
+                + " t/\u03C3 t/\u03C2 t/\u03A3 t/\u0130 t/i t/\u0131 t/\uD801\uDC00 t/\uD801\uDC28 t/PCB");
+        Person expected = new PersonBuilder(ORIGINAL).withName("Jos\u00E9 \u039F\u03A3 \u0130")
+                .withRole("Supplier \u03C3 \u0130 \uD801\uDC00")
+                .withTags("\u03C3", "\u0130", "\uD801\uDC00", "PCB").build();
+        assertStoredContacts(expected);
+        addOtherContact();
+        reload();
+        assertStoredContacts(expected, OTHER_CONTACT);
+        assertSearchResults(expected, "find n/JOS\u00C9 \u03BF\u03C2 i", "find \u03BF\u03C2",
+                "find r/supplier \u03C2 i \uD801\uDC28", "find t/\u03C2", "find t/\u0131",
+                "find t/\uD801\uDC28", "find n/\u03BF\u03C2 r/\u03C2 t/\u03C2");
+        // Searching must not alter stored capitalisation or the first tag spelling.
+        assertStoredContacts(expected, OTHER_CONTACT);
+
+        logic.execute("edit 1 t/\u03C2 dt/i dt/\uD801\uDC28");
+        Person edited = new PersonBuilder(expected).withTags("\u03C3", "PCB").build();
+        assertStoredContacts(edited, OTHER_CONTACT);
+        reload();
+        assertStoredContacts(edited, OTHER_CONTACT);
+    }
+
+    @Test
     public void addAndEdit_expandedText_survivesReload() throws Exception {
         // EP: Unicode, punctuation, literal backslashes and escaped prefixes through add/edit and storage.
         logic.execute("add n/Jos\u00E9   \u738B. n\\/Junior p/91234567 e/original@example.com"

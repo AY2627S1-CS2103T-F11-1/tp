@@ -311,6 +311,19 @@ public class EditCommandParserTest {
     }
 
     @Test
+    public void parse_unicodeCaseEquivalentTags_deduplicatesAndRejectsConflicts() {
+        // EP: Unicode tag equality must work in the hash sets used for additions, deletions and conflicts.
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
+                .withTagsToAdd("\u03C3").withTagsToDelete("\u0130").build();
+        assertParseSuccess(parser, "1 t/\u03C3 t/\u03C2 t/\u03A3 dt/\u0130 dt/i dt/\u0131",
+                new EditCommand(INDEX_FIRST_PERSON, descriptor));
+        assertParseFailure(parser, "1 t/\u03C3 dt/\u03C2",
+                String.format(EditCommand.MESSAGE_TAG_CONFLICT, "\u03C3"));
+        assertParseFailure(parser, "1 t/\u0130 dt/i",
+                String.format(EditCommand.MESSAGE_TAG_CONFLICT, "\u0130"));
+    }
+
+    @Test
     public void parse_invalidDeleteTag_failure() {
         assertParseFailure(parser, "1 dt/trai\tnee", Tag.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, "1 dt/" + "a".repeat(Tag.MAX_LENGTH + 1), Tag.MESSAGE_CONSTRAINTS);

@@ -6,10 +6,53 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
 import java.io.FileNotFoundException;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 
 public class StringUtilTest {
+
+    @Test
+    public void normalizeCase_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> StringUtil.normalizeCase(null));
+    }
+
+    @Test
+    public void normalizeCase_unicodePairs_agreesWithEqualsIgnoreCase() {
+        // EP: ASCII, accents, Greek sigma, Turkish I, long S, Kelvin sign and supplementary Deseret letters.
+        String[][] pairs = {{"Supplier", "SUPPLIER"}, {"Jos\u00E9", "JOS\u00C9"},
+            {"\u03A3", "\u03C2"}, {"\u03C3", "\u03C2"}, {"\u039F\u03A3", "\u03BF\u03C2"},
+            {"I", "\u0131"}, {"i", "\u0130"}, {"S", "\u017F"}, {"K", "\u212A"},
+            {"\uD801\uDC00", "\uD801\uDC28"}};
+        for (String[] pair : pairs) {
+            assertTrue(pair[0].equalsIgnoreCase(pair[1]));
+            assertEquals(StringUtil.normalizeCase(pair[0]), StringUtil.normalizeCase(pair[1]));
+        }
+    }
+
+    @Test
+    public void normalizeCase_preservesNonCaseDistinctions() {
+        // BVA: empty text and one uncased character; EP: spaces, punctuation, backslashes and emoji.
+        for (String text : new String[] {"", "\u738B", "\u738B  (PCB) \\ / \uD83D\uDE00"}) {
+            assertEquals(text.replace("PCB", "pcb"), StringUtil.normalizeCase(text));
+        }
+        // EP: no accent removal, canonical composition, or multi-character case expansion.
+        assertFalse(StringUtil.normalizeCase("Jos\u00E9").equals(StringUtil.normalizeCase("Jose")));
+        assertFalse(StringUtil.normalizeCase("\u00E9").equals(StringUtil.normalizeCase("e\u0301")));
+        assertFalse(StringUtil.normalizeCase("\u00DF").equals(StringUtil.normalizeCase("SS")));
+    }
+
+    @Test
+    public void normalizeCase_turkishDefaultLocale_doesNotChangeResult() {
+        // EP: locale-sensitive I variants must follow equalsIgnoreCase regardless of the default locale.
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals("iiii", StringUtil.normalizeCase("I\u0130i\u0131"));
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
 
     @Test
     public void isValidText_null_throwsNullPointerException() {

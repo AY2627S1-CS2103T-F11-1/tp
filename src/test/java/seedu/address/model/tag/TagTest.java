@@ -6,11 +6,32 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 
 public class TagTest {
+
+    @Test
+    public void equalsAndHashCode_unicodeVariants_deduplicateAndRemoveFromHashSets() {
+        // EP: case-equivalent Unicode spellings must deduplicate and remain removable through either spelling.
+        String[][] pairs = {{"\u03C3", "\u03C2"}, {"I", "\u0131"}, {"i", "\u0130"},
+            {"\uD801\uDC00", "\uD801\uDC28"}};
+        for (String[] pair : pairs) {
+            Tag first = new Tag(pair[0]);
+            Tag second = new Tag(pair[1]);
+            assertEquals(first, second);
+            assertEquals(first.hashCode(), second.hashCode());
+            HashSet<Tag> tags = new HashSet<>(List.of(first));
+            assertTrue(tags.contains(second));
+            assertFalse(tags.add(second));
+            assertTrue(tags.remove(second));
+            assertTrue(tags.isEmpty());
+            assertEquals(pair[0], first.tagName); // preserve the first stored spelling
+        }
+    }
 
     @Test
     public void constructor_null_throwsNullPointerException() {

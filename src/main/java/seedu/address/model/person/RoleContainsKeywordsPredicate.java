@@ -3,9 +3,9 @@ package seedu.address.model.person;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Predicate;
 
+import seedu.address.commons.util.StringUtil;
 import seedu.address.commons.util.ToStringBuilder;
 
 /**
@@ -34,10 +34,10 @@ public class RoleContainsKeywordsPredicate implements Predicate<Person> {
     public boolean test(Person person) {
         assert person != null : "Person to test must not be null";
 
-        String role = person.getRole().value.toLowerCase(Locale.ROOT);
+        String role = StringUtil.normalizeCase(person.getRole().value);
 
         return keywords.stream()
-                .anyMatch(keyword -> role.contains(keyword.toLowerCase(Locale.ROOT)));
+                .anyMatch(keyword -> role.contains(StringUtil.normalizeCase(keyword)));
     }
 
     @Override
