@@ -35,16 +35,6 @@ public class UserPrefsTest {
     }
 
     @Test
-    public void getGuiSettings_nullField_returnsNewGuiSettings() throws Exception {
-        UserPrefs userPrefs = new UserPrefs();
-        java.lang.reflect.Field field = UserPrefs.class.getDeclaredField("guiSettings");
-        field.setAccessible(true);
-        field.set(userPrefs, null);
-        assertNotNull(userPrefs.getGuiSettings());
-        assertEquals(new GuiSettings(), userPrefs.getGuiSettings());
-    }
-
-    @Test
     public void constructor_withReadOnlyUserPrefs_copiesValues() {
         UserPrefs original = new UserPrefs();
         original.setGuiSettings(new GuiSettings(800, 600, 0, 0));

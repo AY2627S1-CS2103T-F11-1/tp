@@ -67,7 +67,6 @@ public class JsonUtil {
         }
 
         if (jsonFile == null) {
-            logger.warning("JSON file " + filePath + " contains a null root object.");
             throw new DataLoadingException(new IOException("JSON file contains a null root object: " + filePath));
         }
 

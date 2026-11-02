@@ -38,7 +38,7 @@ public class UserPrefs implements ReadOnlyUserPrefs {
     }
 
     public GuiSettings getGuiSettings() {
-        return guiSettings != null ? guiSettings : new GuiSettings();
+        return guiSettings;
     }
 
     public void setGuiSettings(GuiSettings guiSettings) {
@@ -57,17 +57,17 @@ public class UserPrefs implements ReadOnlyUserPrefs {
             return false;
         }
 
-        return getGuiSettings().equals(otherUserPrefs.getGuiSettings());
+        return guiSettings.equals(otherUserPrefs.guiSettings);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getGuiSettings());
+        return Objects.hash(guiSettings);
     }
 
     @Override
     public String toString() {
-        return "Gui Settings : " + getGuiSettings();
+        return "Gui Settings : " + guiSettings;
     }
 
 }
