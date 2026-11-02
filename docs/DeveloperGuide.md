@@ -623,6 +623,29 @@ The parser uses the existing tokenizer and prefix-validation utilities. Both set
 
 Each modifying command resolves the index against the currently displayed list, constructs a replacement `Person`, calls `Model#setPerson()`, and commits once to undo history. Other contact fields and the current filter are preserved. Failed validation does not modify data or history. Automatic persistence uses the existing logic/storage flow.
 
+The sequence diagram below illustrates how a `followup` command travels through `Logic` and `Model` components when a user executes `followup 1 by/2026-11-01 abt/Confirm quotation`:
+
+![FollowUpSequenceDiagram](images/FollowUpSequenceDiagram.png)
+
+How the command parsing and execution works:
+
+1. `LogicManager#execute()` calls `AddressBookParser#parseCommand()`.
+2. `AddressBookParser` instantiates a `FollowUpCommandParser` and invokes its `parse()` method.
+3. `FollowUpCommandParser` performs validation:
+   * `ArgumentTokenizer#verifyNoUnrecognizedPrefixes()` ensures no unrecognized prefixes are supplied.
+   * `ArgumentMultimap#verifyNoMissingPrefixesFor()` verifies that both `by/` and `abt/` prefixes are present.
+   * `ArgumentMultimap#verifyNoDuplicatePrefixesFor()` rejects repeated prefixes.
+   * `ParserUtil#parseIndex()` parses the target contact index.
+   * `ParserUtil#parseFollowUpDate()` parses the due date into a `LocalDate`.
+   * `ParserUtil#unescapeSlashes()` and `FollowUp#isValidDescription()` validate the description string.
+4. A `SetFollowUpCommand` object (labeled `f`) containing the parsed index and new `FollowUp` is returned. The transient `FollowUpCommandParser` is discarded immediately after `parse()` completes, as indicated by the destroy marker (`X`).
+5. `LogicManager` executes `SetFollowUpCommand#execute(Model)`:
+   * The command retrieves `personToUpdate` from the filtered list using the zero-based index.
+   * `createPersonWithFollowUp()` constructs a replacement `Person` entity `updatedPerson` containing the new `FollowUp`.
+   * `Model#setPerson(personToUpdate, updatedPerson)` updates the contact in the address book.
+   * `Model#commitAddressBook()` saves the state to history for undo/redo support.
+6. A `CommandResult` object (labeled `r`) containing the success feedback is created and returned to `LogicManager`.
+
 #### Querying follow-ups
 `FollowUpsCommandParser` supports an empty query, `overdue`, or a single `by/` date cutoff. These map to the `all()`, `overdue()`, and `dueBy()` factories of `FollowUpsCommand`.
 The command replaces the model's current contact predicate, searching the entire address book:
