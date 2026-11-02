@@ -233,6 +233,26 @@ public class ParserUtilTest {
     }
 
     @Test
+    public void parseEmail_supportedSyntax_trimsAndPreservesCasing() throws Exception {
+        // EP: surrounding whitespace is trimmed while apostrophes, domain hyphens and casing are preserved.
+        for (String email : List.of("O'Connor@example.com", "Sales@Keyboard--Shop.COM", "sales/parts@example.com")) {
+            assertEquals(email, ParserUtil.parseEmail(WHITESPACE + email + WHITESPACE).value);
+        }
+        // EP: email is not one of the fields using slash escapes; a literal backslash remains invalid.
+        assertThrows(ParseException.class, Email.MESSAGE_CONSTRAINTS, () ->
+                ParserUtil.parseEmail("sales\\/parts@example.com"));
+    }
+
+    @Test
+    public void parseEmail_unsupportedSyntax_throwsConstraintError() {
+        // EP: quoted local part, raw Unicode, internal whitespace and invalid domain labels.
+        for (String email : List.of("\"sales team\"@example.com", "Jos\u00E9@example.com", "a\tb@example.com",
+                "a@-example.com", "a@" + "b".repeat(64) + ".com")) {
+            assertThrows(ParseException.class, Email.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseEmail(email));
+        }
+    }
+
+    @Test
     public void parseEmail_validValueWithoutWhitespace_returnsEmail() throws Exception {
         Email expectedEmail = new Email(VALID_EMAIL);
         assertEquals(expectedEmail, ParserUtil.parseEmail(VALID_EMAIL));
