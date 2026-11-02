@@ -1179,6 +1179,128 @@ Argument and index errors leave contact data, the displayed view, and undo/redo 
 
     Use case ends.
 
+**Use Case: UC8 - Manage Follow-ups**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running and a contact list is displayed.
+
+**MSS**
+
+1. User requests to set a follow-up on a specific contact by specifying its displayed index, a due date, and a description.
+2. `KeyBossWarriorsPro` attaches the follow-up to the contact, updates the displayed details, saves the address book to disk, and displays a success confirmation.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The request has missing, multiple, or malformed index arguments.
+
+  * 1a1. `KeyBossWarriorsPro` explains the input error.
+
+    Use case ends.
+
+* 1b. The request has a valid positive index, but no contacts are currently displayed.
+
+  * 1b1. `KeyBossWarriorsPro` informs the user that no contacts are currently displayed.
+
+    Use case ends.
+
+* 1c. The request has a valid positive index that is beyond the range of the displayed list.
+
+  * 1c1. `KeyBossWarriorsPro` explains the valid index range.
+
+    Use case ends.
+
+* 1d. The request is missing mandatory `by/` or `abt/` prefixes, contains duplicate prefixes, or supplies unrecognized prefixes.
+
+  * 1d1. `KeyBossWarriorsPro` displays an invalid command format error showing the correct usage.
+
+    Use case ends.
+
+* 1e. The provided due date is not in `YYYY-MM-DD` format or is not a valid calendar date.
+
+  * 1e1. `KeyBossWarriorsPro` displays a date format constraint error.
+
+    Use case ends.
+
+* 1f. The provided description is blank or exceeds 200 characters.
+
+  * 1f1. `KeyBossWarriorsPro` displays a description constraint error.
+
+    Use case ends.
+
+* 1g. User requests to clear an existing follow-up using `followup INDEX clear`.
+
+  * 1g1. `KeyBossWarriorsPro` clears the follow-up from the contact, saves the change, and displays a confirmation message.
+
+    Use case ends.
+
+* 1h. User requests to clear a follow-up on a contact that has no active follow-up.
+
+  * 1h1. `KeyBossWarriorsPro` displays an error informing the user that the contact has no follow-up to clear.
+
+    Use case ends.
+
+* 1i. User queries contacts with follow-ups using `followups` (optionally specifying `overdue` or `by/DUE_DATE`).
+
+  * 1i1. `KeyBossWarriorsPro` filters and displays all contacts matching the follow-up query.
+
+  * 1i2. If no contacts match the query, `KeyBossWarriorsPro` displays an empty list and informs the user that no follow-ups were found.
+
+    Use case ends.
+
+**Use Case: UC9 - Undo and Redo Commands**
+
+**Preconditions**
+
+* `KeyBossWarriorsPro` is running.
+
+**MSS**
+
+1. User requests to undo the most recent modifying command.
+2. `KeyBossWarriorsPro` reverts the address book state to the previous snapshot, saves the address book to disk, resets the view to show all contacts, and displays a success confirmation.
+3. User requests to redo the previously undone command.
+4. `KeyBossWarriorsPro` restores the undone state, saves the address book to disk, resets the view to show all contacts, and displays a success confirmation.
+
+   Use case ends.
+
+**Extensions**
+
+* 1a. The undo history is empty (no modifying commands have been executed in the current session, or all changes have already been undone).
+
+  * 1a1. `KeyBossWarriorsPro` displays an error message indicating there are no more commands to undo.
+
+    Use case ends.
+
+* 1b. The user supplies additional arguments to `undo` (e.g., `undo 2`).
+
+  * 1b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
+
+    Use case ends.
+
+* 2a. User executes a new modifying command (e.g., `add`, `delete`, `edit`, `clear`, or `followup`) instead of redoing the undone command.
+
+  * 2a1. `KeyBossWarriorsPro` purges the remaining redo history and records the new command as the latest state.
+
+    Use case resumes at step 1.
+
+* 2b. User does not request to redo the undone command.
+
+  Use case ends.
+
+* 3a. The redo history is empty (no undone commands exist to redo).
+
+  * 3a1. `KeyBossWarriorsPro` displays an error message indicating there are no more commands to redo.
+
+    Use case ends.
+
+* 3b. The user supplies additional arguments to `redo` (e.g., `redo 2`).
+
+  * 3b1. `KeyBossWarriorsPro` shows an error message rejecting extraneous arguments.
+
+    Use case ends.
+
 ### Non-Functional Requirements
 
 1.  **Operating Environment:** Should work on any _mainstream OS_ (Windows 10/11, macOS, Linux) as long as it has Java `25` or above installed.
