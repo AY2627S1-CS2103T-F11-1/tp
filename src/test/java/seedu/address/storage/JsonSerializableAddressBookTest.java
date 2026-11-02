@@ -20,6 +20,9 @@ public class JsonSerializableAddressBookTest {
     private static final Path TYPICAL_PERSONS_FILE = TEST_DATA_FOLDER.resolve("typicalPersonsAddressBook.json");
     private static final Path INVALID_PERSON_FILE = TEST_DATA_FOLDER.resolve("invalidPersonAddressBook.json");
     private static final Path DUPLICATE_PERSON_FILE = TEST_DATA_FOLDER.resolve("duplicatePersonAddressBook.json");
+    private static final Path DUPLICATE_EMAIL_FILE = TEST_DATA_FOLDER.resolve("duplicateEmailAddressBook.json");
+    private static final Path DUPLICATE_PHONE_AND_EMAIL_FILE =
+            TEST_DATA_FOLDER.resolve("duplicatePhoneAndEmailAddressBook.json");
     private static final Path NULL_PERSON_FILE = TEST_DATA_FOLDER.resolve("nullPersonAddressBook.json");
 
     @Test
@@ -43,7 +46,26 @@ public class JsonSerializableAddressBookTest {
         JsonSerializableAddressBook dataFromFile = JsonUtil.readJsonFile(DUPLICATE_PERSON_FILE,
                 JsonSerializableAddressBook.class).get();
         String expectedMessage =
-                "Duplicate contact detected: 'Alice Pauline' shares phone number 94351253 with 'Alice Pauline'.";
+                "Duplicate contact detected: 'Alice Pauline' is defined multiple times with phone number 94351253.";
+        assertThrows(IllegalValueException.class, expectedMessage, dataFromFile::toModelType);
+    }
+
+    @Test
+    public void toModelType_duplicateEmail_throwsIllegalValueException() throws Exception {
+        JsonSerializableAddressBook dataFromFile = JsonUtil.readJsonFile(DUPLICATE_EMAIL_FILE,
+                JsonSerializableAddressBook.class).get();
+        String expectedMessage =
+                "Duplicate contact detected: 'Bob Choo' shares email address alice@example.com with 'Alice Pauline'.";
+        assertThrows(IllegalValueException.class, expectedMessage, dataFromFile::toModelType);
+    }
+
+    @Test
+    public void toModelType_duplicatePhoneAndEmail_throwsIllegalValueException() throws Exception {
+        JsonSerializableAddressBook dataFromFile = JsonUtil.readJsonFile(DUPLICATE_PHONE_AND_EMAIL_FILE,
+                JsonSerializableAddressBook.class).get();
+        String expectedMessage =
+                "Duplicate contact detected: 'Alice Pauline' is defined multiple times with phone number 94351253 "
+                        + "and email address alice@example.com.";
         assertThrows(IllegalValueException.class, expectedMessage, dataFromFile::toModelType);
     }
 

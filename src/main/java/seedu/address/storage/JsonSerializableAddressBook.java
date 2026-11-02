@@ -65,11 +65,36 @@ class JsonSerializableAddressBook {
 
     private String getDuplicatePersonMessage(AddressBook addressBook, Person duplicate) {
         for (Person existing : addressBook.getPersonList()) {
-            if (existing.getPhone().equals(duplicate.getPhone())) {
+            boolean samePhone = existing.getPhone().equals(duplicate.getPhone());
+            boolean sameEmail = existing.getEmail().equals(duplicate.getEmail());
+
+            if (samePhone && sameEmail) {
+                if (existing.getName().equals(duplicate.getName())) {
+                    return String.format(
+                            "Duplicate contact detected: '%s' is defined multiple times with phone number %s "
+                                    + "and email address %s.",
+                            duplicate.getName().fullName, duplicate.getPhone().value, duplicate.getEmail().value);
+                }
+                return String.format(
+                        "Duplicate contact detected: '%s' shares phone number %s and email address %s with '%s'.",
+                        duplicate.getName().fullName, duplicate.getPhone().value, duplicate.getEmail().value,
+                        existing.getName().fullName);
+            }
+            if (samePhone) {
+                if (existing.getName().equals(duplicate.getName())) {
+                    return String.format(
+                            "Duplicate contact detected: '%s' is defined multiple times with phone number %s.",
+                            duplicate.getName().fullName, duplicate.getPhone().value);
+                }
                 return String.format("Duplicate contact detected: '%s' shares phone number %s with '%s'.",
                         duplicate.getName().fullName, duplicate.getPhone().value, existing.getName().fullName);
             }
-            if (existing.getEmail().equals(duplicate.getEmail())) {
+            if (sameEmail) {
+                if (existing.getName().equals(duplicate.getName())) {
+                    return String.format(
+                            "Duplicate contact detected: '%s' is defined multiple times with email address %s.",
+                            duplicate.getName().fullName, duplicate.getEmail().value);
+                }
                 return String.format("Duplicate contact detected: '%s' shares email address %s with '%s'.",
                         duplicate.getName().fullName, duplicate.getEmail().value, existing.getName().fullName);
             }

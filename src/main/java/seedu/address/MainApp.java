@@ -89,20 +89,29 @@ public class MainApp extends Application {
             initialData = new AddressBook();
             Path filePath = storage.getAddressBookFilePath();
             if (Files.exists(filePath)) {
-                String causeMessage = e.getCause() != null && e.getCause().getMessage() != null
+                String rawCause = e.getCause() != null && e.getCause().getMessage() != null
                         ? e.getCause().getMessage()
                         : e.getMessage();
+                String causeMessage = rawCause != null && !rawCause.isBlank()
+                        ? rawCause
+                        : "unrecognized format error";
                 try {
                     Path backupPath = storage.backupAddressBookFile();
-                    initialStatusMessage = String.format(
+                    String dataWarning = String.format(
                             "Warning: Data file %1$s is corrupted (%2$s). A backup was created at %3$s. "
                                     + "Starting with an empty contact book.", filePath, causeMessage, backupPath);
-                    logger.warning(initialStatusMessage);
+                    logger.warning(dataWarning);
+                    initialStatusMessage = initialStatusMessage == null
+                            ? dataWarning
+                            : initialStatusMessage + "\n" + dataWarning;
                 } catch (IOException ioe) {
-                    initialStatusMessage = String.format(
+                    String dataWarning = String.format(
                             "Warning: Data file %1$s is corrupted (%2$s), and creating a backup failed: %3$s. "
                                     + "Starting with an empty contact book.", filePath, causeMessage, ioe.getMessage());
-                    logger.severe(initialStatusMessage);
+                    logger.severe(dataWarning);
+                    initialStatusMessage = initialStatusMessage == null
+                            ? dataWarning
+                            : initialStatusMessage + "\n" + dataWarning;
                 }
             }
         }
