@@ -36,7 +36,7 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 [[portfolio](team/johndoe.md)]
 
 * Role: Developer
-* Responsibilities: Model & Data Validation
+* Responsibilities: Follow-up Management, Undo/Redo Integration & Model Integration
 
 ### Noah
 
