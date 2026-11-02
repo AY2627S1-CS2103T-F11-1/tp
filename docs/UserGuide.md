@@ -160,22 +160,45 @@ Adds a contact to KeyBossWarriorsPro.
 
 **Input rules**
 
-Surrounding spaces are ignored. In the table below, *alphanumeric* means ASCII
-letters (`A`–`Z`, `a`–`z`) and digits (`0`–`9`).
+Surrounding ordinary spaces are ignored. The field rules below apply to both `add` and `edit`.
 
 Field | Accepted input
 ------|---------------
-`NAME` | Alphanumeric characters, ordinary spaces and `-`, `/`, `&`, `'`. Must start and end with an alphanumeric character.
-`PHONE_NUMBER` | At least 3 digits. Spaces, `+`, hyphens, brackets and extensions are not accepted.
-`EMAIL` | A valid email address such as `john@example.com`.
-`ADDRESS` | Text containing spaces and special characters. Cannot be blank or consist only of whitespace or invisible formatting characters.
-`ROLE` | Your contact's role or affiliation, such as `Supplier`, `Employee`, `Partner` or `Customer`. Uses the same character rules as `NAME`.
-`TAG` | Uses the same character rules as `NAME`. Maximum **50 characters after slash decoding, before repeated spaces are collapsed**. Duplicate tags are combined, ignoring case.
+`NAME` | Unicode text, including punctuation, spaces and literal backslashes. Examples: `John A. Tan`, `José Tan`, `王小明`.
+`PHONE_NUMBER` | **3–20 ASCII digits** (`0`–`9`). Spaces, `+`, hyphens, brackets and extensions are not accepted.
+`EMAIL` | An address following the [supported email syntax](#supported-email-syntax), such as `o'connor@example.com` or `sales@keyboard--shop.com`.
+`ADDRESS` | Unicode text, including punctuation, spaces and literal backslashes. Examples: `123 Street, #01-02`, `王 Street 1`.
+`ROLE` | Unicode text, including punctuation, spaces and literal backslashes. Examples: `Supplier (PCB)`, `Employee`, `Customer`.
+`TAG` | Unicode text, including punctuation, spaces and literal backslashes. Maximum **50 characters after slash decoding, trimming and collapsing repeated ordinary spaces**. Examples: `62.5g`, `PCB v1.6`, `Switches (5-pin)`.
 
-Names, roles and tags collapse repeated internal spaces into one, while preserving
-capitalisation and punctuation. For example, `n/Anne-Marie   O'Connor` stores
-`Anne-Marie O'Connor`. Internal tabs and line breaks are not accepted in these fields.
-Address values preserve internal spacing. Names, roles and addresses have no maximum length.
+Names, roles, tags, addresses and follow-up descriptions must contain at least one character other than
+whitespace or invisible formatting characters. Internal control characters, such as tabs and newlines,
+and Unicode line/paragraph separators are rejected. Other Unicode spaces within text are allowed.
+
+These text fields trim surrounding whitespace, including Unicode whitespace such as em spaces.
+Non-breaking spaces alongside visible text are preserved, including at the edges.
+Names, roles and tags also collapse repeated ordinary spaces into one, preserving capitalisation and
+punctuation: `n/Anne-Marie   O'Connor` stores `Anne-Marie O'Connor`.
+Addresses and follow-up descriptions preserve internal spacing. Names, roles and addresses have no maximum length.
+Duplicate tags are combined, ignoring case, preserving the first stored spelling.
+Tag length uses Java string characters: most ordinary characters count as one; some, such as emoji, count as two.
+
+<a id="supported-email-syntax"></a>
+
+**Supported email syntax**
+
+Email validation uses the [WHATWG HTML email syntax](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address),
+which checks the address's form rather than whether the mailbox exists:
+
+* Supply one non-empty local part, an `@`, and a domain. Internal whitespace is not allowed.
+* The local part accepts ASCII letters, digits and these characters: `` .!#$%&'*+/=?^_`{|}~- ``.
+  Dots may appear at the start/end or consecutively, as permitted by WHATWG.
+* Domain labels are separated by dots. Each label contains **1–63 ASCII letters, digits or hyphens**,
+  and must start and end with a letter or digit. Consecutive internal hyphens are allowed.
+* Single-label domains, such as `user@localhost`, and one-character domain labels are accepted.
+* Quoted local parts, address literals such as `user@[127.0.0.1]`, and raw non-ASCII email characters are unsupported.
+  International domain names must already use ASCII/Punycode spelling, such as `sales@xn--bcher-kva.example`.
+* Capitalisation is preserved, but the whole email address is compared case-insensitively for duplicate detection.
 
 <a id="contact-duplicates"></a>
 
@@ -216,8 +239,8 @@ like a prefix; write `t/ key\/board` instead.
 
 * This rule applies to names, roles, tags and addresses in `add`/`edit`, tags removed with `dt/`, name/role/tag searches in `find`, and descriptions in `followup`.
 * Each `\/` becomes `/` once, before validation and length checks. The removed backslash does not count towards a length limit. Saving and reloading do not change the decoded value.
-* Other backslashes remain literal. Names, roles and tags currently reject them. Addresses and descriptions permit them: `a/C:\Users\John` is unchanged. To retain a backslash immediately before a slash, enter two: `a/Archive \\/` stores `Archive \/`.
-* Phone numbers, email addresses and dates do not use this escape syntax.
+* Other backslashes remain literal in all five text fields. For example, `n/John\Tan` and `a/C:\Users\John` are unchanged. To retain a backslash immediately before a slash, enter two: `a/Archive \\/` stores `Archive \/`.
+* Phone numbers, email addresses and dates do not use this escape syntax. In emails, enter `/` literally: `e/sales/parts@example.com` works, while `e/sales\/parts@example.com` is rejected because it contains a backslash.
 
 </div>
 
@@ -225,6 +248,7 @@ Examples:
 
 * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01 r/Supplier`
 * `add n/David s\/o John p/91234567 e/david@example.com a/123 Street c\/o John r/Supplier t/parts xx\/custom`
+* `add n/José Tan p/91234568 e/o'connor@example.com a/王 Street 1 r/Supplier (PCB) t/62.5g t/PCB v1.6 t/Switches (5-pin)`
 
 
 ### Clearing all entries: `clear`
@@ -269,7 +293,7 @@ Edits an existing contact in KeyBossWarriorsPro.
 * `t/TAG_TO_ADD` adds the named tag while preserving the contact's existing tags. Adding a tag the contact already has succeeds without creating a duplicate.
 * `dt/TAG_TO_DELETE` removes the named tag while preserving all other tags. Every tag requested for deletion must already belong to the selected contact.
 * Repeat `t/` or `dt/` to add or delete several tags. Both operations can be used in the same command, in any order.
-* Tag comparisons are case-insensitive, and multiple consecutive spaces within a tag name are collapsed into one. For example, `dt/TRAINEE` removes an existing `trainee` tag.
+* Tag comparisons are Unicode-aware and case-insensitive, and repeated ordinary spaces within a tag name are collapsed into one. For example, `dt/TRAINEE` removes an existing `trainee` tag. Greek `σ` and `ς` also count as the same tag for adding, deleting and conflict checks.
 * A tag cannot be supplied to both `t/` and `dt/` in the same command, even with different letter casing.
 * Empty or whitespace-only `t/` and `dt/` values are invalid. To remove all tags, explicitly name each one using a separate `dt/TAG_TO_DELETE`.
 * Each edit succeeds in full or makes no changes. If any requested deletion is missing or another part of the command is invalid, all contact details and tags stay unchanged.
@@ -442,8 +466,9 @@ Use the same [slash-escaping rules](#slash-escaping) in search values:
 * `r/` specifies a role search phrase.
 * `t/` specifies a tag search phrase. Tags can contain spaces: `find t/good friend` matches a tag containing the phrase `good friend`.
 * Each value after a prefix is treated as a continuous search phrase until the next prefix or the end of the command.
-* Repeated spaces in `n/`, `r/`, and `t/` search phrases are collapsed into a single space before matching, just as when adding or editing these fields. For example, `find r/Regional   Supplier` and `find r/Regional Supplier` return the same results.
+* Surrounding whitespace, including Unicode whitespace such as em spaces, is trimmed from `n/`, `r/`, and `t/` search phrases. Repeated ordinary spaces are collapsed into a single space, just as when adding or editing these fields. For example, `find r/Regional   Supplier` and `find r/Regional Supplier` return the same results. Non-breaking spaces alongside text remain literal.
 * **Partial & Case-Insensitive Matching**: Matches if the term appears anywhere within the field, regardless of upper or lower case (e.g., `n/alex` matches `Alexander`, `r/distrib` matches `Distributor`).
+* Case-insensitive matching recognises Unicode case equivalents: `σ` and `ς` match each other. Accents are preserved: `JOSÉ` matches `José`, but `Jose` does not match `José`. The same case rules apply to legacy name searches.
 * **Search Logic:**
     * **Same prefix → `OR` logic**: A contact matches if it satisfies *at least one* of the values given for that prefix type (e.g. `n/alice n/bob` returns contacts whose name contains "alice" *or* "bob", case-insensitively).
     * **Different prefixes → `AND` logic**: Results are then narrowed so that a contact must satisfy *all* prefix types specified (e.g. `n/alice r/manager` returns contacts whose name contains "alice" *and* whose role contains "manager", case-insensitively).
@@ -620,15 +645,18 @@ KeyBossWarriorsPro data is saved automatically as a JSON file `[JAR file locatio
 
 :exclamation: **Caution:**<br>
 
-If manual edits make the data file invalid or corrupted:
+Saved contacts must satisfy the current [input rules](#contact-input-rules). Older files may contain values that
+are now invalid, such as phones exceeding 20 digits, email domain labels exceeding 63 characters, or addresses
+with internal tabs. If any contact is invalid, the entire contact book fails to load; other valid contacts
+are not loaded separately. The same recovery process applies to invalid manual edits:
 
-* KeyBossWarriorsPro automatically creates a timestamped backup copy in the `data/` folder (for example, `addressbook.json.backup.20261012_123456`).
+* KeyBossWarriorsPro attempts to create a timestamped backup copy in the `data/` folder (for example, `addressbook.json.backup.20261012_123456`).
 
-* A warning message appears in the result box on launch showing the backup file path.
+* A warning message appears in the result box on launch showing the backup file path, or explaining that backup creation failed.
 
-* KeyBossWarriorsPro starts with an empty contact book so that you can continue using the application without immediately overwriting your corrupted data file.
+* KeyBossWarriorsPro starts with an empty contact book. A subsequent successful command can save that empty book, so close the application before attempting recovery.
 
-* To restore your contacts, close KeyBossWarriorsPro, open the backup file in a text editor to fix any syntax errors, and rename it back to `addressbook.json` before relaunching the app.
+* To restore your contacts, keep a separate copy of the backup, correct both JSON syntax errors and invalid field values, then save the corrected content as `addressbook.json` before relaunching. If backup creation failed, preserve a copy of the original file before editing it.
 
 Certain invalid values can also cause unexpected behavior. Edit the data file only if you are confident in editing JSON formatted files.
 </div>
@@ -647,7 +675,7 @@ _Details coming soon ..._
 **A**: Install the app on the other computer and overwrite the data file it creates with the data file from your previous KeyBossWarriorsPro home folder.
 
 **Q**: What should I do if my data file is corrupted?<br>
-**A**: When KeyBossWarriorsPro detects a corrupted data file on startup, it automatically creates a timestamped backup in the `data/` folder and starts with an empty contact list. Close KeyBossWarriorsPro, open the backup file in a text editor to fix any invalid syntax, and rename it back to `addressbook.json` before relaunching the app.
+**A**: When KeyBossWarriorsPro detects invalid saved data on startup, it attempts to create a timestamped backup in the `data/` folder and starts with an empty contact list. Follow the [data-file recovery instructions](#editing-the-data-file), correcting invalid field values as well as JSON syntax before relaunching.
 
 --------------------------------------------------------------------------------------------------------------------
 
