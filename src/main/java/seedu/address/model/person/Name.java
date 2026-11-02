@@ -3,6 +3,8 @@ package seedu.address.model.person;
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
 
+import seedu.address.commons.util.StringUtil;
+
 /**
  * Represents a Person's name in the address book.
  * Guarantees: immutable; is valid as declared in {@link #isValidName(String)}
@@ -10,14 +12,8 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
 public class Name {
 
     public static final String MESSAGE_CONSTRAINTS =
-            "Names should only contain alphanumeric characters, spaces, and punctuation (- / & '), "
-            + "and must start and end with an alphanumeric character.";
-
-    /*
-     * The name must start and end with an alphanumeric character.
-     * Internal spaces and allowed punctuation (- / & ') are accepted.
-     */
-    public static final String VALIDATION_REGEX = "^[\\p{Alnum}]([\\p{Alnum} /&'-]*[\\p{Alnum}])?$";
+            "Names must contain text other than whitespace or invisible formatting characters, "
+            + "and must not contain internal control characters or Unicode line/paragraph separators.";
 
     public final String fullName;
 
@@ -36,14 +32,14 @@ public class Name {
      * Returns true if a given string is a valid name.
      */
     public static boolean isValidName(String test) {
-        return test.matches(VALIDATION_REGEX);
+        return StringUtil.isValidText(test.strip());
     }
 
     /**
      * Formats a name by collapsing consecutive spaces while preserving casing and punctuation.
      */
     private static String formatName(String name) {
-        return name.trim().replaceAll("\\s+", " ");
+        return StringUtil.normalizeSpaces(name);
     }
 
     @Override

@@ -3,6 +3,8 @@ package seedu.address.model.person;
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
 
+import seedu.address.commons.util.StringUtil;
+
 /**
  * Represents a Person's role in the address book.
  * Guarantees: immutable; is valid as declared in {@link #isValidRole(String)}
@@ -10,14 +12,8 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
 public class Role {
 
     public static final String MESSAGE_CONSTRAINTS =
-            "Roles should only contain alphanumeric characters, spaces, and punctuation (- / & '), "
-            + "and must start and end with an alphanumeric character.";
-
-    /*
-     * The role must start and end with an alphanumeric character.
-     * Internal spaces and allowed punctuation (- / & ') are accepted.
-     */
-    public static final String VALIDATION_REGEX = "^[\\p{Alnum}]([\\p{Alnum} /&'-]*[\\p{Alnum}])?$";
+            "Roles must contain text other than whitespace or invisible formatting characters, "
+            + "and must not contain internal control characters or Unicode line/paragraph separators.";
 
     public final String value;
 
@@ -36,14 +32,14 @@ public class Role {
      * Returns true if a given string is a valid role.
      */
     public static boolean isValidRole(String test) {
-        return test.matches(VALIDATION_REGEX);
+        return StringUtil.isValidText(test.strip());
     }
 
     /**
-     * Formats a role by collapsing consecutive whitespace.
+     * Formats a role by trimming surrounding whitespace and collapsing consecutive ordinary spaces.
      */
     private static String formatRole(String role) {
-        return role.trim().replaceAll("\\s+", " ");
+        return StringUtil.normalizeSpaces(role);
     }
 
     @Override

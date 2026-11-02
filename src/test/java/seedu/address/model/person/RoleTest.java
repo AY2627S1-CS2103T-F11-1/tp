@@ -29,18 +29,19 @@ public class RoleTest {
         // invalid roles
         assertFalse(Role.isValidRole("")); // empty string
         assertFalse(Role.isValidRole(" ")); // spaces only
-        assertFalse(Role.isValidRole("Supplier ")); // trailing whitespace
-        assertFalse(Role.isValidRole(" Supplier")); // leading whitespace
-        assertFalse(Role.isValidRole(" Supplier ")); // leading and trailing whitespace
-        assertFalse(Role.isValidRole("-Supplier")); // starts with hyphen
-        assertFalse(Role.isValidRole("Supplier-")); // ends with hyphen
-        assertFalse(Role.isValidRole("-Partner")); // starts with punctuation
-        assertFalse(Role.isValidRole("Supplier/")); // ends with punctuation
-        assertFalse(Role.isValidRole("Supplier!")); // disallowed punctuation
-        assertFalse(Role.isValidRole("@Supplier")); // disallowed symbol
-        assertFalse(Role.isValidRole("Sales*Manager")); // disallowed symbol
 
         // valid roles
+        // EP: punctuation in any position and surrounding spaces are accepted.
+        assertTrue(Role.isValidRole("Supplier "));
+        assertTrue(Role.isValidRole(" Supplier"));
+        assertTrue(Role.isValidRole(" Supplier "));
+        assertTrue(Role.isValidRole("-Supplier"));
+        assertTrue(Role.isValidRole("Supplier-"));
+        assertTrue(Role.isValidRole("-Partner"));
+        assertTrue(Role.isValidRole("Supplier/"));
+        assertTrue(Role.isValidRole("Supplier!"));
+        assertTrue(Role.isValidRole("@Supplier"));
+        assertTrue(Role.isValidRole("Sales*Manager"));
         assertTrue(Role.isValidRole("Supplier"));
         assertTrue(Role.isValidRole("Sales Manager")); // internal spaces allowed
         assertTrue(Role.isValidRole("Logistics-Partner")); // hyphen allowed
@@ -116,5 +117,35 @@ public class RoleTest {
     public void toStringMethod() {
         Role role = new Role("Supplier");
         assertEquals("Supplier", role.toString());
+    }
+
+    @Test
+    public void constructor_expandedText_normalizesSpacingAndPreservesContent() {
+        // EP: Unicode, punctuation, backslashes and surrounding Unicode whitespace.
+        String[] texts = {"John A. Tan", "Jos\u00E9 Tan", "\u738B\u5C0F\u660E", "Supplier (PCB)",
+            "62.5g", "PCB v1.6", "Switches (5-pin)", "C:\\Parts", "!", "a\u00A0b", "a\u2003b"};
+        for (String text : texts) {
+            assertTrue(Role.isValidRole("\u2003 " + text + " \u2003"));
+            assertEquals(text, new Role("\u2003 " + text + " \u2003").value);
+        }
+        assertEquals("PCB v1.6", new Role(" PCB   v1.6 ").value);
+    }
+
+    @Test
+    public void constructor_blankInvisibleOrInternalProhibitedCharacters_throwsIllegalArgumentException() {
+        // EP: no meaningful text, internal ISO controls, and Unicode line/paragraph separators.
+        String[] texts = {"", " ", "\u00A0", "\u200B\u2060", " \u200B\u00A0\u2003 ",
+            "a\tb", "a\nb", "a\rb", "a\u0000b", "a\u0085b", "a\u2028b", "a\u2029b"};
+        for (String text : texts) {
+            assertFalse(Role.isValidRole(text));
+            assertThrows(IllegalArgumentException.class, Role.MESSAGE_CONSTRAINTS, () -> new Role(text));
+        }
+    }
+
+    @Test
+    public void constructor_longText_hasNoMaximumLength() {
+        // EP: text longer than the tag and follow-up limits remains valid.
+        String text = "a".repeat(1000);
+        assertEquals(text, new Role(text).value);
     }
 }

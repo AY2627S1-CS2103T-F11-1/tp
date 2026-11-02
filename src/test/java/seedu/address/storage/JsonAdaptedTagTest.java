@@ -9,7 +9,7 @@ import seedu.address.commons.exceptions.IllegalValueException;
 import seedu.address.model.tag.Tag;
 
 public class JsonAdaptedTagTest {
-    private static final String INVALID_TAG = "#friend";
+    private static final String INVALID_TAG = "fri\tend";
     private static final String VALID_TAG = "friend";
 
     @Test

@@ -22,12 +22,12 @@ import seedu.address.model.person.Role;
 import seedu.address.model.tag.Tag;
 
 public class ParserUtilTest {
-    private static final String INVALID_NAME = "R@chel";
+    private static final String INVALID_NAME = "Ra\tchel";
     private static final String INVALID_PHONE = "+651234";
     private static final String INVALID_ADDRESS = " ";
     private static final String INVALID_EMAIL = "example.com";
     private static final String INVALID_ROLE = " ";
-    private static final String INVALID_TAG = "#friend";
+    private static final String INVALID_TAG = "fri\tend";
 
     private static final String VALID_NAME = "Rachel Walker";
     private static final String VALID_PHONE = "123456";
@@ -59,11 +59,47 @@ public class ParserUtilTest {
     }
 
     @Test
-    public void parseEscapedFields_otherBackslashesStillFollowFieldValidation() throws Exception {
-        assertThrows(ParseException.class, Name.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseName("David\\q John"));
-        assertThrows(ParseException.class, Role.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseRole("Supplier\\"));
-        assertThrows(ParseException.class, Tag.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseTag("key\\\\/board"));
+    public void parseEscapedFields_preservesOtherBackslashes() throws Exception {
+        // EP: unrelated backslashes remain literal; only one slash escape is decoded.
+        assertEquals("David\\q John", ParserUtil.parseName("David\\q John").fullName);
+        assertEquals("Supplier\\", ParserUtil.parseRole("Supplier\\").value);
+        assertEquals("key\\/board", ParserUtil.parseTag("key\\\\/board").tagName);
         assertEquals("C:\\Users\\John/Archive", ParserUtil.parseAddress("C:\\Users\\John\\/Archive").value);
+    }
+
+    @Test
+    public void parseTextFields_acceptsExpandedTextAndNormalizesSpacing() throws Exception {
+        // EP: Unicode, punctuation, surrounding Unicode whitespace and escaped slash-prefix text.
+        assertEquals("Jos\u00E9 \u738B. n/Junior",
+                ParserUtil.parseName("\u2003 Jos\u00E9   \u738B. n\\/Junior \u2003").fullName);
+        assertEquals("Supplier (PCB) p/Parts",
+                ParserUtil.parseRole(" Supplier  (PCB) p\\/Parts ").value);
+        assertEquals("\u738B Street  1 / Unit", ParserUtil.parseAddress(" \u738B Street  1 \\/ Unit ").value);
+        assertEquals("Switches (5-pin)", ParserUtil.parseTag(" Switches   (5-pin) ").tagName);
+    }
+
+    @Test
+    public void parseTag_lengthCheckedAfterDecodingAndNormalization() throws Exception {
+        // BVA: decoded and normalized lengths of 49, 50 and 51, despite longer raw input.
+        for (int length : new int[] {49, 50}) {
+            String normalized = "a".repeat(length - 3) + " /b";
+            assertEquals(normalized,
+                    ParserUtil.parseTag(" " + "a".repeat(length - 3) + "    \\/b ").tagName);
+        }
+        assertThrows(ParseException.class, Tag.MESSAGE_CONSTRAINTS, () ->
+                ParserUtil.parseTag(" " + "a".repeat(48) + "    \\/b "));
+    }
+
+    @Test
+    public void parseTextFields_internalControls_returnFieldConstraintErrors() {
+        // EP: prohibited internal characters must survive spacing normalization and be rejected.
+        for (String character : List.of("\t", "\n", "\r", "\u0000", "\u0085", "\u2028", "\u2029")) {
+            String text = "a" + character + "b";
+            assertThrows(ParseException.class, Name.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseName(text));
+            assertThrows(ParseException.class, Role.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseRole(text));
+            assertThrows(ParseException.class, Tag.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseTag(text));
+            assertThrows(ParseException.class, Address.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseAddress(text));
+        }
     }
 
     @Test

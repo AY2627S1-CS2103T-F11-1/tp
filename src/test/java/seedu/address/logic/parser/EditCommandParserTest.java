@@ -312,14 +312,14 @@ public class EditCommandParserTest {
 
     @Test
     public void parse_invalidDeleteTag_failure() {
-        assertParseFailure(parser, "1 dt/trainee*", Tag.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 dt/trai\tnee", Tag.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, "1 dt/" + "a".repeat(Tag.MAX_LENGTH + 1), Tag.MESSAGE_CONSTRAINTS);
     }
 
     @Test
     public void parse_invalidTagBeforeConflict_failure() {
-        assertParseFailure(parser, "1 t/trainee dt/trainee dt/invalid*", Tag.MESSAGE_CONSTRAINTS);
-        assertParseFailure(parser, "1 t/trainee dt/trainee t/invalid*", Tag.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 t/trainee dt/trainee dt/inva\tlid", Tag.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 t/trainee dt/trainee t/inva\tlid", Tag.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, "1 t/trainee dt/trainee dt/", EditCommand.MESSAGE_EMPTY_TAG);
     }
 }

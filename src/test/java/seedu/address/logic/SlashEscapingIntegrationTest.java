@@ -54,6 +54,26 @@ public class SlashEscapingIntegrationTest {
     }
 
     @Test
+    public void addAndEdit_expandedText_survivesReload() throws Exception {
+        // EP: Unicode, punctuation, literal backslashes and escaped prefixes through add/edit and storage.
+        logic.execute("add n/Jos\u00E9   \u738B. n\\/Junior p/91234567 e/original@example.com"
+                + " a/\u738B Street  1, C:\\Parts r/Supplier   (PCB) t/62.5g t/PCB   v1.6 t/Switches (5-pin)");
+        Person added = new PersonBuilder(ORIGINAL).withName("Jos\u00E9 \u738B. n/Junior")
+                .withAddress("\u738B Street  1, C:\\Parts").withRole("Supplier (PCB)")
+                .withTags("62.5g", "PCB v1.6", "Switches (5-pin)").build();
+        assertStoredContacts(added);
+        reload();
+        assertStoredContacts(added);
+
+        logic.execute("edit 1 n/John A. Tan\\ r/(PCB) p\\/Supplier t/Parts\\Case");
+        Person edited = new PersonBuilder(added).withName("John A. Tan\\").withRole("(PCB) p/Supplier")
+                .withTags("62.5g", "PCB v1.6", "Switches (5-pin)", "Parts\\Case").build();
+        assertStoredContacts(edited);
+        reload();
+        assertStoredContacts(edited);
+    }
+
+    @Test
     public void add_escapedTextFields_persistDecodedValuesAfterReload() throws Exception {
         addEscapedContact();
         assertStoredContacts(ESCAPED_CONTACT);
