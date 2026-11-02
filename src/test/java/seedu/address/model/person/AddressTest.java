@@ -58,7 +58,7 @@ public class AddressTest {
             };
             for (String address : addresses) {
                 assertTrue(Address.isValidAddress(address));
-                assertEquals(address, new Address(address).value);
+                assertEquals(address.strip(), new Address(address).value);
             }
         }
     }
@@ -81,5 +81,25 @@ public class AddressTest {
 
         // different values -> returns false
         assertFalse(address.equals(new Address("Other Valid Address")));
+    }
+
+    @Test
+    public void constructor_trimsEdgesAndPreservesInternalSpacing() {
+        // EP: Unicode/punctuation/backslashes, surrounding whitespace and repeated internal spaces.
+        String address = "\u738B Street  1, C:\\Parts / #02-03";
+        assertEquals(address, new Address("\u2003 " + address + " \u2003").value);
+        assertEquals("a\u00A0b\u2003c", new Address("a\u00A0b\u2003c").value);
+        // EP: no maximum address length.
+        assertEquals("a".repeat(1000), new Address("a".repeat(1000)).value);
+    }
+
+    @Test
+    public void constructor_internalProhibitedCharacters_throwsIllegalArgumentException() {
+        // EP: internal ISO controls and Unicode line/paragraph separators.
+        String[] texts = {"a\tb", "a\nb", "a\rb", "a\u0000b", "a\u0085b", "a\u2028b", "a\u2029b"};
+        for (String text : texts) {
+            assertFalse(Address.isValidAddress(text));
+            assertThrows(IllegalArgumentException.class, Address.MESSAGE_CONSTRAINTS, () -> new Address(text));
+        }
     }
 }

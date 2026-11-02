@@ -1,5 +1,6 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -36,6 +37,26 @@ public class PhoneTest {
         assertTrue(Phone.isValidPhone("911")); // exactly 3 numbers
         assertTrue(Phone.isValidPhone("93121534"));
         assertTrue(Phone.isValidPhone("124293842033123")); // long phone numbers
+    }
+
+    @Test
+    public void constructor_validLengthBoundaries_preservesDigits() {
+        // BVA: minimum, just above minimum, just below maximum and maximum lengths.
+        for (int length : new int[] {3, 4, 19, 20}) {
+            String phone = "0" + "9".repeat(length - 1);
+            assertTrue(Phone.isValidPhone(phone));
+            assertEquals(phone, new Phone(phone).value); // leading zeroes are preserved
+        }
+    }
+
+    @Test
+    public void constructor_invalidLengths_throwsConstraintError() {
+        // BVA: just below minimum and just above maximum; EP: excessively long digit-only input.
+        for (int length : new int[] {2, 21, 300, 500}) {
+            String phone = "9".repeat(length);
+            assertFalse(Phone.isValidPhone(phone));
+            assertThrows(IllegalArgumentException.class, Phone.MESSAGE_CONSTRAINTS, () -> new Phone(phone));
+        }
     }
 
     @Test

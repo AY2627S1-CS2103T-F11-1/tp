@@ -74,6 +74,20 @@ public class PersonTest {
     }
 
     @Test
+    public void isSamePerson_expandedEmails_preservesPhoneOrEmailCriterion() {
+        Person person = new PersonBuilder(ALICE).withPhone("12345")
+                .withEmail("O'Connor@Keyboard--Shop.COM").build();
+        // EP: email alone matches, ignoring case and retaining apostrophes and repeated hyphens.
+        Person emailMatch = new PersonBuilder(person).withPhone("67890")
+                .withEmail("o'connor@keyboard--shop.com").build();
+        assertTrue(person.isSamePerson(emailMatch));
+        // EP: phone alone still matches; differing phone and email still make a distinct contact.
+        Person phoneMatch = new PersonBuilder(person).withEmail("other@example.com").build();
+        assertTrue(person.isSamePerson(phoneMatch));
+        assertFalse(person.isSamePerson(new PersonBuilder(phoneMatch).withPhone("67890").build()));
+    }
+
+    @Test
     public void equals() {
         // same values -> returns true
         Person aliceCopy = new PersonBuilder(ALICE).build();

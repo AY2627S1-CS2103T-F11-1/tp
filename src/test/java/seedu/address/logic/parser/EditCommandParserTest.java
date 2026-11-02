@@ -63,6 +63,20 @@ public class EditCommandParserTest {
     private EditCommandParser parser = new EditCommandParser();
 
     @Test
+    public void parse_phoneLengthBoundaries_acceptsValidLengthsAndRejectsInvalidLengths() {
+        // BVA: edit accepts 3 and 20 digits and preserves leading zeroes after trimming.
+        for (int length : new int[] {3, 20}) {
+            String phone = "0" + "9".repeat(length - 1);
+            EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder().withPhone(phone).build();
+            assertParseSuccess(parser, "1 p/  " + phone + "  ", new EditCommand(INDEX_FIRST_PERSON, descriptor));
+        }
+        // BVA: 2 and 21 digits; EP: long inputs must produce the phone constraint error.
+        for (int length : new int[] {2, 21, 300, 500}) {
+            assertParseFailure(parser, "1 p/" + "9".repeat(length), Phone.MESSAGE_CONSTRAINTS);
+        }
+    }
+
+    @Test
     public void parse_missingParts_failure() {
         // no index specified
         assertParseFailure(parser, NAME_DESC_AMY, Messages.MESSAGE_INDEX_REQUIRED);
@@ -311,15 +325,28 @@ public class EditCommandParserTest {
     }
 
     @Test
+    public void parse_unicodeCaseEquivalentTags_deduplicatesAndRejectsConflicts() {
+        // EP: Unicode tag equality must work in the hash sets used for additions, deletions and conflicts.
+        EditPersonDescriptor descriptor = new EditPersonDescriptorBuilder()
+                .withTagsToAdd("\u03C3").withTagsToDelete("\u0130").build();
+        assertParseSuccess(parser, "1 t/\u03C3 t/\u03C2 t/\u03A3 dt/\u0130 dt/i dt/\u0131",
+                new EditCommand(INDEX_FIRST_PERSON, descriptor));
+        assertParseFailure(parser, "1 t/\u03C3 dt/\u03C2",
+                String.format(EditCommand.MESSAGE_TAG_CONFLICT, "\u03C3"));
+        assertParseFailure(parser, "1 t/\u0130 dt/i",
+                String.format(EditCommand.MESSAGE_TAG_CONFLICT, "\u0130"));
+    }
+
+    @Test
     public void parse_invalidDeleteTag_failure() {
-        assertParseFailure(parser, "1 dt/trainee*", Tag.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 dt/trai\tnee", Tag.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, "1 dt/" + "a".repeat(Tag.MAX_LENGTH + 1), Tag.MESSAGE_CONSTRAINTS);
     }
 
     @Test
     public void parse_invalidTagBeforeConflict_failure() {
-        assertParseFailure(parser, "1 t/trainee dt/trainee dt/invalid*", Tag.MESSAGE_CONSTRAINTS);
-        assertParseFailure(parser, "1 t/trainee dt/trainee t/invalid*", Tag.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 t/trainee dt/trainee dt/inva\tlid", Tag.MESSAGE_CONSTRAINTS);
+        assertParseFailure(parser, "1 t/trainee dt/trainee t/inva\tlid", Tag.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, "1 t/trainee dt/trainee dt/", EditCommand.MESSAGE_EMPTY_TAG);
     }
 }

@@ -11,6 +11,8 @@ title: Developer Guide
 
 * Based on [AddressBook-Level 3](https://github.com/se-edu/addressbook-level3) by the [SE-EDU initiative](https://se-education.org), adapting its code, architecture, and documentation.
 * Libraries used: [JavaFX](https://openjfx.io/), [Jackson](https://github.com/FasterXML/jackson), and [JUnit 5](https://junit.org/junit5/).
+* `Email.VALIDATION_REGEX` adapts the regex published in the
+  [WHATWG HTML Standard](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address).
 * AI assistance: OpenAI Codex, Anthropic Claude, and Google Gemini were used during development and documentation.
 
 --------------------------------------------------------------------------------------------------------------------
@@ -205,49 +207,35 @@ How the command parsing and execution works:
 7. If uniqueness validation passes, `Model#addPerson(toAdd)` inserts the contact into `UniquePersonList`, and `Model#commitAddressBook()` saves the state snapshot into `VersionedAddressBook` to support undo/redo.
 8. A `CommandResult` containing success feedback (labeled `result`) is returned to `LogicManager`.
 
-#### Name, role, and tag formatting
+#### Contact text validation, formatting, and searching
 
-`Name`, `Role`, and `Tag` share the same character rules: ASCII letters and digits,
-internal spaces, and punctuation (`-`, `/`, `&`, and `'`). Values must start and end
-with a letter or digit. Internal tabs and line breaks are rejected. `ParserUtil`
-trims leading and trailing whitespace before validation; each value object's
-constructor validates its input before collapsing consecutive internal spaces.
-Capitalisation and punctuation are preserved. For example, `Anne-Marie   O'Connor`
-becomes `Anne-Marie O'Connor` when constructed as a `Name`.
+`Name`, `Role`, `Tag` and `Address` validate trimmed input with `StringUtil.isValidText()`, rejecting
+blank/invisible-only values, ISO controls and Unicode line/paragraph separators. Names, roles and tags
+accept Unicode, punctuation and literal backslashes.
 
-The formatting rules apply to both `add` and `edit`, and also when stored JSON is
-loaded through the value-object constructors. Existing names containing repeated
-internal spaces are therefore normalised on load and saved in that form on the
-next successful save. `NameTest`, `AddCommandParserTest`, `EditCommandParserTest`,
-and `JsonAdaptedPersonTest` cover these paths.
+`normalizeSpaces()` strips Java whitespace and collapses ordinary U+0020 spaces for names, roles and tags.
+Addresses only strip their edges. Non-breaking spaces and formatting characters remain literal alongside
+visible text; capitalisation is preserved. Tags have a 50-unit limit after decoding and normalisation,
+measured by `String.length()` (UTF-16); names, roles and addresses have no maximum.
 
-Two field-specific behaviours remain: only `Tag` has a 50-character limit, checked
-before normalisation, and `Name.equals()` compares case-sensitively while `Role`
-and `Tag` compare case-insensitively. Search predicates for all three fields ignore
-case. See [Finding contacts](#finding-contacts) for search phrase normalisation and
-predicate composition.
+Name/address equality is case-sensitive; role/tag/email equality uses `equalsIgnoreCase()`.
+`normalizeCase()` applies `toLowerCase(toUpperCase(...))` per code point for locale-independent searches
+and role/tag/email hashes, preserving stored spelling and accent distinctions.
 
-Prefix recognition runs on raw command input before field validation or escape
-decoding. `ParserUtil.unescapeSlashes()` replaces each `\/` with `/` once and
-preserves other backslashes. Name, role, tag and address parsers decode before
-validation and construction; `FollowUpCommandParser` decodes descriptions before
-validation. Existing character restrictions remain in force. Tag length is checked
-after decoding but before space normalisation; description length is checked after
-decoding and trimming.
+Prefixes are recognised before `ParserUtil.unescapeSlashes()` decodes each `\/` once. Models and JSON
+adapters never decode escapes. Phone, email and date values do not use slash decoding.
 
-`FindCommandParser` decodes both prefixed phrases and legacy keywords after prefix
-detection, retaining phrase spacing, substring matching and OR/AND rules. Escaped
-prefix-like text cannot introduce a field during decoding. Unknown, duplicate and
-missing real prefixes are still checked on raw input. Model constructors and JSON
-adapters never decode escapes, preventing double decoding of saved values.
-Phone, email and date parsing are unaffected.
+`FindCommandParser.normaliseSearchPhrases()` applies `normalizeSpaces()` to prefixed queries, retaining
+substring matching, OR within fields and AND across fields. Queries have no whole-field validation or
+length limit. Legacy name search retains whitespace-based keyword splitting.
 
-`ParserUtilTest` partitions null/empty input, slash escapes, plain slashes and other
-backslashes. `SlashEscapingIntegrationTest` covers add/edit/search, tag deduplication
-and deletion/conflicts, prefix errors, undo/redo and JSON reload. EP and BVA comments
-identify test choices following the course's
-[test case design guidance](https://nus-cs2103-ay2627-s1.github.io/website/se-book-adapted/chapters/testCaseDesign.html).
-Length boundaries are checked on decoded values rather than raw escape syntax.
+#### Email and phone validation
+
+`Email.VALIDATION_REGEX` uses the WHATWG HTML pattern with Java `String.matches()`; the
+[UG lists its supported syntax](UserGuide.md#supported-email-syntax). Parsing trims input and preserves
+case. Validation checks syntax only, without mailbox verification or IDN conversion.
+
+`Phone.VALIDATION_REGEX` accepts 3–20 ASCII digits, preserving leading zeroes.
 
 #### Execution flow
 
@@ -265,6 +253,15 @@ The activity diagram below illustrates the duplicate resolution and defensive er
 * **Alternative 2:** Identity determined solely by contact name (baseline AB3).
   * Pros: Simpler lookup logic.
   * Cons: Disallows contacts sharing a name and allows duplicate phone numbers and email addresses to enter the pipeline undetected.
+
+**Aspect: Phone number representation and future work**
+
+The current release stores one `Phone` per contact and uses exact-string equality for the phone part of
+duplicate detection. This simplifies comparison but excludes useful formats and multiple contact numbers.
+Simply accepting separators would let `91234567` and `9123 4567` bypass a phone match.
+Future support should define canonical comparison values, country-code and extension handling while
+preserving display formatting. Multiple numbers would also require model, command and storage changes,
+with duplicate checks across all numbers. These enhancements are deferred beyond the current tP release.
 
 **Aspect: Input prefix validation**
 
@@ -540,7 +537,7 @@ prefixes from being silently ignored.
 After parsing the index and other contact fields, `EditCommandParser`:
 
 1. Parses additions, then deletions, using `parseTagsForEdit()`. An absent prefix produces an empty optional. A supplied blank tag is rejected, including bare `t/` and `dt/`; neither clears all tags.
-2. Uses `ParserUtil.parseTags()` to validate tag names and construct sets. `Tag` collapses consecutive internal spaces, and its equality and hash code support case-insensitive comparison and deduplication.
+2. Uses `ParserUtil.parseTags()` to validate tag names and construct sets. `Tag` collapses repeated ordinary spaces, and its equality and hash code support case-insensitive comparison and deduplication.
 3. Rejects any tag present in both sets. If several tags conflict, the first tag alphabetically, ignoring case, is reported using the spelling from the additions set.
 4. Rejects a command with no fields or tag operations, or returns an `EditCommand` containing a copy of the descriptor.
 
@@ -576,8 +573,7 @@ Each `Person` owns an `Optional<FollowUp>`. A contact can have zero or one follo
 #### Model and persistence
 `FollowUp` stores an immutable `LocalDate` due date and description. Both fields are mandatory when a follow-up exists.
 * Due dates accept past values and restrict years to `0000`–`9999`.
-* Descriptions are stripped of surrounding whitespace, must be non-blank, and must not exceed 200 UTF-16 code units, as measured by `String.length()`.
-* Internal ISO control characters and Unicode line and paragraph separators are rejected. Other casing and internal spacing are preserved.
+* Descriptions use `strip()` and `StringUtil.isValidText()` with the [shared text rules](#contact-text-validation-formatting-and-searching), preserving capitalisation and internal spacing. The limit is 200 UTF-16 code units (`String.length()`) after slash decoding and trimming.
 * Equality and hashing include both fields, with case-sensitive description comparison.
   `FollowUp` has no back-reference to `Person`. The owning contact establishes the association, so changing contact details does not require updating a separate contact identifier.
 

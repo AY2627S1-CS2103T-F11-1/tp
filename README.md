@@ -23,3 +23,6 @@ KeyBossWarriorsPro is a desktop application for managing contacts for an artisan
 ## Acknowledgements
 
 This project is based on the AddressBook-Level3 project created by the [SE-EDU initiative](https://se-education.org).
+
+Email validation adapts the regular expression published in the
+[WHATWG HTML Standard](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address).
