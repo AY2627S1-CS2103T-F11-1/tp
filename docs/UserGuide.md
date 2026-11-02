@@ -3,6 +3,8 @@ layout: page
 title: User Guide
 ---
 
+## Introduction
+
 KeyBossWarriorsPro is a specialized **desktop application for managing contacts and vendor pipelines, optimized for Artisan Mechanical Keyboard Shop Managers through a Command Line Interface (CLI)** while retaining the benefits of a Graphical User Interface (GUI). If you type quickly, KeyBossWarriorsPro can help you manage your keyboard shop associates, hardware suppliers, and fabrication partners faster than traditional GUI applications.
 
 * Table of Contents
@@ -38,35 +40,11 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 
    * `exit` : Exits the app.
 
-1. Refer to the [Features](#features) section below for details of each command.
+1. Refer to the [Command reference](#command-reference) section below for details of each command.
 
 --------------------------------------------------------------------------------------------------------------------
 
-## Features
-
-<div markdown="block" class="alert alert-info">
-
-**:information_source: Notes about the command format:**<br>
-
-* Words in `UPPER_CASE` are the parameters to be supplied by the user.<br>
-  For example, in `add n/NAME`, replace `NAME` with a value such as `John Doe`.
-
-* Items in square brackets are optional.<br>
-  For example, `n/NAME [t/TAG]` can be used as `n/John Doe t/friend` or as `n/John Doe`.
-
-* Items followed by `…`​ can appear zero or more times.<br>
-  For example, `[t/TAG]…​` may be omitted, or written as `t/friend` or `t/friend t/family`.
-
-* Unless stated otherwise, parameters can be in any order.<br>
-  For `sort`, field order determines sorting priority.
-
-* The optional argument to `help` is treated as a command name. For example, `help add` displays the `add` command's usage; an unsupported target such as `help 123` displays guidance instead of opening the full help window.
-* For `list`, additional arguments are ignored and a warning is displayed.
-  For example, `list 3` lists all contacts and does not navigate to contact 3.
-* For `exit`, a message explains that any extra text is ignored before the application closes.
-
-* If you are using a PDF version of this document, be careful when copying and pasting commands that span multiple lines as space characters surrounding line-breaks may be omitted when copied over to the application.
-</div>
+## Understanding the interface
 
 ### Viewing contact details
 
@@ -120,43 +98,36 @@ and draft command. After midnight or sleep, the next refresh uses the current lo
   The original selection is retained when that contact still exists in the restored list; otherwise the panel returns to the
   selection prompt. Command feedback shows the saving error.
 
-### Selecting a contact: `select INDEX`
+--------------------------------------------------------------------------------------------------------------------
 
-Selects a contact from the current list and shows its full details in the panel on the right.
+## Command conventions
 
-**Format:** `select INDEX`
+Type one command in the command box and press **Enter** to execute it.
 
-* `INDEX` is a positive, one-based number from the currently displayed list. After `find`, a follow-up query, or
-  `sort`, use the numbers shown in that view. Indexes from the complete address book may not be valid in a filtered view.
-* The contact is highlighted and scrolled into view. Keyboard focus stays in command input, ready for your next command.
-* Selecting the same contact again is allowed. Its card is brought back into view while the details panel keeps its
-  scroll position.
-* Selection does not change contacts, filters, sorting, or undo/redo history, and does not discard available redo history.
-  Selection is cleared on restart and after successful `undo` or `redo`.
-* Invalid input or an empty result list leaves the current selection and details unchanged.
-* If an automatic save fails after a valid selection, the contact remains selected and the feedback shows the saving
-  error. Selection itself does not alter contact data.
+* Words in `UPPER_CASE` are placeholders for values you supply. In `add n/NAME`, replace `NAME` with a value such as `John Doe`.
+* Lowercase command names, prefixes such as `n/`, and keywords such as `clear` are entered as shown.
+* Square brackets mark optional parts. For example, `[t/TAG]` can be omitted. Do not type the brackets.
+* An optional part followed by `…` can be repeated: `[t/TAG]…` allows no tags, one tag, or several `t/` fields. Do not type the ellipsis.
+* Named fields can usually be supplied in any order. Keep positional arguments, such as `INDEX`, in the positions shown in the command's format.
+  For `sort`, field order determines sorting priority.
+* `INDEX` is a positive whole number starting at 1 and refers to the **currently displayed list**. Check the numbers again after a search,
+  follow-up query, sort, edit, or deletion. Commands using an index target that displayed contact.
+* Command-specific requirements, such as supplying at least one search criterion or one field to edit, appear with the command's format and parameters.
+* See [Input rules](#input-rules) for accepted values and for entering prefix-like text inside a field value.
 
-Examples with the sample contacts:
+If you use a PDF version of this guide, take care when copying commands across line breaks: spaces may be lost when pasting into the application.
 
-* `select 2` selects Bernice Yu in the initial list and displays `Selected contact 2: Bernice Yu`.
-* `find alex david`, followed by `select 2`, selects David Li from the two matching contacts.
-* `sort n/`, followed by `select 1`, selects the first contact in name order.
-* `help select` displays the command's usage without changing selection or opening the Help window.
+--------------------------------------------------------------------------------------------------------------------
 
-Common errors:
+<a id="features"></a>
 
-Input or condition | Feedback
--------------------|---------
-`select` | `INDEX is required.`
-`select 0`, `select -1`, `select abc`, or an integer larger than 2147483647 | `INDEX must be a whole number between 1 and 2147483647.`
-`select 1 2` | `select accepts only one INDEX.`
-No contacts are displayed | `No contacts are currently displayed.`
-`select 4` when three contacts are displayed | `INDEX 4 is outside the displayed contact list (valid range: 1-3).`
+## Command reference
 
-When exactly one contact is displayed, an out-of-range error states that the only valid index is `1`.
+Commands are grouped by task. The index-based commands use the numbers in your current displayed list.
 
-### Adding a contact: `add`
+### Manage contacts
+
+#### Adding a contact: `add`
 
 Adds a new contact to KeyBossWarriorsPro.
 
@@ -209,368 +180,224 @@ The phone number contains spaces, `+`, or punctuation | Use 3–20 digits (`0`�
 Text inside a value looks like a field prefix | Escape its slash with `\/`. See [slash escaping](#slash-escaping) for examples.
 Saving fails | Resolve the file or folder problem reported in the command feedback, then try again. The addition is rolled back if saving fails.
 
-### Clearing all entries: `clear`
+#### Editing a contact: `edit`
 
-Clears all entries from KeyBossWarriorsPro.
+Updates the details or tags of a contact in the currently displayed list.
 
-**Format:** `clear`
+**Format:** `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]… [dt/TAG_TO_DELETE]…`
 
+**Parameters**
 
-### Deleting a contact: `delete`
+* `INDEX` identifies a contact in the [currently displayed list](#command-conventions).
+* Supply at least one field or tag operation. Supply each of `n/`, `p/`, `e/`, `a/`, and `r/` at most once.
+* Repeat `t/` to add tags or `dt/` to remove tags. Both operations can be used in the same command, in any order.
+* Every tag requested for deletion must already belong to the contact. To remove all tags, name each one using a separate `dt/`.
+* Empty or whitespace-only tag values are invalid. A tag cannot be added and deleted in the same command, including different spellings that differ only in letter case.
+* Use the shared [input rules](#contact-input-rules) and [slash-escaping rules](#slash-escaping), including for `dt/` values.
+  Unknown prefixes, such as `xx/`, are rejected.
 
-Deletes one contact from the currently displayed list immediately, without asking for confirmation.
+**Behaviour**
 
-**Format:** `delete INDEX`
+* Supplied name, phone number, email address, address, and role values replace the existing values. Omitted fields keep their values.
+* `t/` adds tags without replacing existing tags. Adding a tag that is already present succeeds without creating a duplicate.
+* Tag comparisons ignore letter case and recognise Unicode case equivalents. For example, `dt/TRAINEE` removes `trainee`,
+  and `σ` and `ς` are treated as equivalent. See [Input rules](#input-rules) for spacing and comparison details.
+* Neither the new phone number nor the new email may match another contact, including one hidden by a filter.
+  Keeping this contact's own phone number or email is allowed. See [duplicate contacts](#contact-duplicates).
+* Each edit succeeds in full or makes no contact changes. A missing tag deletion or another invalid value rejects the entire edit.
+* A successful edit clears any search or follow-up filter and displays all contacts. The current sort order is retained;
+  changing a name or role may change the contact's displayed index.
+* The contact's follow-up is preserved. Changes are saved automatically and support [undo](#undoing-a-change-undo) and [redo](#redoing-a-change-redo).
 
-* Supply **exactly one `INDEX`**: a positive integer referring to a contact in the currently displayed list,
-  including results from `find`, `followups`, or `sort`.
-* Indices may change when the displayed list changes. Check the displayed index before deleting.
-* Successful deletion keeps the current filter and sort order. The remaining contacts are renumbered.
+**Examples**
 
-If no contacts are displayed, for example after a search with no matches, the application reports
-`No contacts are currently displayed.` Enter `list` to show all contacts before choosing an index.
+Basic use, assuming contact 1 is displayed:
 
-Examples:
+```text
+edit 1 r/Supplier
+```
 
-* `sort n/` followed by `delete 2` deletes the second contact in the list sorted by name.
-* `find Betsy` followed by `delete 1` deletes the 1st contact in the results of the `find` command.
+Result: Changes the first displayed contact's role to `Supplier`, keeps the other details, and displays all contacts.
 
+Updating contact details, assuming contact 1 exists and the new phone number and email are not used by another contact:
 
-### Editing a contact: `edit`
+```text
+edit 1 p/91234567 e/johndoe@example.com r/Supplier
+```
 
-Edits an existing contact in KeyBossWarriorsPro.
+Result: Updates the contact's phone number, email, and role in one command.
 
-**Format:** `edit INDEX [n/NAME] [p/PHONE_NUMBER] [e/EMAIL] [a/ADDRESS] [r/ROLE] [t/TAG_TO_ADD]…​ [dt/TAG_TO_DELETE]…​`
+For each independent example below, assume contact 1 initially has the tags `trainee` and `supplier`:
 
-* `INDEX` must be a positive integer and must refer to a contact in the currently displayed list.
-* At least one field or tag operation must be provided.
-* Supplied name, phone number, email address, address, and role values replace the corresponding existing values. Omitted fields keep their existing values.
-* The [input rules](#contact-input-rules) and [slash-escaping rules](#slash-escaping) also apply here, including `dt/`. For example, `edit 1 n/David s\/o John dt/parts xx\/custom`.
-* Unrecognized prefixes are rejected. For example, `edit 1 xx/value` is invalid. Text after a valid prefix belongs to that field until the next prefix.
-* The [duplicate-contact rules](#contact-duplicates) also apply: neither the new phone number nor the new email may match another contact, including one hidden by the current filter. Keeping the selected contact's own phone or email is allowed.
-* `t/TAG_TO_ADD` adds the named tag while preserving the contact's existing tags. Adding a tag the contact already has succeeds without creating a duplicate.
-* `dt/TAG_TO_DELETE` removes the named tag while preserving all other tags. Every tag requested for deletion must already belong to the selected contact.
-* Repeat `t/` or `dt/` to add or delete several tags. Both operations can be used in the same command, in any order.
-* Tag comparisons follow the [input rules](#contact-input-rules). For example, `dt/TRAINEE` removes an existing `trainee` tag; Unicode case equivalents such as `σ` and `ς` also count as the same tag.
-* A tag cannot be supplied to both `t/` and `dt/` in the same command, even with different letter casing.
-* Empty or whitespace-only `t/` and `dt/` values are invalid. To remove all tags, explicitly name each one using a separate `dt/TAG_TO_DELETE`.
-* Each edit succeeds in full or makes no changes. If any requested deletion is missing or another part of the command is invalid, all contact details and tags stay unchanged.
+Command | Expected result
+--------|----------------
+`edit 1 t/solderer` | Keeps `trainee` and `supplier`, and adds `solderer`.
+`edit 1 dt/trainee` | Removes `trainee`, leaving `supplier`.
+`edit 1 t/solderer dt/trainee` | Leaves `supplier` and `solderer`.
+`edit 1 dt/trainee dt/supplier` | Removes both tags, leaving no tags.
 
-Examples:
+**Common mistakes and recovery**
 
-* `edit 1 r/Employee` Changes the role of the 1st contact to `Employee`.
-* `edit 1 p/91234567 e/johndoe@example.com r/Supplier` Updates the 1st contact's phone number, email address, and role.
-* `edit 2 n/Betsy Crower r/Customer t/regular` Changes the 2nd contact's name and role, and adds `regular` while preserving existing tags.
+Problem | What to do
+--------|-----------
+`edit 1` supplies no change | Add at least one field or tag operation.
+`edit 1 t/` or `edit 1 dt/` | The feedback is `Tag names cannot be empty. Specify a tag after t/ or dt/.` Supply a tag name.
+`edit 1 t/trainee dt/TRAINEE` | The feedback is `Cannot add and delete the same tag: trainee. Remove it from either t/ or dt/.`
+A requested tag is absent | Check the contact's tags before using `dt/`. For example, if contact 1 has only `trainee` and `supplier`, `edit 1 n/Alex dt/trainee dt/solderer` reports `Cannot delete tag: solderer. The selected contact does not have this tag.` The name and both original tags remain unchanged.
+An index is no longer valid after a search or sort | Check the displayed numbers again. Use `list` if you want to choose from all contacts.
 
-For each example below, assume contact 1 initially has the tags `trainee` and `supplier`:
-
-* `edit 1 t/solderer` Results in `trainee`, `supplier`, and `solderer`.
-* `edit 1 dt/trainee` Results in `supplier`.
-* `edit 1 t/solderer dt/trainee` Results in `supplier` and `solderer`.
-* `edit 1 dt/trainee dt/supplier` Removes both named tags, leaving the contact with no tags.
-
-**Tag errors**
-
-Command | Error message
---------|------------------
-`edit 1 t/` or `edit 1 dt/` | `Tag names cannot be empty. Specify a tag after t/ or dt/.`
-`edit 1 t/trainee dt/TRAINEE` | `Cannot add and delete the same tag: trainee. Remove it from either t/ or dt/.`
-`edit 1 n/Alex dt/trainee dt/solderer` | `Cannot delete tag: solderer. The selected contact does not have this tag.` The name and both original tags remain unchanged.
-
-
-### Managing a contact's follow-up: `followup`
+#### Managing a contact's follow-up: `followup`
 
 Creates, replaces, or removes a contact's pending follow-up. Each contact can have zero or one follow-up, regardless of role.
 
-**Format:** `followup INDEX by/DUE_DATE abt/DESCRIPTION`
+**Format**
 
-* `INDEX` must be a positive integer referring to a contact in the currently displayed list, including results from `find` or `followups`.
-* Both `by/` and `abt/` are mandatory and must appear exactly once. They may appear in either order.
-* Setting a follow-up replaces any existing follow-up in full. To change only the date or description, supply both fields again.
+Command | Purpose
+--------|--------
+`followup INDEX by/DUE_DATE abt/DESCRIPTION` | Creates or replaces a follow-up.
+`followup INDEX clear` | Removes an existing follow-up without deleting the contact.
+
+**Parameters**
+
+* `INDEX` identifies a contact in the [currently displayed list](#command-conventions).
+* When setting a follow-up, supply `by/` and `abt/` exactly once each, in either order.
 * `DUE_DATE` must be a valid calendar date in `YYYY-MM-DD` format, with a year from `0000` to `9999`. Past dates are accepted.
 * `DESCRIPTION` follows the [text validation and trimming rules](#text-field-rules), while preserving capitalisation and internal spacing.
-* Its limit is **200 [characters](#character-counting) after slash decoding and trimming**.
-* Descriptions use the same [slash-escaping rules](#slash-escaping): `abt/Confirm PCB\/Case quotation` stores `Confirm PCB/Case quotation`. Escape prefix-like text inside the description; keep actual `by/` and `abt/` prefixes unchanged.
-* Successful changes preserve other contact details and the current filter. A contact may disappear from the results if it no longer matches that filter.
-* Contacts with a follow-up show **Follow-up**, **Due today**, or **Overdue** in the left list according to the due date.
-  The date and description are displayed in the selected contact's details panel and saved automatically.
-  Changes support `undo` and `redo`.
+  The limit is **200 [characters](#character-counting) after slash decoding and trimming**.
+* Descriptions use the [slash-escaping rules](#slash-escaping). For example, `abt/Confirm PCB\/Case quotation` stores `Confirm PCB/Case quotation`.
+* For removal, the contact must already have a follow-up. `clear` cannot be combined with `by/`, `abt/`, or extra arguments.
+
+**Behaviour**
+
+* Setting a follow-up replaces any existing follow-up in full. To change only the date or description, supply both fields again.
+* Clearing a follow-up can be used when its action is completed or cancelled. Completed follow-ups are not retained in a history.
+* Successful changes preserve the contact's other details, the current filter, and sorting. A contact may disappear from a follow-up query
+  if the new date no longer matches, or if its follow-up is cleared.
+* Contacts with a follow-up show **Follow-up**, **Due today**, or **Overdue** in the list. Select a contact to read its date and description
+  in the details panel. See [Viewing contact details](#viewing-contact-details).
+* Changes are saved automatically and support [undo](#undoing-a-change-undo) and [redo](#redoing-a-change-redo).
 * Editing other contact details preserves the follow-up. Deleting the contact removes its follow-up.
 
-Examples:
+**Examples**
 
-* `followup 1 by/2026-11-01 abt/Confirm PCB quotation` sets or replaces contact 1's follow-up.
-* `find n/Betsy` followed by `followup 1 by/2026-11-02 abt/Confirm weekend availability` sets a follow-up for the first displayed search result.
-
-#### Removing a follow-up
-
-**Format:** `followup INDEX clear`
-
-* Removes the follow-up without deleting the contact.
-* Use this when the action is completed or cancelled. Completed follow-ups are not retained in a history.
-* The selected contact must already have a follow-up.
-* `clear` cannot be combined with `by/`, `abt/`, or extra arguments.
-* This is different from the standalone `clear` command, which removes all contacts.
-
-Example:
-
-* `followup 1 clear` removes contact 1's follow-up.
-
-
-### Viewing contacts with follow-ups: `followups`
-
-Displays contacts with pending follow-ups across the entire address book, replacing any previous search filter.
-
-**Formats:**
-
-Command | Behavior
---------|---------
-`followups` | Displays all contacts with a follow-up.
-
-`followups overdue` | Displays contacts with follow-ups due before today.
-
-`followups by/DUE_DATE` | Displays contacts with follow-ups due on or before the specified date.
-* Contacts without follow-ups are excluded.
-* Results retain address-book order and are numbered from 1. Use these displayed indexes for subsequent contact commands.
-* A follow-up due today is not overdue.
-* Today is determined using the computer's local date when the command executes. Rerun the command to refresh date-based results after the date changes.
-* Date cutoffs follow the same date constraints as `followup`. Past cutoffs are accepted.
-* Query modes cannot be combined. Index arguments are not supported.
-* Queries do not modify contact details or undo/redo history.
-* If no contacts match, the list is empty and the application displays `No follow-ups found.`
-
-Examples:
-
-* `followups`
-* `followups overdue`
-* `followups by/2026-11-01`
-
-
-### Undoing a change: `undo`
-
-Reverses the most recent successful modifying command (`add`, `delete`, `edit`, `clear`, or `followup`).
-
-**Format:** `undo`
-
-* Each `undo` reverses one modifying command. You can undo repeatedly until you reach the start of the current session.
-* Undoing `followup` restores the contact's previous follow-up. If none existed, the newly added follow-up is removed. Undoing `followup INDEX clear` restores the cleared follow-up.
-* Successful undo displays `Undo success!` and resets the view to show all contacts.
-* If no changes can be undone, the application displays `No more commands to undo!`.
-* Commands such as `find`, `list`, `help`, and the `followups` query do not create undoable changes.
-* Undo history is cleared when you close the application. Changes from previous sessions cannot be undone.
-* Additional arguments, such as `undo 2`, are rejected.
-
-Example:
-
-1. `delete 1` deletes the first displayed contact.
-2. `undo` restores the deleted contact and displays all contacts.
-
-Follow-up example:
-
-1. `followup 1 by/2026-11-01 abt/Confirm quotation` sets or replaces the first displayed contact's follow-up.
-2. `undo` restores that contact's previous follow-up, or removes the new follow-up if none existed before.
-
-### Redoing a change: `redo`
-
-Reapplies the most recently undone modifying command.
-
-**Format:** `redo`
-
-* Each `redo` reapplies one undone change. You can redo repeatedly while undone changes remain.
-* Successful redo displays `Redo success!` and resets the view to show all contacts.
-* If no changes can be redone, the application displays `No more commands to redo!`.
-* A new successful modifying command after undo discards the remaining redo history.
-* Failed validation and commands such as `find`, `list`, and `help` preserve redo history.
-* Redo history is cleared when you close the application.
-* Additional arguments, such as `redo 2`, are rejected.
-
-Example:
-
-1. `delete 1` deletes the first displayed contact.
-2. `undo` restores the contact.
-3. `redo` deletes that contact again.
-
-Undo and redo automatically save the resulting contact data. If saving fails,
-the application reports an error, but the change remains in the running application.
-
-
-### Exiting the program: `exit`
-
-Exits the program after displaying a closing message for a short time.
-
-**Format:** `exit`
-
-Any extra text after `exit` is ignored. The closing message explains this, and the application exits without asking for confirmation.
-
-For example, `exit -f` exits in the same way as `exit`.
-
-
-
-### Locating contacts: `find`
-
-Finds contacts matching one or more name, role, or tag criteria. All searches are case-insensitive and support partial matching (substring matching).
-
-Case-insensitive matching recognises Unicode case equivalents: `σ` and `ς` match each other.
-Accents are preserved: `JOSÉ` matches `José`, but `Jose` does not match `José`.
-These comparison rules apply to both search formats below.
-
-Use the same [slash-escaping rules](#slash-escaping) in search values:
-`find n/David s\/o John` searches for the phrase `David s/o John`, and
-`find s\/o` searches names for `s/o` using the legacy format.
-
-
-#### Prefixed Search
-
-**Format:** `find [n/NAME_PHRASE]... [r/ROLE_PHRASE]... [t/TAG_PHRASE]...`
-
-* At least one `n/`, `r/`, or `t/` prefix must be provided.
-* `n/` specifies a name search phrase.
-* `r/` specifies a role search phrase.
-* `t/` specifies a tag search phrase. Tags can contain spaces: `find t/good friend` matches a tag containing the phrase `good friend`.
-* Each value after a prefix is treated as a continuous search phrase until the next prefix or the end of the command.
-* Each phrase is trimmed and repeated ordinary spaces are collapsed using the same [spacing rules](#text-field-rules) as stored names, roles and tags. For example, `find r/Regional   Supplier` and `find r/Regional Supplier` return the same results.
-* **Search Logic:**
-    * **Same prefix → `OR` logic**: A contact matches if it satisfies *at least one* of the values given for that prefix type (e.g. `n/alice n/bob` returns contacts whose name contains "alice" *or* "bob", case-insensitively).
-    * **Different prefixes → `AND` logic**: Results are then narrowed so that a contact must satisfy *all* prefix types specified (e.g. `n/alice r/manager` returns contacts whose name contains "alice" *and* whose role contains "manager", case-insensitively).
-    * In short: **OR within a prefix, AND across prefixes.**
-
-Examples:
-* `find n/alex` matches contacts whose names contain `alex`, such as
-  `Alex Yeoh`, `alexander`, and `Alexis Tan`.
-* `find n/John Doe` matches contacts whose names contain the phrase
-  `John Doe`, such as `John Doe` and `John Doeder`.
-* `find r/distrib` matches contacts whose roles contain `distrib`, such as
-  `Distributor` and `Regional Distributor`.
-* `find t/frie` matches contacts with at least one tag containing `frie`,
-  such as `friend` or `Friendly`.
-* `find r/supp r/distrib` matches contacts whose roles contain either
-  `supp` or `distrib`.
-* `find t/friend t/family` matches contacts with at least one tag containing
-  either `friend` or `family`.
-* `find n/ali r/emp` matches contacts whose names contain `ali` and whose
-  roles contain `emp`, such as a contact named `Alice` with role `Employee`.
-* `find n/John n/ali r/supp` matches contacts whose names contain either
-  `John` or `ali`, and whose roles contain `supp`.
-
-#### Legacy Search
-Searches contacts by name using space-separated keywords without prefixes.
-
-**Format:** `find NAME_KEYWORD [NAME_KEYWORD]...`
-
-* Searches contacts by **name only**.
-* Space-separated words are treated as individual name keywords.
-* **Search Logic**: Keywords use `OR` logic. A contact is returned if its name contains *at least one* of the specified keywords.
-* **Partial & Case-Insensitive Matching**: Matches if the keyword appears anywhere within a name, regardless of upper or lower case (e.g., `han` matches `Hans Bo` and `Johan Meyer`).
-* Keyword order does not matter (e.g., `find Bo Hans` can match a contact named `Hans Bo`).
-* Adding more keywords broadens the search results; it does not narrow them.
-* **Cannot Mix with Prefixes**: Legacy unprefixed keywords cannot be combined with prefixed search values (e.g., `find Alice n/Bob` or `find Alice r/Employee` is rejected).
-
-Examples:
-* `find John` matches `john` and `John Doe` *(case-insensitive)*.
-* `find han` matches `Hans Bo` and `Johan Meyer` *(partial substring match)*.
-* `find alex david` matches `Alex Yeoh` and `David Li` *(OR logic: matches either keyword)*.<br>
-  ![result for 'find alex david'](images/UGLegacySearch.png)
-* `find Alice n/Bob` or `find Alice r/Employee` is invalid because legacy keywords and prefixed values cannot be mixed.
-
-
-
-### Sorting all contacts: `sort`
-
-Displays all contacts sorted by name, role, or both, making it easier to browse contacts in preferred order.
-
-**Format:** `sort [n/] [r/]` or `sort [r/] [n/]`
-
-| Command | Behaviour |
-|---|---|
-| `sort` | Sort by name. |
-| `sort n/` | Sort by name. |
-| `sort r/` | Sort by role. |
-| `sort n/ r/` | Sort by name, then role for contacts with matching names. |
-| `sort r/ n/` | Sort by role, then name for contacts with matching roles. |
-
-* Sorting is ascending and case-insensitive. For example, `alice` and
-  `Alice` are treated as equal when comparing names.
-* When both fields are supplied, their order matters: the first field
-  takes priority, and the second breaks ties.
-* Each field may appear only once and takes no value. Use lowercase
-  prefixes `n/` and `r/`, separated by whitespace.
-* Sorting clears any active search filter and displays **all contacts**,
-  not just the current search results.
-* Running another sort command replaces the previous sorting criteria.
-
-**Using the sorted list**
-
-* Contact indices follow the displayed order. After sorting, check the displayed index before using `edit`, `delete`, or other index-based commands.
-* `find`, `list` and `followups` retain the selected sort order.
-* Adding, editing, or deleting contacts automatically updates the displayed order. Editing a contact's name or role may change its displayed index.
-* Sorting changes only the displayed order. It does not modify contact details or the order saved to the data file.
-* Running another `sort` command replaces the current ordering.
-* Sorting is not an undoable contact-data change. Use `sort clear` to restore the original insertion order.
-* Sorting is reset when the application restarts.
-
-If the address book is empty, the selected sort order is still applied and will affect contacts added later. The application displays:
+Basic use, assuming contact 1 is displayed:
 
 ```text
-No contacts are currently available. The selected sort order will apply to contacts added later.
+followup 1 by/2026-11-01 abt/Confirm PCB quotation
 ```
 
-Example:
+Result: Sets or replaces the first displayed contact's follow-up with the specified date and description.
+
+Setting a follow-up for a supplier (enter each command separately, and continue only if the search returns a contact):
 
 ```text
-sort r/ n/
+find r/Supplier
+followup 1 by/2026-11-02 abt/Confirm delivery availability
 ```
 
-This displays contacts by role first, then by name for contacts with the same role.
+Result: Sets the follow-up for the first displayed supplier. Other contact details are preserved.
 
-To restore the original insertion order:
+<a id="removing-a-follow-up"></a>
+
+Removing a follow-up, assuming the currently displayed contact 1 already has one:
 
 ```text
-sort clear
+followup 1 clear
 ```
 
-The application displays:
+Result: Removes that contact's follow-up while keeping the contact.
+
+**Common mistakes and recovery**
+
+Problem | What to do
+--------|-----------
+Only a new date or description is supplied | Supply both `by/` and `abt/`; the follow-up is replaced as a whole.
+A date is invalid or has the wrong format | Use a real calendar date in `YYYY-MM-DD` format, such as `2026-11-01`.
+`followup 1 clear by/2026-11-01` mixes removal with setting fields | Use either the setting format or `followup INDEX clear`.
+The contact has no follow-up to clear | Select it to check its details; there is no pending follow-up to remove.
+Confusing `followup INDEX clear` with `clear` | The first removes one follow-up. The standalone `clear` command deletes all contacts.
+
+#### Deleting a contact: `delete`
+
+Deletes one contact from the currently displayed list.
+
+**Format:** `delete INDEX`
+
+**Parameters**
+
+* Supply exactly one `INDEX`: a positive number identifying a contact in the [currently displayed list](#command-conventions).
+* After a search, follow-up query, or sort, use the numbers shown in that view.
+
+**Behaviour**
+
+* **Deletes the contact immediately, without asking for confirmation. Check the displayed index before executing the command.**
+* Removes the contact and its follow-up, if present. The change is saved automatically.
+* Keeps the current filter and sort order. Remaining contacts are renumbered.
+* If the deleted contact was selected, the details panel returns to its selection prompt without selecting a neighbour.
+* Supports [undo](#undoing-a-change-undo) and [redo](#redoing-a-change-redo) during the current session.
+
+**Examples**
+
+Basic use, assuming contact 1 is displayed:
 
 ```text
-Sorting cleared. Contacts will be displayed in insertion order.
+delete 1
 ```
 
+Result: Deletes the first displayed contact and renumbers the remaining contacts.
 
-### Viewing help: `help [COMMAND]`
+Deleting a supplier from search results (enter each command separately, and check the first result before deleting):
 
-Use `help` on its own to open the full help window, which lists all commands. Use `help COMMAND` to display a command's usage directly in the result display without opening the window. Targeted help is available for `add`, `clear`, `delete`, `edit`, `exit`, `find`, `followup`, `followups`, `help`, `list`, `redo`, `select`, `sort`, and `undo`. For detailed explanations and examples, refer to this user guide.
+```text
+find r/Supplier
+delete 1
+```
 
-![Help window showing commands for managing contacts](images/UGHelpWindowPt1.png)
+Result: Deletes the first matching contact. The supplier filter remains active. Continue with `delete` only if the search returned a contact.
 
-![Help window showing browsing commands, including SELECT](images/UGHelpWindowPt2.png)
+**Common mistakes and recovery**
 
-![Help window scrolled down to follow-up queries, undo and redo, and application commands](images/UGHelpWindowPt3.png)
+Problem | What to do
+--------|-----------
+`delete`, `delete 0`, or a non-numeric index | Supply one positive whole number from the displayed list.
+`delete 1 2` | Delete one contact per command; extra indexes are rejected.
+The index refers to a previous view | Check the current displayed numbers after filtering, sorting, or another deletion.
+No contacts are displayed | The feedback is `No contacts are currently displayed.` Use `list` to show all contacts before choosing an index.
+The wrong contact was deleted | Use `undo` before closing the application. If later changes were made, each `undo` reverses the latest change first.
 
-**Format:** `help [COMMAND]`
+<a id="clearing-all-entries-clear"></a>
 
-The full help window groups commands into four categories:
+#### Clearing all contacts: `clear`
 
-| Category | Purpose | Commands |
-| --- | --- | --- |
-| Manage contacts | Add, update, or remove contact data, including follow-ups. | `add`, `edit`, `delete`, `clear`, `followup` |
-| Browse contacts | View, select, filter, or sort contacts without changing their data. | `list`, `find`, `sort`, `select`, `followups` |
-| Undo and redo | Reverse or restore contact changes. | `undo`, `redo` |
-| Application | View help or exit the application. | `help`, `exit` |
+Deletes every contact in KeyBossWarriorsPro.
 
-Help text follows the same format in the full help window and the result display:
+**Format:** `clear`
 
-* Commands without parameters (`clear`, `exit`, `list`, `redo`, and `undo`) show only a brief description, with no parameter or example details.
-* Commands with required or optional parameters show a description, parameter syntax, and examples. This includes `help`, `sort`, and `followups`, which can also be used without arguments.
+**Behaviour**
 
-Examples:
+* **Deletes all contacts immediately, including contacts hidden by a search or follow-up filter. No confirmation is requested.**
+* Removes the contacts' follow-ups as well and saves the change automatically.
+* The list becomes empty and the details panel returns to its selection prompt.
+* A successful clear can be reversed with [undo](#undoing-a-change-undo) during the current session. Undo history is lost when the application closes.
+* If the contact book is already empty, displays `KeyBossWarriorsPro is already empty; no contacts were cleared.` and records no new change.
 
-* `help` opens the full help window.
-* `help add` displays the usage, parameters, and an example for `add` in the result display.
-* `help select` displays the usage, parameters, and an example for selecting a displayed contact.
-* `help undo` displays a brief description of `undo`, without parameters or an example.
-* `help unknown` displays guidance and lists the commands with targeted help.
+**Examples**
 
+```text
+clear
+```
 
-### Listing all contacts: `list`
+Result: Removes all contacts. Use this command only when you intend to empty the entire contact book.
+
+**Common mistakes and recovery**
+
+* `clear 1` still clears **all contacts**; the extra text is ignored. When contacts are cleared, a warning explains that the arguments were ignored.
+  Use `delete 1` to delete only the first displayed contact.
+* To recover from an accidental clear, use `undo` before closing the application. Changes from previous sessions cannot be undone.
+
+### Browse contacts
+
+#### Listing all contacts: `list`
 
 Displays all contacts in KeyBossWarriorsPro.
 
@@ -609,43 +436,459 @@ all contacts again, retaining the current sort order.
 use `select 3` if that index exists in the displayed list. Other extra text, such as `list abc xyz`, is also ignored with a warning.
 Whitespace-only arguments are treated as empty input and do not produce this warning.
 
-### Saving the data
+#### Locating contacts: `find`
 
-KeyBossWarriorsPro automatically saves data after every command. You do not need to save manually.
+Finds contacts by name, role, or tag using partial matches, ignoring letter case.
 
-Data saves are performed atomically. The application writes updates to a temporary file before replacing the saved data file. This prevents file corruption if the application closes unexpectedly or experiences a disk error during a save. If saving fails, the application leaves your existing data file untouched and displays an error message explaining the failure.
+**Format**
 
-### Editing the data file
+Search mode | Command
+------------|--------
+Prefixed search | `find [n/NAME_PHRASE]… [r/ROLE_PHRASE]… [t/TAG_PHRASE]…`
+Simple name search | `find NAME_KEYWORD [NAME_KEYWORD]…`
 
-KeyBossWarriorsPro data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
+**At least one search criterion is required.** Choose one search mode per command.
 
-<div markdown="block" class="alert alert-warning">
+**Parameters**
 
-:exclamation: **Caution:**<br>
+<a id="prefixed-search"></a>
 
-Saved contacts must satisfy the current [input rules](#contact-input-rules). Older files may contain values that
-are now invalid, such as phones exceeding 20 digits, email domain labels exceeding 63 characters, or addresses
-with internal tabs. If any contact is invalid, the entire contact book fails to load; other valid contacts
-are not loaded separately. The same recovery process applies to invalid manual edits:
+* **Prefixed search:** Use `n/` for names, `r/` for roles, and `t/` for tags. Each prefix needs a non-blank value and can be repeated.
+* Each prefixed value is one continuous phrase up to the next prefix or the end of the command. A phrase may contain spaces;
+  for example, `find t/good friend` searches for that phrase within a tag.
+* Prefixed phrases are trimmed and repeated ordinary spaces are collapsed using the shared [spacing rules](#text-field-rules).
+  For example, `find r/Regional   Supplier` and `find r/Regional Supplier` return the same results.
 
-* KeyBossWarriorsPro attempts to create a timestamped backup copy in the `data/` folder (for example, `addressbook.json.backup.20261012_123456`).
+<a id="legacy-search"></a>
 
-* A warning message appears in the result box on launch showing the backup file path, or explaining that backup creation failed.
+* **Simple name search:** Supply space-separated keywords without prefixes. This searches names only, and each word is a separate keyword.
+* Do not mix unprefixed keywords with prefixed values. Use the [slash-escaping rules](#slash-escaping) for prefix-like text inside either search mode.
 
-* KeyBossWarriorsPro starts with an empty contact book. A subsequent successful command can save that empty book, so close the application before attempting recovery.
+**Behaviour**
 
-* To restore your contacts, keep a separate copy of the backup, correct both JSON syntax errors and invalid field values, then save the corrected content as `addressbook.json` before relaunching. If backup creation failed, preserve a copy of the original file before editing it.
+* Searches the entire contact book and replaces any previous search or follow-up filter. The current sort order is retained.
+* Matches a phrase or keyword anywhere within its field. For example, `han` matches `Hans Bo` and `Johan Meyer`.
+* Matching ignores letter case and recognises Unicode case equivalents: `σ` and `ς` match each other.
+  Accents are preserved: `JOSÉ` matches `José`, but `Jose` does not match `José`.
+* **Prefixed search uses OR within a prefix and AND across different prefixes.** Repeating `r/` accepts any matching role phrase;
+  combining `n/` with `r/` requires both a matching name and a matching role.
+* **Simple name search uses OR between keywords.** Keyword order does not matter, and adding more keywords broadens the results.
+  For example, `find Bo Hans` can match `Hans Bo`.
+* Does not change contact details or undo/redo history. Use `list` to return to all contacts.
 
-Certain invalid values can also cause unexpected behavior. Edit the data file only if you are confident in editing JSON formatted files.
-</div>
+**Examples**
 
+Basic name search:
 
-### Archiving data files `[coming in v2.0]`
+```text
+find alex david
+```
 
-_Details coming soon ..._
+Result: Shows contacts whose names contain `alex` or `david`. With the original sample contacts, this finds Alex Yeoh and David Li.
+
+![Result for the simple name search find alex david](images/UGLegacySearch.png)
+
+Finding suppliers whose names contain a phrase:
+
+```text
+find n/John Doe r/Supplier
+```
+
+Result: Shows contacts whose names contain `John Doe` **and** whose roles contain `Supplier`.
+
+Other prefixed searches:
+
+Command | Expected result
+--------|----------------
+`find n/alex` | Names containing `alex`, such as `Alex Yeoh`, `alexander`, or `Alexis Tan`.
+`find n/John Doe` | Names containing the continuous phrase `John Doe`, such as `John Doe` or `John Doeder`.
+`find r/distrib` | Roles containing `distrib`, such as `Distributor` or `Regional Distributor`.
+`find t/frie` | A tag containing `frie`, such as `friend` or `Friendly`.
+`find r/supp r/distrib` | Roles containing either `supp` or `distrib`.
+`find t/friend t/family` | At least one tag containing either `friend` or `family`.
+`find n/ali r/emp` | A name containing `ali` and a role containing `emp`, such as Alice with the role Employee.
+`find n/John n/ali r/supp` | A name containing either `John` or `ali`, together with a role containing `supp`.
+
+**Common mistakes and recovery**
+
+Problem | What to do
+--------|-----------
+`find` has no criteria, or a prefix such as `n/` has no value | Supply at least one keyword or a non-blank value after each prefix.
+`find Alice r/Supplier` mixes the two modes | Use `find n/Alice r/Supplier`, or use simple name search without prefixes.
+Expecting `find John Doe` to require both words | Simple name search matches either keyword. Use `find n/John Doe` to search for the continuous phrase.
+A search value contains prefix-like text such as `s/o` | Escape the slash: `find n/David s\/o John` searches for the phrase `David s/o John`, while `find s\/o` searches names for `s/o`.
+No contacts match | Change or broaden the criteria, or use `list` to show all contacts. A new `find` searches the entire book again.
+
+#### Sorting all contacts: `sort`
+
+Displays all contacts sorted by name, role, or both, or restores their insertion order.
+
+**Format**
+
+Command | Purpose
+--------|--------
+`sort` | Sorts by name.
+`sort n/` | Sorts by name.
+`sort r/` | Sorts by role.
+`sort n/ r/` | Sorts by name, then role for contacts with matching names.
+`sort r/ n/` | Sorts by role, then name for contacts with matching roles.
+`sort clear` | Restores insertion order.
+
+**Parameters**
+
+* Use the lowercase prefixes `n/` and `r/`, separated by whitespace. Each may appear only once and takes no value.
+* When both are supplied, the first field takes priority and the second breaks ties.
+* `sort` without arguments defaults to name order. `clear` cannot be combined with fields or other arguments.
+
+**Behaviour**
+
+* Sorting is ascending and case-insensitive. For example, `alice` and `Alice` are treated as equal when comparing names.
+* Every sort command, including `sort clear`, removes any active search or follow-up filter and displays **all contacts**.
+* Contact indexes follow the displayed order. Check them again before using an index-based command.
+* `find`, `list`, and `followups` retain the selected sort order. Adding, editing, or deleting contacts updates the displayed order automatically.
+  Editing a name or role may move that contact to a different index.
+* A new sort command replaces the previous sorting criteria. `sort clear` restores insertion order.
+* Sorting changes only the displayed order, not contact details, saved insertion order, or undo/redo history.
+  Use `sort clear`, rather than `undo`, to remove sorting. Sorting is reset when the application restarts.
+* If the book is empty, the selected sorting still applies to contacts added later. The feedback is
+  `No contacts are currently available. The selected sort order will apply to contacts added later.`
+
+**Examples**
+
+Basic use:
+
+```text
+sort
+```
+
+Result: Displays all contacts in name order.
+
+Browsing by role and then name:
+
+```text
+sort r/ n/
+```
+
+Result: Groups contacts in ascending role order, then orders contacts with matching roles by name.
+
+Restoring insertion order:
+
+```text
+sort clear
+```
+
+Result: Displays all contacts in insertion order and reports `Sorting cleared. Contacts will be displayed in insertion order.`
+
+**Common mistakes and recovery**
+
+Problem | What to do
+--------|-----------
+`sort n/Alice` supplies a value | Use `sort n/`. Sorting accepts field prefixes without values.
+`sort n/ n/` repeats a field | Supply each field at most once.
+`sort clear r/` combines incompatible modes | Use either `sort clear` or a field-based sort.
+Expecting sorting to apply only to search results | Sort first, then run `find` or `followups` again. Those queries retain the selected sorting.
+
+<a id="selecting-a-contact-select-index"></a>
+
+#### Selecting a contact: `select`
+
+Selects a contact from the currently displayed list and shows its full details in the panel on the right.
+
+**Format:** `select INDEX`
+
+**Parameters**
+
+* Supply exactly one `INDEX`: a positive whole number from the [currently displayed list](#command-conventions).
+* After `find`, `followups`, or `sort`, use the numbers shown in that view. An index from an earlier view may refer to a different contact.
+
+**Behaviour**
+
+* Highlights the contact, scrolls its card into view, and displays its details. Keyboard focus stays in command input.
+* Selecting the same contact again brings its card back into view while keeping the details panel's scroll position.
+* Does not change contacts, filters, sorting, or undo/redo history, and preserves available redo history.
+* Selection is cleared on restart and after successful `undo` or `redo` commands.
+* Invalid input or an empty displayed list leaves the current selection and details unchanged.
+* If an automatic save fails after a valid selection, the contact remains selected and the feedback shows the saving error.
+  Selection itself does not alter contact data.
+
+**Examples**
+
+Basic use, assuming at least one contact is displayed:
+
+```text
+select 1
+```
+
+Result: Shows the first displayed contact's full details without changing the current filter or sorting.
+
+Selecting from a search (enter each command separately, and continue only if the search returns a contact):
+
+```text
+find r/Supplier
+select 1
+```
+
+Result: Shows the first displayed supplier's details while keeping the supplier filter active.
+
+Selecting from a sorted list, assuming the contact book is not empty:
+
+```text
+sort n/
+select 1
+```
+
+Result: Shows the first contact in name order.
+
+**Common mistakes and recovery**
+
+Input or condition | Feedback and recovery
+-------------------|----------------------
+`select` | `INDEX is required.` Supply a displayed index.
+`select 0`, `select -1`, `select abc`, or an integer larger than 2147483647 | `INDEX must be a whole number between 1 and 2147483647.` Choose a positive whole number from the displayed list.
+`select 1 2` | `select accepts only one INDEX.` Select one contact at a time.
+No contacts are displayed | `No contacts are currently displayed.` Use `list` to show all contacts before selecting.
+`select 4` when three contacts are displayed | `INDEX 4 is outside the displayed contact list (valid range: 1-3).` Choose one of the displayed numbers.
+
+When exactly one contact is displayed, an out-of-range error states that the only valid index is `1`.
+
+#### Viewing contacts with follow-ups: `followups`
+
+Displays contacts with pending follow-ups, optionally limited by their due dates.
+
+**Format**
+
+Command | Purpose
+--------|--------
+`followups` | Displays all contacts with a follow-up.
+`followups overdue` | Displays contacts with follow-ups due before today.
+`followups by/DUE_DATE` | Displays contacts with follow-ups due on or before the specified date.
+
+**Parameters**
+
+* Choose one query mode. `overdue` and `by/` cannot be combined, and contact indexes are not accepted.
+* `DUE_DATE` follows the same [date requirements as followup](#managing-a-contacts-follow-up-followup): a valid date in `YYYY-MM-DD` format,
+  with a year from `0000` to `9999`. Past cutoffs are accepted.
+
+**Behaviour**
+
+* Searches the entire contact book and replaces any previous search or follow-up filter. Contacts without follow-ups are excluded.
+* Retains the current sort order, or insertion order if no sorting is active. Results are numbered from 1;
+  use those displayed indexes for subsequent contact commands.
+* A follow-up due today is not overdue. `overdue` uses your computer's local date when the command executes.
+* Rerun the query after the date changes to refresh date-based results. The interface's automatic badge refresh does not rerun the query.
+* Does not change contact details or undo/redo history.
+* If no contacts match, displays an empty list and `No follow-ups found.`
+
+**Examples**
+
+Basic use:
+
+```text
+followups
+```
+
+Result: Displays every contact with a pending follow-up, in the current order.
+
+Checking overdue work:
+
+```text
+followups overdue
+```
+
+Result: Displays contacts with follow-ups due before today. If there is at least one result, use `select 1` to read the first contact's follow-up.
+
+Checking work due by a particular date:
+
+```text
+followups by/2026-11-01
+```
+
+Result: Displays contacts with follow-ups due on or before 1 November 2026, including any earlier dates.
+
+**Common mistakes and recovery**
+
+Problem | What to do
+--------|-----------
+`followups overdue by/2026-11-01` combines modes | Use `followups overdue` or `followups by/2026-11-01` separately.
+`followups 1` supplies an index | Use `followups` to query contacts, then `select 1` if that index exists in the results.
+Expecting a previous supplier search to remain active | A follow-up query replaces that filter and searches all contacts.
+No follow-ups are found | Check the cutoff or use `followups` without a date restriction. Use `list` to return to all contacts.
+
+### Undo and redo
+
+#### Undoing a change: `undo`
+
+Reverses the most recent successful modifying command: `add`, `edit`, `followup`, `delete`, or `clear`.
+
+**Format:** `undo`
+
+**Behaviour**
+
+* Reverses one change at a time. Repeat `undo` to move back through changes made during the current session.
+* Undoing `followup` restores the previous follow-up, or removes the newly added follow-up if none existed before.
+  Undoing `followup INDEX clear` restores the cleared follow-up.
+* A successful undo displays `Undo success!`, shows all contacts, and clears selection. The current sort order is retained.
+* Commands such as `find`, `list`, `sort`, `select`, `help`, and the `followups` query do not create undoable contact changes.
+* History is cleared when the application closes. Changes from previous sessions cannot be undone.
+* The resulting contact data is saved automatically. If saving fails, the undo remains applied in the running application,
+  but the saved file is unchanged.
+
+**Examples**
+
+Recovering a deleted contact, assuming contact 1 is displayed (enter each command separately):
+
+```text
+delete 1
+undo
+```
+
+Result: Restores the deleted contact and displays all contacts, with no contact selected.
+
+Reversing a follow-up change, assuming contact 1 is displayed:
+
+```text
+followup 1 by/2026-11-01 abt/Confirm quotation
+undo
+```
+
+Result: Restores the contact's previous follow-up, or removes the new one if none existed before.
+
+**Common mistakes and recovery**
+
+Problem | What to do
+--------|-----------
+`No more commands to undo!` | There are no earlier changes available in this session. Closing and reopening the application clears history.
+`undo 2` supplies an argument | Use `undo` without arguments. To reverse two changes, execute it twice.
+Saving fails after undo | Resolve the saving problem reported in the feedback, then run `list` to retry saving the current contact data before closing.
+
+#### Redoing a change: `redo`
+
+Reapplies the most recently undone modifying command.
+
+**Format:** `redo`
+
+**Behaviour**
+
+* Reapplies one undone change at a time. Repeat `redo` while undone changes remain available.
+* A successful redo displays `Redo success!`, shows all contacts, and clears selection. The current sort order is retained.
+* A new successful modifying command after undo discards the remaining redo history.
+* Failed validation and commands such as `find`, `list`, `sort`, `select`, `help`, and the `followups` query preserve redo history.
+* History is cleared when the application closes.
+* The resulting contact data is saved automatically. If saving fails, the redo remains applied in the running application,
+  but the saved file is unchanged.
+
+**Examples**
+
+Reapplying a deletion, assuming contact 1 is displayed (enter each command separately):
+
+```text
+delete 1
+undo
+redo
+```
+
+Result: Deletes a contact, restores it, then deletes the same contact again. Successful undo and redo each display all contacts and clear selection.
+
+**Common mistakes and recovery**
+
+Problem | What to do
+--------|-----------
+`No more commands to redo!` | There is no available undone change. Redo history may have been exhausted, discarded by a new modifying command, or cleared when the application closed.
+`redo 2` supplies an argument | Use `redo` without arguments. Execute it once for each change to reapply.
+Saving fails after redo | Resolve the saving problem reported in the feedback, then run `list` to retry saving the current contact data before closing.
+
+### Application
+
+<a id="viewing-help-help-command"></a>
+
+#### Viewing help: `help`
+
+Opens the full Help window or displays usage instructions for one command in the result display.
+
+**Format:** `help [COMMAND]`
+
+**Parameters**
+
+* `COMMAND` is optional. Omit it to open the full Help window.
+* Supply one supported command name to show its usage: `add`, `edit`, `followup`, `delete`, `clear`, `list`, `find`, `sort`,
+  `select`, `followups`, `undo`, `redo`, `help`, or `exit`.
+
+**Behaviour**
+
+* `help` opens the full Help window. `help COMMAND` displays targeted help without opening that window.
+* Targeted help for commands without parameters (`clear`, `exit`, `list`, `redo`, and `undo`) contains a brief description.
+* Help for commands with required or optional parameters includes a description, syntax, and examples.
+  This includes `help`, `sort`, and `followups`, which also work without arguments.
+* An unsupported target displays guidance and a list of supported commands instead of opening the Help window.
+* Help does not change contact details, filters, sorting, selection, or undo/redo history.
+
+The full Help window uses these categories:
+
+Category | Purpose | Commands
+---------|---------|---------
+Manage contacts | Add, update, or remove contact data, including follow-ups. | `add`, `edit`, `delete`, `clear`, `followup`
+Browse contacts | View, select, filter, or sort contacts. | `list`, `find`, `sort`, `select`, `followups`
+Undo and redo | Reverse or restore contact changes. | `undo`, `redo`
+Application | View help or exit. | `help`, `exit`
+
+**Examples**
+
+Basic use:
+
+```text
+help
+```
+
+Result: Opens the full Help window.
+
+Looking up a command:
+
+```text
+help add
+```
+
+Result: Displays the `add` command's usage, parameters, and an example in the result display.
+Similarly, `help select` explains how to select a displayed contact, while `help undo` shows only a brief description.
+
+![Help window showing commands for managing contacts](images/UGHelpWindowPt1.png)
+
+![Help window showing browsing commands, including SELECT](images/UGHelpWindowPt2.png)
+
+![Help window scrolled down to follow-up queries, undo and redo, and application commands](images/UGHelpWindowPt3.png)
+
+**Common mistakes and recovery**
+
+Problem | What to do
+--------|-----------
+`help unknown` or `help 123` uses an unsupported target | Read the supported command names in the feedback, or use `help` to open the full window.
+`help add edit` supplies multiple targets | Request help for one command at a time.
+The Help window remains minimised | Restore it manually. See [Known issues](#known-issues).
+
+#### Exiting the program: `exit`
+
+Closes KeyBossWarriorsPro.
+
+**Format:** `exit`
+
+**Behaviour**
+
+* Displays a closing message briefly, then exits without asking for confirmation.
+* Closing the application clears undo and redo history. Changes cannot be undone across sessions.
+
+**Examples**
+
+```text
+exit
+```
+
+Result: Displays the closing message and closes the application.
+
+**Common mistakes and recovery**
+
+Extra text after `exit` is ignored. For example, `exit -f` exits in the same way as `exit`; the closing message explains
+that the extra text was ignored.
 
 --------------------------------------------------------------------------------------------------------------------
-
 
 ## Input rules
 
@@ -759,6 +1002,45 @@ add n/David s\/o John p/91234567 e/david@example.com a/123 Street c\/o John r/Su
 ```
 
 Result: Stores the name `David s/o John`, address `123 Street c/o John`, and tag `parts xx/custom`.
+
+--------------------------------------------------------------------------------------------------------------------
+
+## Saving, transferring, and recovering data
+
+### Saving the data
+
+KeyBossWarriorsPro automatically saves data after every command. You do not need to save manually.
+
+Data saves are performed atomically. The application writes updates to a temporary file before replacing the saved data file. This prevents file corruption if the application closes unexpectedly or experiences a disk error during a save. If saving fails, the application leaves your existing data file untouched and displays an error message explaining the failure.
+
+### Editing the data file
+
+KeyBossWarriorsPro data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
+
+<div markdown="block" class="alert alert-warning">
+
+:exclamation: **Caution:**<br>
+
+Saved contacts must satisfy the current [input rules](#contact-input-rules). Older files may contain values that
+are now invalid, such as phones exceeding 20 digits, email domain labels exceeding 63 characters, or addresses
+with internal tabs. If any contact is invalid, the entire contact book fails to load; other valid contacts
+are not loaded separately. The same recovery process applies to invalid manual edits:
+
+* KeyBossWarriorsPro attempts to create a timestamped backup copy in the `data/` folder (for example, `addressbook.json.backup.20261012_123456`).
+
+* A warning message appears in the result box on launch showing the backup file path, or explaining that backup creation failed.
+
+* KeyBossWarriorsPro starts with an empty contact book. A subsequent successful command can save that empty book, so close the application before attempting recovery.
+
+* To restore your contacts, keep a separate copy of the backup, correct both JSON syntax errors and invalid field values, then save the corrected content as `addressbook.json` before relaunching. If backup creation failed, preserve a copy of the original file before editing it.
+
+Certain invalid values can also cause unexpected behavior. Edit the data file only if you are confident in editing JSON formatted files.
+</div>
+
+
+### Archiving data files `[coming in v2.0]`
+
+_Details coming soon ..._
 
 --------------------------------------------------------------------------------------------------------------------
 
