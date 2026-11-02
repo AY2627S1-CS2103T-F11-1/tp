@@ -1414,6 +1414,72 @@ The roles and phone numbers distinguish the two Alice contacts. Perform each gro
       Expected: Contacts return to their original insertion order: Zoe, ben, Alice, alice.
       Feedback: `Sorting cleared. Contacts will be displayed in insertion order.`
 
+### Adding contacts with `add`
+
+Start a fresh application session using a disposable copy in a separate folder.
+Run `clear` to remove all contacts, then enter these commands in order.
+Where a row contains several commands, enter them separately.
+Each rejected request must leave the displayed list and stored contact data unchanged.
+
+| Command | Expected result |
+|---------|-----------------|
+| `add n/John Doe p/98765432 e/johnd@example.com a/311, Clementi Ave 2, #02-25 r/Supplier t/friends t/owesMoney` | Adds John Doe with role `Supplier` and tags `[friends][owesMoney]`. Feedback starts with `New person added: John Doe;`. |
+| `add n/David s\/o Muthu p/81001234 e/david@example.com a/Blk 456 Jurong r/R\/D Partner t/lubed\/filmed switches` | Decodes `\/` once. Adds David with name `David s/o Muthu`, role `R/D Partner`, and tag `[lubed/filmed switches]`. |
+| `add n/Jane Doe p/98765432 e/jane@example.com a/Test Address r/Employee` | Duplicate phone error: `This phone number already belongs to an existing contact.` |
+| `add n/Johnny Doe p/81009999 e/johnd@example.com a/Test Address r/Employee` | Duplicate email error: `This email address already belongs to an existing contact.` |
+| `add n/Jack Doe p/98765432 e/johnd@example.com a/Test Address r/Employee` | Duplicate phone and email error: `This phone number and email address are already used by existing contacts.` |
+| `add n/No Role p/81005555 e/norole@example.com a/Test Address` | Missing parameter error: `Missing mandatory parameter(s): r/.` |
+| `add n/David s/o Muthu p/81008888 e/david.unescaped@example.com a/Test Address r/Supplier` | Unescaped slash is recognized as an unknown prefix: `Unrecognized prefix(es) provided: s/.` |
+| `add n/Bad Phone p/12 e/badphone@example.com a/Test Address r/Supplier` | Phone number constraint error: `Phone numbers should only contain digits, and should be at least 3 digits long.` |
+
+### Undoing and redoing commands with `undo` and `redo`
+
+Use a disposable application copy in a separate folder.
+Run `clear` to remove all contacts, then add one baseline contact:
+
+```text
+add n/Alice p/81000001 e/alice@undo.example.com a/Test Address r/Employee
+```
+
+Run the commands below in order. Where a row contains several commands, enter them separately.
+
+| Command | Expected result |
+|---------|-----------------|
+| `delete 1` | Alice is deleted; the contact list becomes empty. |
+| `undo` | `Undo success!` Alice is restored at index 1. |
+| `redo` | `Redo success!` Alice is deleted again. |
+| `undo` | `Undo success!` Alice is restored at index 1. |
+| `add n/Bob p/81000002 e/bob@undo.example.com a/Test Address r/Supplier` | Bob is added at index 2. |
+| `followup 2 by/2026-12-01 abt/Inventory check` | Bob's follow-up is set. The Follow-up badge appears on Bob's card. |
+| `undo` | `Undo success!` Bob's follow-up is removed; Alice and Bob remain. |
+| `undo` | `Undo success!` Bob is removed; only Alice remains. |
+| `redo` | `Redo success!` Bob is restored at index 2. |
+| `redo` | `Redo success!` Bob's follow-up is restored. |
+| `undo` | `Undo success!` Bob's follow-up is removed again. |
+| `add n/Charlie p/81000003 e/charlie@undo.example.com a/Test Address r/Service Provider` | Charlie is added. This modifying command purges the redo branch. |
+| `redo` | `No more commands to redo!` Redo history was cleared when Charlie was added. |
+| `find Alice`, `list`, then `help` | Filter shows Alice, list restores all contacts, help window opens. These non-modifying commands do not change undo history. |
+| `undo` | `Undo success!` Charlie is removed; Alice and Bob remain. |
+| `undo` | `Undo success!` Bob is removed; only Alice remains. |
+| `undo` | `Undo success!` Alice is removed; the list becomes empty (reversing baseline setup). |
+| `undo` | `No more commands to undo!` |
+| `undo 2`, then `redo 2` | Each is rejected with invalid command format; history and contacts remain unchanged. |
+
+### Viewing contextual help with `help`
+
+Start with the application open. Commands can be run in any order.
+
+| Command | Expected result |
+|---------|-----------------|
+| `help add` | Result display shows `add` command description, parameters, and example. No popup window opens. |
+| `help followup` | Result display shows `followup` command description, parameters, and example. No popup window opens. |
+| `help select` | Result display shows `select` command description, parameters, and example. No popup window opens. |
+| `help sort` | Result display shows `sort` command description, parameters, and example. No popup window opens. |
+| `help exit` | Result display shows `exit` command description without parameters. No popup window opens. |
+| `help` | The full Help window opens, displaying all commands grouped by category (`Manage contacts`, `Browse contacts`, `Undo and redo`, `Application`). Result display shows `Opened help window.`. |
+| `help unknowncommand` | Result display shows `No command-specific help is available for 'unknowncommand'.` and lists supported commands. No window opens. |
+| `help add extra` | Syntax error: `Specify only one command after help.`. No window opens. |
+
 ### Saving data
 
 1. Dealing with missing/corrupted data files
