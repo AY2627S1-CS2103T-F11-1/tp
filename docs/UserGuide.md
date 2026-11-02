@@ -5,7 +5,11 @@ title: User Guide
 
 ## Introduction
 
-KeyBossWarriorsPro is a specialized **desktop application for managing contacts and vendor pipelines, optimized for Artisan Mechanical Keyboard Shop Managers through a Command Line Interface (CLI)** while retaining the benefits of a Graphical User Interface (GUI). If you type quickly, KeyBossWarriorsPro can help you manage your keyboard shop associates, hardware suppliers, and fabrication partners faster than traditional GUI applications.
+KeyBossWarriorsPro is a desktop contact manager for artisan mechanical keyboard shop managers.
+Use typed commands to manage suppliers, distributors, employees, and other shop contacts, organise them by role and tags,
+and track pending follow-ups. The graphical interface displays your contact list and each contact's full details.
+
+**Guide version:** 0.5.1. Use the guide that matches your application version when working with a different release.
 
 * Table of Contents
 {:toc}
@@ -14,33 +18,44 @@ KeyBossWarriorsPro is a specialized **desktop application for managing contacts 
 
 ## Quick start
 
-1. Ensure that Java `25` or later is installed on your computer.<br>
-   **Mac users:** Ensure you have the precise JDK version prescribed [here](https://se-education.org/guides/tutorials/javaInstallationMac.html).
+1. Install a Java Development Kit (JDK) version **25 or later**. In a terminal, run `java -version` to check the installed version.
 
-1. Download the latest `.jar` file from [here](https://github.com/AY2627S1-CS2103T-F11-1/tp/releases).
+2. Download the application JAR from the [GitHub releases page](https://github.com/AY2627S1-CS2103T-F11-1/tp/releases).
+   The examples below use the filename `keybosswarriorspro.jar`; substitute the downloaded filename if it differs.
 
-1. Copy the file to the folder you want to use as the _home folder_ for your KeyBossWarriorsPro.
+3. Put the JAR in a folder where you have permission to save files. This will be your application folder.
 
-1. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar keybosswarriorspro.jar`.<br>
-   A GUI similar to the one below should appear in a few seconds. Note how the app contains some sample data.<br>
-   ![Ui](images/UGQuickStartUI.png)
+4. Open a terminal, use `cd` to enter that folder, and launch the application:
 
-1. Type a command in the command box and press Enter to execute it. For example, type **`help`** and press Enter to open the full help window, or type **`help add`** to see the `add` command's usage in the result display.<br>
-   Some example commands you can try:
+   ```text
+   java -jar keybosswarriorspro.jar
+   ```
 
-   * `list` : Lists all contacts.
+   Launch from this same folder each time so the application uses the same saved data.
+   When no saved contact file exists, the application starts with sample contacts.
 
-   * `select 1` : Shows the first displayed contact's full details in the right panel.
+   ![Application with the contact list and details panel](images/UGQuickStartUI.png)
 
-   * `add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01 r/Supplier` : Adds a contact named `John Doe` to KeyBossWarriorsPro.
+5. Enter commands in the command box, one at a time, and press **Enter**:
 
-   * `delete 3` : Deletes the 3rd contact shown in the current list.
+   Command | Expected result
+   --------|----------------
+   `list` | Displays all contacts.
+   `select 1` | Shows the first displayed contact's details, if there is at least one contact.
+   `find r/Supplier` | Displays contacts whose roles contain `Supplier`.
+   `list` | Returns to all contacts.
+   `help add` | Displays instructions for adding a contact.
 
-   * `clear` : Deletes all contacts.
+6. To try adding a contact, first check that its phone number and email address are not already in use:
 
-   * `exit` : Exits the app.
+   ```text
+   add n/John Doe p/98765432 e/johnd@example.com a/John street, block 123, #01-01 r/Supplier
+   ```
 
-1. Refer to the [Command reference](#command-reference) section below for details of each command.
+   Result: Adds John Doe as a supplier and saves the contact. After a successful addition, you can immediately use `undo` to reverse it.
+
+Refer to [Understanding the interface](#understanding-the-interface) for the controls and [Command reference](#command-reference)
+for complete instructions. When finished, use `exit` to close the application. Undo and redo history is cleared when it closes.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -862,7 +877,7 @@ Problem | What to do
 --------|-----------
 `help unknown` or `help 123` uses an unsupported target | Read the supported command names in the feedback, or use `help` to open the full window.
 `help add edit` supplies multiple targets | Request help for one command at a time.
-The Help window remains minimised | Restore it manually. See [Known issues](#known-issues).
+The Help window remains minimised | Restore it manually. See [Known issues and limitations](#known-issues-and-limitations).
 
 #### Exiting the program: `exit`
 
@@ -1009,57 +1024,166 @@ Result: Stores the name `David s/o John`, address `123 Street c/o John`, and tag
 
 ### Saving the data
 
-KeyBossWarriorsPro automatically saves data after every command. You do not need to save manually.
+KeyBossWarriorsPro attempts to save contact data after each successfully executed command, including browsing commands such as `list`.
+Commands rejected because of invalid input do not reach this saving step. You do not need a separate save command.
 
-Data saves are performed atomically. The application writes updates to a temporary file before replacing the saved data file. This prevents file corruption if the application closes unexpectedly or experiences a disk error during a save. If saving fails, the application leaves your existing data file untouched and displays an error message explaining the failure.
+The application writes updated data to a temporary file before replacing the saved file. This reduces the risk of incomplete writes;
+it does not replace keeping a separate backup of important contacts.
+
+If saving fails, read the command feedback and resolve the reported file or folder problem. The effect on the running application depends on the command:
+
+Command type | Result after a saving error | What to do
+-------------|-----------------------------|-----------
+`add`, `edit`, `delete`, `clear`, or `followup` | The contact-data change is rolled back. | Resolve the saving problem, check the displayed contacts and indexes again, then retry the intended change.
+`undo` or `redo` | The change remains applied in the running application but has not been saved successfully. | Resolve the saving problem, then run `list` to retry saving the current data before closing.
+Browsing or help, such as `list` or `select` | No contact-data change needs to be rolled back. | Resolve the saving problem and run `list` to retry saving. A valid selection remains selected after a saving error.
+
+### Locating your data
+
+The application uses these paths relative to the **folder from which you launch it**:
+
+File | Purpose
+-----|--------
+`data/addressbook.json` | Saved contacts, tags, roles, and follow-ups.
+`preferences.json` | Window size and position preferences.
+
+Following the Quick start makes this launch folder the folder containing the JAR. If you launch the JAR from another folder,
+the application looks for these files there instead. The data-file path is also shown in the application's status bar.
+
+### Backing up your contacts
+
+1. Ensure recent changes have saved successfully, then close the application.
+2. Copy `data/addressbook.json` to a separate backup location. Keep the original file in place for normal use.
+3. Before replacing a saved contact file, preserve a separate copy of both the existing file and the backup you plan to restore.
+
+Automatic timestamped backups are attempted when an existing data file cannot be loaded. They are recovery copies of that file,
+and may contain invalid data; they are not a history of every successful save.
+
+### Transferring contacts to another computer
+
+1. Ensure recent changes on the original computer have saved successfully, then close the application on both computers.
+2. Make a separate backup of the original computer's `data/addressbook.json`.
+3. Install the application on the destination computer. Use the same version for the transfer, and launch it from its intended application folder.
+   Close it before copying files.
+4. If the destination already has `data/addressbook.json`, back it up before replacing it.
+5. Copy the original contact file into the destination folder's `data/` subfolder as `addressbook.json`.
+   Create the `data/` subfolder if needed.
+6. Relaunch from that destination application folder and check that your contacts and follow-ups are present.
+
+This replaces the destination contact book; it does not merge two books. Window preferences and undo/redo history are not part of the contact file.
+
+### Recovering data that fails to load
+
+If any saved contact is invalid, the entire contact book fails to load; valid contacts are not loaded separately.
+The application attempts to create a timestamped backup in the same `data/` folder, such as
+`addressbook.json.backup.20261012_123456`, and starts with an empty book. The launch warning gives the backup path or explains that backup creation failed.
+
+**Stop entering commands if the application reports invalid saved data. A successful command, including `list` or `exit`, can save the empty book.**
+
+1. Close the application using the window's close button, without entering further commands.
+2. Preserve a separate copy of the backup named in the warning. If backup creation failed, copy the original `addressbook.json` before editing anything.
+3. Work on a copy. Correct both JSON syntax and values that violate the [input rules](#contact-input-rules), or use a known-good backup.
+   Examples of invalid older values include phone numbers exceeding 20 digits, email domain labels exceeding 63 characters, and addresses with internal tabs.
+4. Place the corrected or known-good content in `data/addressbook.json` in the intended launch folder.
+5. Relaunch from that folder and check the contacts and follow-ups. Keep the recovery copies until you have confirmed the result.
 
 ### Editing the data file
 
-KeyBossWarriorsPro data is saved automatically as a JSON file `[JAR file location]/data/addressbook.json`. Advanced users are welcome to update data directly by editing that data file.
+Manual editing is intended for users familiar with JSON. Use application commands for routine contact changes.
 
-<div markdown="block" class="alert alert-warning">
-
-:exclamation: **Caution:**<br>
-
-Saved contacts must satisfy the current [input rules](#contact-input-rules). Older files may contain values that
-are now invalid, such as phones exceeding 20 digits, email domain labels exceeding 63 characters, or addresses
-with internal tabs. If any contact is invalid, the entire contact book fails to load; other valid contacts
-are not loaded separately. The same recovery process applies to invalid manual edits:
-
-* KeyBossWarriorsPro attempts to create a timestamped backup copy in the `data/` folder (for example, `addressbook.json.backup.20261012_123456`).
-
-* A warning message appears in the result box on launch showing the backup file path, or explaining that backup creation failed.
-
-* KeyBossWarriorsPro starts with an empty contact book. A subsequent successful command can save that empty book, so close the application before attempting recovery.
-
-* To restore your contacts, keep a separate copy of the backup, correct both JSON syntax errors and invalid field values, then save the corrected content as `addressbook.json` before relaunching. If backup creation failed, preserve a copy of the original file before editing it.
-
-Certain invalid values can also cause unexpected behavior. Edit the data file only if you are confident in editing JSON formatted files.
-</div>
-
-
-### Archiving data files `[coming in v2.0]`
-
-_Details coming soon ..._
+1. Ensure recent changes have saved successfully, close the application, and make a separate backup of `data/addressbook.json`.
+2. Edit the file while the application is closed. Preserve its JSON structure and follow the current [input rules](#contact-input-rules),
+   including duplicate-contact constraints. Follow-up dates and descriptions must also satisfy the [follow-up requirements](#managing-a-contacts-follow-up-followup).
+3. Save the file, relaunch from the same folder, and check the edited contacts.
+4. If loading fails, follow [Recovering data that fails to load](#recovering-data-that-fails-to-load).
 
 --------------------------------------------------------------------------------------------------------------------
 
 ## FAQ
 
-**Q**: How do I transfer my data to another computer?<br>
-**A**: Install the app on the other computer and overwrite the data file it creates with the data file from your previous KeyBossWarriorsPro home folder.
+**Q: How do I transfer my contacts to another computer?**
 
-**Q**: What should I do if my data file is corrupted?<br>
-**A**: When KeyBossWarriorsPro detects invalid saved data on startup, it attempts to create a timestamped backup in the `data/` folder and starts with an empty contact list. Follow the [data-file recovery instructions](#editing-the-data-file), correcting invalid field values as well as JSON syntax before relaunching.
+Follow [Transferring contacts to another computer](#transferring-contacts-to-another-computer).
+Close both applications and back up the destination file before replacing it.
+
+**Q: What should I do if the application starts with an empty book and a loading warning?**
+
+Stop entering commands and close the window. Follow [Recovering data that fails to load](#recovering-data-that-fails-to-load)
+to preserve the available backup or original file before correcting it.
 
 --------------------------------------------------------------------------------------------------------------------
 
-## Known issues
+<a id="known-issues"></a>
 
-1. **When using multiple screens**, if you move the application to a secondary screen, and later switch to using only the primary screen, the GUI will open off-screen. The remedy is to delete the `preferences.json` file created by the application before running the application again.
-2. **If you minimize the Help Window** and then run the `help` command (or use the `Help` menu, or the keyboard shortcut `F1`) again, the original Help Window will remain minimized, and no new Help Window will appear. The remedy is to manually restore the minimized Help Window.
-3. **Role styling disparity between contact card and details panel**: When a contact is selected, the role is presented as a color-coded pill badge on the contact list card, but appears as unstyled plain text (`Role: <value>`) in the right details panel. This is a cosmetic presentation difference and does not affect contact data, selection behavior, or application functionality. Harmonized pill badge styling across both panes is planned for a future version.
-4. **Compact vertical clearance on contact card role badges**: Contact card role pill badges use compact vertical padding and typography, which may cause letter descenders (e.g., `g`, `p`, `y`) or uppercase ascenders to appear vertically snug against the pill border on certain display scalings. All badge text remains fully readable, and contact management is unaffected. Relaxed vertical padding and refined typography are planned for a future version.
+## Known issues and limitations
+
+### Severity scale
+
+Severity describes user impact. The ratings below follow the documented symptoms; appearance can vary with the operating system and display scaling.
+
+Severity | Meaning
+---------|--------
+High | Core tasks are blocked or data is at risk.
+Medium | A feature is significantly hindered but a practical workaround exists.
+Low | Minor inconvenience or cosmetic inconsistency.
+
+### Known defects
+
+#### Application opens off-screen after changing monitors
+
+**Severity:** Medium.
+
+**Trigger:** Move the application to a secondary screen, close it, then relaunch when only the primary screen is available.
+
+**User impact:** The saved window position may place the application outside the visible screen, preventing access to its controls.
+
+**Workaround:** Close the application. Back up and remove `preferences.json` from the [launch folder](#locating-your-data),
+then relaunch. This resets saved window size and position. Keep `data/addressbook.json` in place to preserve contacts.
+
+#### Help window remains minimised
+
+**Severity:** Low.
+
+**Trigger:** Minimise the Help window, then request full help again using `help`, the Help menu, or **F1**.
+
+**User impact:** The existing Help window stays minimised instead of becoming visible.
+
+**Workaround:** Restore the Help window manually. You can also use `help COMMAND` to read a command's usage in the result display.
+
+#### Role styling differs between panels
+
+**Severity:** Low.
+
+**Trigger:** Select a contact and compare its role in the list card and details panel.
+
+**User impact:** The list uses a coloured pill badge, while the details panel uses plain text. Contact data and functionality are unaffected.
+
+**Workaround:** No action is required; the role remains available in both panels.
+
+#### Role badge text has tight vertical spacing
+
+**Severity:** Low.
+
+**Trigger:** View contact role badges at display scalings where letters sit close to the badge border.
+
+**User impact:** Letters such as `g`, `p`, and `y` may appear close to the border. This is a cosmetic spacing issue; contact management is unaffected.
+
+**Workaround:** No action is required to use the contact. Select it to read the role as plain text in the details panel.
+
+### Intentional limitations
+
+These are supported-behaviour limits, separate from the defects above:
+
+Limitation | How to work within it
+-----------|----------------------
+One digits-only phone number per contact | Use 3–20 digits without spaces, punctuation, or extensions. See [contact field requirements](#contact-input-rules).
+One pending follow-up per contact | Setting a follow-up replaces the previous one. Clear it when completed; completed follow-ups have no retained history.
+Undo and redo apply within the current session | Reverse changes before closing. Keep separate file backups for recovery across sessions.
+Sorting resets on restart | Run `sort` again when starting a new session.
+
+<a id="archiving-data-files-coming-in-v20"></a>
+
+This version has no built-in archiving command. Use the [backup instructions](#backing-up-your-contacts) to keep separate copies of contact data.
 
 --------------------------------------------------------------------------------------------------------------------
 
