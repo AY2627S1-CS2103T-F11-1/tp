@@ -21,7 +21,44 @@ and [Instructions for manual testing](#appendix-instructions-for-manual-testing)
 * Libraries used: [JavaFX](https://openjfx.io/), [Jackson](https://github.com/FasterXML/jackson), and [JUnit 5](https://junit.org/junit5/).
 * `Email.VALIDATION_REGEX` adapts the regex published in the
   [WHATWG HTML Standard](https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address).
-* AI assistance: OpenAI Codex, Anthropic Claude, and Google Gemini were used during development and documentation.
+
+### AI use
+
+Notable uses of AI:
+
+#### @Ken-Tat
+
+* OpenAI Codex was used for code review, bug investigation, and test-scenario preparation for contact
+  selection, GUI behavior, command handling, and data persistence.
+* OpenAI Codex was used to review and refine the User Guide, Developer Guide, and UML diagrams,
+  and to check screenshot accuracy.
+* OpenAI Codex was used to draft GitHub issues and pull request descriptions.
+
+#### @chiacxx
+
+* OpenAI Codex and Google Antigravity were used to implement and refine sorting, prefixed search,
+  delete validation, and input handling.
+* OpenAI Codex and Google Antigravity were used to generate and improve tests, debug issues,
+  and conduct preliminary code reviews.
+* OpenAI Codex and Google Antigravity were used to draft and refine the User Guide, Developer Guide,
+  and UML diagrams.
+
+#### @Kimame04
+
+* Google Gemini was used for code architecture, edge-case analysis, and test-scenario preparation
+  for role classification, multi-field duplicate detection, parser validation, and UI layout and theming.
+* Google Gemini was used to generate and validate PlantUML diagrams and structure Developer Guide
+  use cases and manual testing instructions.
+* Google Gemini was used to refine User Guide documentation and draft comprehensive pull request
+  reviews and issue descriptions.
+
+#### @chester-wong-33
+
+* OpenAI Codex was used to refine follow-up management, undo/redo integration, substring name
+  searching, and exit feedback.
+* OpenAI Codex was used to generate and improve tests and debug issues.
+* OpenAI Codex was used to draft and refine the User Guide, Developer Guide, project portfolio,
+  and pull request descriptions.
 
 --------------------------------------------------------------------------------------------------------------------
 
