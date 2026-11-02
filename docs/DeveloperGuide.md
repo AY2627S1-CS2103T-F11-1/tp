@@ -373,50 +373,34 @@ How the command parsing and execution works:
 
 #### Contact text validation, formatting, and searching
 
-`Name`, `Role`, `Tag`, `Address`, and `FollowUp` descriptions share `StringUtil.isValidText()`.
-After trimming, it rejects whitespace/Unicode-space/`Character.FORMAT`-only input, ISO controls and line/paragraph
-separators. Formatting characters alongside meaningful text are allowed. Names, roles and tags accept
-Unicode, punctuation and literal backslashes without alphanumeric start/end restrictions.
+`Name`, `Role`, `Tag` and `Address` validate trimmed input with `StringUtil.isValidText()`, rejecting
+blank/invisible-only values, ISO controls and Unicode line/paragraph separators. Names, roles and tags
+accept Unicode, punctuation and literal backslashes.
 
-Name/role/tag formatting uses `normalizeSpaces()`: `String.strip()` followed by collapsing ordinary
-U+0020 spaces. Addresses and descriptions only strip their edges, preserving internal spacing.
-Non-breaking spaces such as U+00A0 remain literal because Java `strip()` excludes them.
-All fields preserve capitalisation. Tag length is capped at 50 after decoding and normalisation;
-description length at 200 after decoding and stripping. Both use `String.length()` (UTF-16 code units).
-Names, roles and addresses have no maximum. These rules also apply during JSON loading.
+`normalizeSpaces()` strips Java whitespace and collapses ordinary U+0020 spaces for names, roles and tags.
+Addresses only strip their edges. Non-breaking spaces and formatting characters remain literal alongside
+visible text; capitalisation is preserved. Tags have a 50-unit limit after decoding and normalisation,
+measured by `String.length()` (UTF-16); names, roles and addresses have no maximum.
 
 Name/address equality is case-sensitive; role/tag/email equality uses `equalsIgnoreCase()`.
-`normalizeCase()` maps Unicode code points through `toLowerCase(toUpperCase(...))` for search comparisons
-and role/tag/email hashes. This keeps equality and hashing consistent across locales without changing
-stored spelling, removing accents or performing Unicode composition.
+`normalizeCase()` applies `toLowerCase(toUpperCase(...))` per code point for locale-independent searches
+and role/tag/email hashes, preserving stored spelling and accent distinctions.
 
-Prefix recognition runs before decoding. Text parsers and `find` use `ParserUtil.unescapeSlashes()`
-to replace each `\/` once, preserving other backslashes. Models and JSON adapters never decode escapes.
-Phone, email and date values do not use decoding; emails accept literal slashes but reject backslashes.
+Prefixes are recognised before `ParserUtil.unescapeSlashes()` decodes each `\/` once. Models and JSON
+adapters never decode escapes. Phone, email and date values do not use slash decoding.
 
-`FindCommandParser.normaliseSearchPhrases()` then applies `normalizeSpaces()` to prefixed phrases.
-Each remains a substring criterion without whole-field validation or length limits. Repeated prefixes
-use OR; different fields use AND. Legacy name search retains whitespace-based keyword splitting.
-
-Utility, model and predicate tests cover Unicode, prohibited characters, spacing, length boundaries and
-locale-independent hashing. Parser tests cover normalisation and prefix/escape errors; integration
-tests cover OR/AND searches, tag operations, undo/redo and JSON reload. EP/BVA comments follow the course's
-[test case design guidance](https://nus-cs2103-ay2627-s1.github.io/website/se-book-adapted/chapters/testCaseDesign.html).
+`FindCommandParser.normaliseSearchPhrases()` applies `normalizeSpaces()` to prefixed queries, retaining
+substring matching, OR within fields and AND across fields. Queries have no whole-field validation or
+length limit. Legacy name search retains whitespace-based keyword splitting.
 
 #### Email and phone validation
 
-`Email.VALIDATION_REGEX` adapts the WHATWG HTML pattern for Java `String.matches()`. It permits ASCII
-local-part punctuation and dots anywhere. Domain labels contain 1–63 ASCII letters/digits/hyphens,
-with alphanumeric edges. Single-label domains are allowed; quoted local parts, address literals and raw
-Unicode are unsupported. Parsing retains trimming and stored case; no mailbox check or IDN conversion occurs.
+`Email.VALIDATION_REGEX` uses the WHATWG HTML pattern with Java `String.matches()`; the
+[UG lists its supported syntax](UserGuide.md#supported-email-syntax). Parsing trims input and preserves
+case. Validation checks syntax only, without mailbox verification or IDN conversion.
 
-`Phone.VALIDATION_REGEX` accepts 3–20 ASCII digits, preserving leading zeroes and exact-string equality.
-The cap is application policy, not E.164 validation; formatted numbers and extensions remain unsupported.
-Duplicate identity still matches phone OR case-insensitive email.
+`Phone.VALIDATION_REGEX` accepts 3–20 ASCII digits, preserving leading zeroes.
 
-The JSON structure is unchanged, but legacy values violating current constraints reject the entire book.
-Startup attempts a backup and opens an empty book; no automatic migration, truncation or partial loading
-occurs. Recovery requires correcting invalid field values as well as JSON syntax.
 
 #### Execution flow
 
@@ -572,7 +556,7 @@ prefixes from being silently ignored.
 After parsing the index and other contact fields, `EditCommandParser`:
 
 1. Parses additions, then deletions, using `parseTagsForEdit()`. An absent prefix produces an empty optional. A supplied blank tag is rejected, including bare `t/` and `dt/`; neither clears all tags.
-2. Uses `ParserUtil.parseTags()` to validate tag names and construct sets. `Tag` collapses consecutive internal spaces, and its equality and hash code support case-insensitive comparison and deduplication.
+2. Uses `ParserUtil.parseTags()` to validate tag names and construct sets. `Tag` collapses repeated ordinary spaces, and its equality and hash code support case-insensitive comparison and deduplication.
 3. Rejects any tag present in both sets. If several tags conflict, the first tag alphabetically, ignoring case, is reported using the spelling from the additions set.
 4. Rejects a command with no fields or tag operations, or returns an `EditCommand` containing a copy of the descriptor.
 
@@ -608,8 +592,7 @@ Each `Person` owns an `Optional<FollowUp>`. A contact can have zero or one follo
 #### Model and persistence
 `FollowUp` stores an immutable `LocalDate` due date and description. Both fields are mandatory when a follow-up exists.
 * Due dates accept past values and restrict years to `0000`–`9999`.
-* Descriptions are stripped of surrounding whitespace, checked using the shared `StringUtil.isValidText()`, and must not exceed 200 UTF-16 code units, as measured by `String.length()`.
-* Internal ISO control characters and Unicode line and paragraph separators are rejected. Other casing and internal spacing are preserved.
+* Descriptions use `strip()` and `StringUtil.isValidText()` with the [shared text rules](#contact-text-validation-formatting-and-searching), preserving capitalisation and internal spacing. The limit is 200 UTF-16 code units (`String.length()`) after slash decoding and trimming.
 * Equality and hashing include both fields, with case-sensitive description comparison.
   `FollowUp` has no back-reference to `Person`. The owning contact establishes the association, so changing contact details does not require updating a separate contact identifier.
 
@@ -1192,7 +1175,7 @@ Argument and index errors leave contact data, the displayed view, and undo/redo 
 4.  **Capacity:** Should be able to store and manage up to 1,000 contacts and 5,000 tags without noticeable sluggishness in performance for typical usage.
 5.  **Responsiveness:** All standard commands (such as `list`, `filter`, `find`, `add`, `delete`) should respond and update the interface within 1.0 second under normal workloads.
 6.  **Package Size:** The packaged application JAR file should not exceed 100 MB.
-7.  **Data Persistence:** Data must be stored in a human-editable text file (JSON format) located at `data/keyboss.json`.
+7.  **Data Persistence:** Data must be stored in a human-editable text file (JSON format) located at `data/addressbook.json`.
 8.  **Fault Tolerance:** If the data file is corrupted or formatted incorrectly, the application should start gracefully (e.g., discard or isolate corrupted state and notify the user) without unexpected crashes.
 9.  **Database Independence:** The system should not depend on a Relational Database Management System (RDBMS) like MySQL or SQLite.
 10. **Typing-Preferred Usability:** A user with above-average typing speed for regular English text should be able to accomplish all routine contact and inventory management tasks faster using CLI commands than using a mouse.

@@ -14,7 +14,7 @@ public class Tag {
     public static final String MESSAGE_CONSTRAINTS =
             "Tag names must contain text other than whitespace or invisible formatting characters, "
             + "must not contain internal control characters or Unicode line/paragraph separators, "
-            + "and cannot exceed 50 characters after trimming and collapsing ordinary spaces.";
+            + "and cannot exceed 50 characters (after trimming and collapsing ordinary spaces).";
 
     public static final int MAX_LENGTH = 50;
 

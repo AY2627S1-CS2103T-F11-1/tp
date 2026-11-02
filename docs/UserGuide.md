@@ -160,8 +160,6 @@ Adds a contact to KeyBossWarriorsPro.
 
 **Input rules**
 
-Surrounding ordinary spaces are ignored. The field rules below apply to both `add` and `edit`.
-
 Field | Accepted input
 ------|---------------
 `NAME` | Unicode text, including punctuation, spaces and literal backslashes. Examples: `John A. Tan`, `José Tan`, `王小明`.
@@ -171,24 +169,31 @@ Field | Accepted input
 `ROLE` | Unicode text, including punctuation, spaces and literal backslashes. Examples: `Supplier (PCB)`, `Employee`, `Customer`.
 `TAG` | Unicode text, including punctuation, spaces and literal backslashes. Maximum **50 characters after slash decoding, trimming and collapsing repeated ordinary spaces**. Examples: `62.5g`, `PCB v1.6`, `Switches (5-pin)`.
 
-Names, roles, tags, addresses and follow-up descriptions must contain at least one character other than
-whitespace or invisible formatting characters. Internal control characters, such as tabs and newlines,
-and Unicode line/paragraph separators are rejected. Other Unicode spaces within text are allowed.
+<a id="text-field-rules"></a>
 
-These text fields trim surrounding whitespace, including Unicode whitespace such as em spaces.
-Non-breaking spaces alongside visible text are preserved, including at the edges.
-Names, roles and tags also collapse repeated ordinary spaces into one, preserving capitalisation and
-punctuation: `n/Anne-Marie   O'Connor` stores `Anne-Marie O'Connor`.
-Addresses and follow-up descriptions preserve internal spacing. Names, roles and addresses have no maximum length.
-Duplicate tags are combined, ignoring case, preserving the first stored spelling.
-Tag length uses Java string characters: most ordinary characters count as one; some, such as emoji, count as two.
+**Text validation and spacing**
+
+Names, roles, tags and addresses must contain at least one character other than whitespace or invisible
+formatting characters. After trimming, control characters (such as internal tabs/newlines) and Unicode
+line/paragraph separators are rejected. Other Unicode spaces inside text are allowed.
+
+Trimming removes surrounding ordinary spaces, tabs, line breaks and Unicode whitespace such as em spaces.
+It does not remove non-breaking spaces or invisible formatting characters such as zero-width spaces;
+these remain literal alongside visible text, even at the edges.
+
+Names, roles, and tags also collapse repeated **ordinary spaces** into one: `n/Anne-Marie   O'Connor`
+stores `Anne-Marie O'Connor`. Internal Unicode spaces are not collapsed. Addresses preserve internal
+spacing. All four fields preserve capitalisation; names, roles and addresses have no maximum length.
+Duplicate tags are combined using Unicode-aware, case-insensitive comparison, preserving the first spelling.
+
+<a id="character-counting"></a>
+
 
 **Phone number limitation**
 
-Each contact currently supports one digits-only phone number. We recognise that formatted numbers,
-extensions and separate mobile/office numbers can be useful, but these are unsupported in this release.
-Phone duplicate checks compare the stored digit strings exactly; local/international forms are not normalised.
-Support for formatted or multiple numbers is possible future work.
+Formatted numbers, extensions and separate mobile/office numbers can be useful, but this release supports
+one digits-only number per contact. Support for formatted or multiple numbers is possible future work.
+See the [duplicate-contact rules](#contact-duplicates) for how phone numbers are compared.
 
 <a id="supported-email-syntax"></a>
 
@@ -205,7 +210,6 @@ which checks the address's form rather than whether the mailbox exists:
 * Single-label domains, such as `user@localhost`, and one-character domain labels are accepted.
 * Quoted local parts, address literals such as `user@[127.0.0.1]`, and raw non-ASCII email characters are unsupported.
   International domain names must already use ASCII/Punycode spelling, such as `sales@xn--bcher-kva.example`.
-* Capitalisation is preserved, but the whole email address is compared case-insensitively for duplicate detection.
 
 <a id="contact-duplicates"></a>
 
@@ -214,8 +218,8 @@ which checks the address's form rather than whether the mailbox exists:
 A new contact is rejected if **either** its phone number **or** its email matches
 any existing contact, including contacts hidden by the current filter:
 
-* Phone numbers must differ from all existing phone numbers.
-* Email addresses must differ from all existing email addresses, ignoring case. For example, `John@example.com` and `john@example.com` are treated as the same email.
+* Phone numbers are compared as exact digit strings, including leading zeroes. Local/international forms are not normalised.
+* Email capitalisation is preserved, but comparison ignores case. For example, `John@example.com` and `john@example.com` are treated as the same email.
 * Names are not used to detect duplicates. Contacts with identical or similar names can be added if both their phone numbers and emails differ.
 
 <a id="slash-escaping"></a>
@@ -300,7 +304,7 @@ Edits an existing contact in KeyBossWarriorsPro.
 * `t/TAG_TO_ADD` adds the named tag while preserving the contact's existing tags. Adding a tag the contact already has succeeds without creating a duplicate.
 * `dt/TAG_TO_DELETE` removes the named tag while preserving all other tags. Every tag requested for deletion must already belong to the selected contact.
 * Repeat `t/` or `dt/` to add or delete several tags. Both operations can be used in the same command, in any order.
-* Tag comparisons are Unicode-aware and case-insensitive, and repeated ordinary spaces within a tag name are collapsed into one. For example, `dt/TRAINEE` removes an existing `trainee` tag. Greek `σ` and `ς` also count as the same tag for adding, deleting and conflict checks.
+* Tag comparisons follow the [input rules](#contact-input-rules). For example, `dt/TRAINEE` removes an existing `trainee` tag; Unicode case equivalents such as `σ` and `ς` also count as the same tag.
 * A tag cannot be supplied to both `t/` and `dt/` in the same command, even with different letter casing.
 * Empty or whitespace-only `t/` and `dt/` values are invalid. To remove all tags, explicitly name each one using a separate `dt/TAG_TO_DELETE`.
 * Each edit succeeds in full or makes no changes. If any requested deletion is missing or another part of the command is invalid, all contact details and tags stay unchanged.
@@ -337,8 +341,8 @@ Creates, replaces, or removes a contact's pending follow-up. Each contact can ha
 * Both `by/` and `abt/` are mandatory and must appear exactly once. They may appear in either order.
 * Setting a follow-up replaces any existing follow-up in full. To change only the date or description, supply both fields again.
 * `DUE_DATE` must be a valid calendar date in `YYYY-MM-DD` format, with a year from `0000` to `9999`. Past dates are accepted.
-* `DESCRIPTION` must not be blank and must not exceed 200 Java string characters after slash decoding and removal of surrounding whitespace. Most ordinary characters count as one; some characters, such as emoji, count as two.
-* Description casing and internal spacing are preserved. Internal control characters, such as tabs and newlines, and Unicode line or paragraph separators are not permitted.
+* `DESCRIPTION` follows the [text validation and trimming rules](#text-field-rules), while preserving capitalisation and internal spacing.
+* Its limit is **200 [characters](#character-counting) after slash decoding and trimming**.
 * Descriptions use the same [slash-escaping rules](#slash-escaping): `abt/Confirm PCB\/Case quotation` stores `Confirm PCB/Case quotation`. Escape prefix-like text inside the description; keep actual `by/` and `abt/` prefixes unchanged.
 * Successful changes preserve other contact details and the current filter. A contact may disappear from the results if it no longer matches that filter.
 * Contacts with a follow-up show **Follow-up**, **Due today**, or **Overdue** in the left list according to the due date.
@@ -459,6 +463,10 @@ For example, `exit -f` exits in the same way as `exit`.
 
 Finds contacts matching one or more name, role, or tag criteria. All searches are case-insensitive and support partial matching (substring matching).
 
+Case-insensitive matching recognises Unicode case equivalents: `σ` and `ς` match each other.
+Accents are preserved: `JOSÉ` matches `José`, but `Jose` does not match `José`.
+These comparison rules apply to both search formats below.
+
 Use the same [slash-escaping rules](#slash-escaping) in search values:
 `find n/David s\/o John` searches for the phrase `David s/o John`, and
 `find s\/o` searches names for `s/o` using the legacy format.
@@ -473,9 +481,7 @@ Use the same [slash-escaping rules](#slash-escaping) in search values:
 * `r/` specifies a role search phrase.
 * `t/` specifies a tag search phrase. Tags can contain spaces: `find t/good friend` matches a tag containing the phrase `good friend`.
 * Each value after a prefix is treated as a continuous search phrase until the next prefix or the end of the command.
-* Surrounding whitespace, including Unicode whitespace such as em spaces, is trimmed from `n/`, `r/`, and `t/` search phrases. Repeated ordinary spaces are collapsed into a single space, just as when adding or editing these fields. For example, `find r/Regional   Supplier` and `find r/Regional Supplier` return the same results. Non-breaking spaces alongside text remain literal.
-* **Partial & Case-Insensitive Matching**: Matches if the term appears anywhere within the field, regardless of upper or lower case (e.g., `n/alex` matches `Alexander`, `r/distrib` matches `Distributor`).
-* Case-insensitive matching recognises Unicode case equivalents: `σ` and `ς` match each other. Accents are preserved: `JOSÉ` matches `José`, but `Jose` does not match `José`. The same case rules apply to legacy name searches.
+* Each phrase is trimmed and repeated ordinary spaces are collapsed using the same [spacing rules](#text-field-rules) as stored names, roles and tags. For example, `find r/Regional   Supplier` and `find r/Regional Supplier` return the same results.
 * **Search Logic:**
     * **Same prefix → `OR` logic**: A contact matches if it satisfies *at least one* of the values given for that prefix type (e.g. `n/alice n/bob` returns contacts whose name contains "alice" *or* "bob", case-insensitively).
     * **Different prefixes → `AND` logic**: Results are then narrowed so that a contact must satisfy *all* prefix types specified (e.g. `n/alice r/manager` returns contacts whose name contains "alice" *and* whose role contains "manager", case-insensitively).
