@@ -89,16 +89,19 @@ public class MainApp extends Application {
             initialData = new AddressBook();
             Path filePath = storage.getAddressBookFilePath();
             if (Files.exists(filePath)) {
+                String causeMessage = e.getCause() != null && e.getCause().getMessage() != null
+                        ? e.getCause().getMessage()
+                        : e.getMessage();
                 try {
                     Path backupPath = storage.backupAddressBookFile();
                     initialStatusMessage = String.format(
-                            "Warning: Data file %1$s is corrupted. A backup was created at %2$s. "
-                                    + "Starting with an empty contact book.", filePath, backupPath);
+                            "Warning: Data file %1$s is corrupted (%2$s). A backup was created at %3$s. "
+                                    + "Starting with an empty contact book.", filePath, causeMessage, backupPath);
                     logger.warning(initialStatusMessage);
                 } catch (IOException ioe) {
                     initialStatusMessage = String.format(
-                            "Warning: Data file %1$s is corrupted, and creating a backup failed: %2$s. "
-                                    + "Starting with an empty contact book.", filePath, ioe.getMessage());
+                            "Warning: Data file %1$s is corrupted (%2$s), and creating a backup failed: %3$s. "
+                                    + "Starting with an empty contact book.", filePath, causeMessage, ioe.getMessage());
                     logger.severe(initialStatusMessage);
                 }
             }

@@ -56,11 +56,25 @@ class JsonSerializableAddressBook {
             }
             Person person = jsonAdaptedPerson.toModelType();
             if (addressBook.hasPerson(person)) {
-                throw new IllegalValueException(MESSAGE_DUPLICATE_PERSON);
+                throw new IllegalValueException(getDuplicatePersonMessage(addressBook, person));
             }
             addressBook.addPerson(person);
         }
         return addressBook;
+    }
+
+    private String getDuplicatePersonMessage(AddressBook addressBook, Person duplicate) {
+        for (Person existing : addressBook.getPersonList()) {
+            if (existing.getPhone().equals(duplicate.getPhone())) {
+                return String.format("Duplicate contact detected: '%s' shares phone number %s with '%s'.",
+                        duplicate.getName().fullName, duplicate.getPhone().value, existing.getName().fullName);
+            }
+            if (existing.getEmail().equals(duplicate.getEmail())) {
+                return String.format("Duplicate contact detected: '%s' shares email address %s with '%s'.",
+                        duplicate.getName().fullName, duplicate.getEmail().value, existing.getName().fullName);
+            }
+        }
+        return MESSAGE_DUPLICATE_PERSON;
     }
 
 }

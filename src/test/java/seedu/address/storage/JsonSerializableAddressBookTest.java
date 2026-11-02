@@ -42,8 +42,9 @@ public class JsonSerializableAddressBookTest {
     public void toModelType_duplicatePersons_throwsIllegalValueException() throws Exception {
         JsonSerializableAddressBook dataFromFile = JsonUtil.readJsonFile(DUPLICATE_PERSON_FILE,
                 JsonSerializableAddressBook.class).get();
-        assertThrows(IllegalValueException.class, JsonSerializableAddressBook.MESSAGE_DUPLICATE_PERSON,
-                dataFromFile::toModelType);
+        String expectedMessage =
+                "Duplicate contact detected: 'Alice Pauline' shares phone number 94351253 with 'Alice Pauline'.";
+        assertThrows(IllegalValueException.class, expectedMessage, dataFromFile::toModelType);
     }
 
     @Test
