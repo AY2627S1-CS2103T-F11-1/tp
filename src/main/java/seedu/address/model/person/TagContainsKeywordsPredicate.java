@@ -3,9 +3,9 @@ package seedu.address.model.person;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Predicate;
 
+import seedu.address.commons.util.StringUtil;
 import seedu.address.commons.util.ToStringBuilder;
 import seedu.address.model.tag.Tag;
 
@@ -46,9 +46,9 @@ public class TagContainsKeywordsPredicate implements Predicate<Person> {
      * {@link #test(Person)}.
      */
     private boolean matchesAnyKeyword(Tag tag) {
-        String lowerTag = tag.tagName.toLowerCase(Locale.ROOT);
+        String normalizedTag = StringUtil.normalizeCase(tag.tagName);
 
-        return keywords.stream().anyMatch(keyword -> lowerTag.contains(keyword.toLowerCase(Locale.ROOT)));
+        return keywords.stream().anyMatch(keyword -> normalizedTag.contains(StringUtil.normalizeCase(keyword)));
     }
 
     @Override

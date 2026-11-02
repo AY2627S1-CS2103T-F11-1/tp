@@ -26,12 +26,12 @@ import seedu.address.model.tag.Tag;
 import seedu.address.testutil.PersonBuilder;
 
 public class JsonAdaptedPersonTest {
-    private static final String INVALID_NAME = "R@chel";
+    private static final String INVALID_NAME = "Ra\tchel";
     private static final String INVALID_PHONE = "+651234";
     private static final String INVALID_ADDRESS = " ";
     private static final String INVALID_EMAIL = "example.com";
     private static final String INVALID_ROLE = " ";
-    private static final String INVALID_TAG = "#friend";
+    private static final String INVALID_TAG = "fri\tend";
 
     private static final String VALID_NAME = BENSON.getName().toString();
     private static final String VALID_PHONE = BENSON.getPhone().toString();
@@ -85,6 +85,23 @@ public class JsonAdaptedPersonTest {
                 new JsonAdaptedPerson(VALID_NAME, INVALID_PHONE, VALID_EMAIL, VALID_ADDRESS, VALID_ROLE, VALID_TAGS);
         String expectedMessage = Phone.MESSAGE_CONSTRAINTS;
         assertThrows(IllegalValueException.class, expectedMessage, person::toModelType);
+    }
+
+    @Test
+    public void toModelType_phoneLengthBoundaries_enforcesModelConstraints() throws Exception {
+        // BVA: stored phone numbers at the minimum/maximum lengths retain their digits.
+        for (int length : new int[] {3, 20}) {
+            String phone = "0" + "9".repeat(length - 1);
+            JsonAdaptedPerson person = new JsonAdaptedPerson(VALID_NAME, phone, VALID_EMAIL,
+                    VALID_ADDRESS, VALID_ROLE, VALID_TAGS);
+            assertEquals(phone, person.toModelType().getPhone().value);
+        }
+        // BVA: just outside both limits; EP: excessively long stored numbers are rejected with the same message.
+        for (int length : new int[] {2, 21, 500}) {
+            JsonAdaptedPerson person = new JsonAdaptedPerson(VALID_NAME, "9".repeat(length), VALID_EMAIL,
+                    VALID_ADDRESS, VALID_ROLE, VALID_TAGS);
+            assertThrows(IllegalValueException.class, Phone.MESSAGE_CONSTRAINTS, person::toModelType);
+        }
     }
 
     @Test

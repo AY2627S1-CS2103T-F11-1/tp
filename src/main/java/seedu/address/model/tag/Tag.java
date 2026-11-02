@@ -3,7 +3,7 @@ package seedu.address.model.tag;
 import static java.util.Objects.requireNonNull;
 import static seedu.address.commons.util.AppUtil.checkArgument;
 
-import java.util.Locale;
+import seedu.address.commons.util.StringUtil;
 
 /**
  * Represents a Tag in the address book.
@@ -12,14 +12,10 @@ import java.util.Locale;
 public class Tag {
 
     public static final String MESSAGE_CONSTRAINTS =
-            "Tag names should only contain alphanumeric characters, spaces, and punctuation (- / & '), "
-            + "must start and end with an alphanumeric character, and cannot exceed 50 characters.";
+            "Tag names must contain text other than whitespace or invisible formatting characters, "
+            + "must not contain internal control characters or Unicode line/paragraph separators, "
+            + "and cannot exceed 50 characters (after trimming and collapsing ordinary spaces).";
 
-    /*
-     * The tag name must start and end with an alphanumeric character.
-     * Internal spaces and allowed punctuation (- / & ') are accepted.
-     */
-    public static final String VALIDATION_REGEX = "^[\\p{Alnum}]([\\p{Alnum} /&'-]*[\\p{Alnum}])?$";
     public static final int MAX_LENGTH = 50;
 
     public final String tagName;
@@ -39,14 +35,14 @@ public class Tag {
      * Returns true if a given string is a valid tag name.
      */
     public static boolean isValidTagName(String test) {
-        return test.length() <= MAX_LENGTH && test.matches(VALIDATION_REGEX);
+        return StringUtil.isValidText(test.strip()) && formatTagName(test).length() <= MAX_LENGTH;
     }
 
     /**
-     * Formats a tag name by collapsing consecutive whitespace.
+     * Formats a tag name by trimming surrounding whitespace and collapsing consecutive ordinary spaces.
      */
     private static String formatTagName(String tagName) {
-        return tagName.trim().replaceAll("\\s+", " ");
+        return StringUtil.normalizeSpaces(tagName);
     }
 
     @Override
@@ -65,7 +61,7 @@ public class Tag {
 
     @Override
     public int hashCode() {
-        return tagName.toLowerCase(Locale.ROOT).hashCode();
+        return StringUtil.normalizeCase(tagName).hashCode();
     }
 
     /**

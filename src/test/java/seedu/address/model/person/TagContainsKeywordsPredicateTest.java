@@ -6,12 +6,49 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 
 import seedu.address.testutil.PersonBuilder;
 
 public class TagContainsKeywordsPredicateTest {
+    @Test
+    public void test_unicodeCaseVariants_matchSubstrings() {
+        // EP: accents, sigma variants, Turkish I, long S, Kelvin sign and supplementary case pairs.
+        String[][] pairs = {{"Jos\u00E9", "JOS\u00C9"}, {"\u03C3", "\u03C2"},
+            {"\u039F\u03A3", "\u03BF\u03C2"}, {"I", "\u0131"}, {"i", "\u0130"},
+            {"S", "\u017F"}, {"K", "\u212A"}, {"\uD801\uDC00", "\uD801\uDC28"}};
+        for (String[] pair : pairs) {
+            Person first = new PersonBuilder().withTags("Prefix " + pair[0] + " Suffix").build();
+            Person second = new PersonBuilder().withTags("Prefix " + pair[1] + " Suffix").build();
+            assertTrue(new TagContainsKeywordsPredicate(List.of(pair[1])).test(first));
+            assertTrue(new TagContainsKeywordsPredicate(List.of(pair[0])).test(second));
+        }
+        // EP: case-insensitive matching does not remove accents or expand one letter into multiple letters.
+        Person accented = new PersonBuilder().withTags("Jos\u00E9").build();
+        assertFalse(new TagContainsKeywordsPredicate(List.of("Jose")).test(accented));
+        Person sharpS = new PersonBuilder().withTags("\u00DF").build();
+        assertFalse(new TagContainsKeywordsPredicate(List.of("SS")).test(sharpS));
+        Person chinese = new PersonBuilder().withTags("\u738B\u5C0F\u660E").build();
+        assertTrue(new TagContainsKeywordsPredicate(List.of("\u5C0F")).test(chinese));
+        assertFalse(new TagContainsKeywordsPredicate(List.of("\u674E")).test(chinese));
+    }
+
+    @Test
+    public void test_turkishDefaultLocale_matchesUnicodeCaseVariants() {
+        // EP: changing the default locale must not change case-insensitive substring results.
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            Person person = new PersonBuilder().withTags("\u0130STANBUL \u03C2").build();
+            assertTrue(new TagContainsKeywordsPredicate(List.of("istan")).test(person));
+            assertTrue(new TagContainsKeywordsPredicate(List.of("\u03C3")).test(person));
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
     @Test
     public void equals() {
         List<String> firstPredicateKeywordList = List.of("first");

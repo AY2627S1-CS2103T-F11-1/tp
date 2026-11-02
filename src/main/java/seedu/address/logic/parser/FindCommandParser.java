@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+import seedu.address.commons.util.StringUtil;
 import seedu.address.logic.commands.FindCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
@@ -86,12 +87,12 @@ public class FindCommandParser implements Parser<FindCommand> {
     }
 
     /**
-     * Collapses repeated ordinary spaces in each phrase without splitting it into separate keywords.
+     * Trims surrounding whitespace and collapses ordinary spaces without splitting phrases into separate keywords.
      */
     private List<String> normaliseSearchPhrases(List<String> phrases) {
         return phrases.stream()
                 .map(ParserUtil::unescapeSlashes)
-                .map(phrase -> phrase.replaceAll(" +", " "))
+                .map(StringUtil::normalizeSpaces)
                 .toList();
     }
 }

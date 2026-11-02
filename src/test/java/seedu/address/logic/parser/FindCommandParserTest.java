@@ -77,6 +77,19 @@ public class FindCommandParserTest {
     }
 
     @Test
+    public void parse_unicodeEdgeWhitespace_normalisesEachPrefixedField() {
+        // EP: surrounding Unicode whitespace is trimmed; repeated ordinary spaces inside phrases are collapsed.
+        for (String whitespace : List.of("\u2003", "\u2002", "\u3000")) {
+            assertParseSuccess(parser, " n/" + whitespace + "John   Doe" + whitespace,
+                    new FindCommand(new NameContainsKeywordsPredicate(List.of("John Doe"))));
+            assertParseSuccess(parser, " r/" + whitespace + "Regional   Supplier" + whitespace,
+                    new FindCommand(new RoleContainsKeywordsPredicate(List.of("Regional Supplier"))));
+            assertParseSuccess(parser, " t/" + whitespace + "Good   Friend" + whitespace,
+                    new FindCommand(new TagContainsKeywordsPredicate(List.of("Good Friend"))));
+        }
+    }
+
+    @Test
     public void parse_repeatedSpaces_preservesPrefixGroups() {
         FindCommand expectedFindCommand = new FindCommand(
                 new NameContainsKeywordsPredicate(List.of("Alice Tan", "Amy Bee")),
