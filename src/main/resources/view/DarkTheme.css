@@ -170,6 +170,7 @@
 .role-badge {
     -fx-font-family: "Segoe UI Semibold";
     -fx-font-size: 11px;
+    -fx-alignment: center;
     -fx-padding: 2 10 2 10;
     -fx-background-radius: 12px;
     -fx-border-radius: 12px;

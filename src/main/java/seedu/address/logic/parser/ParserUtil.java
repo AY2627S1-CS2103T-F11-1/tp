@@ -34,6 +34,18 @@ public class ParserUtil {
     private static final String FOLLOW_UP_DATE_REGEX = "[0-9]{4}-[0-9]{2}-[0-9]{2}";
 
     /**
+     * Replaces each {@code \/} sequence with a literal slash, preserving other backslashes.
+     *
+     * @param value the field value or search text to decode
+     * @return the decoded value
+     * @throws NullPointerException if {@code value} is null
+     */
+    public static String unescapeSlashes(String value) {
+        requireNonNull(value);
+        return value.replace("\\/", "/");
+    }
+
+    /**
      * Parses {@code oneBasedIndex} into an {@code Index} and returns it. Leading and trailing whitespaces will be
      * trimmed.
      * @throws ParseException if the specified index is invalid (not a non-zero unsigned integer).
@@ -55,7 +67,7 @@ public class ParserUtil {
      */
     public static Name parseName(String name) throws ParseException {
         requireNonNull(name);
-        String trimmedName = name.trim();
+        String trimmedName = unescapeSlashes(name.trim());
         if (!Name.isValidName(trimmedName)) {
             throw new ParseException(Name.MESSAGE_CONSTRAINTS);
         }
@@ -85,7 +97,7 @@ public class ParserUtil {
      */
     public static Address parseAddress(String address) throws ParseException {
         requireNonNull(address);
-        String trimmedAddress = address.trim();
+        String trimmedAddress = unescapeSlashes(address.trim());
         if (!Address.isValidAddress(trimmedAddress)) {
             throw new ParseException(Address.MESSAGE_CONSTRAINTS);
         }
@@ -115,7 +127,7 @@ public class ParserUtil {
      */
     public static Role parseRole(String role) throws ParseException {
         requireNonNull(role);
-        String trimmedRole = role.trim();
+        String trimmedRole = unescapeSlashes(role.trim());
         if (!Role.isValidRole(trimmedRole)) {
             throw new ParseException(Role.MESSAGE_CONSTRAINTS);
         }
@@ -130,7 +142,7 @@ public class ParserUtil {
      */
     public static Tag parseTag(String tag) throws ParseException {
         requireNonNull(tag);
-        String trimmedTag = tag.trim();
+        String trimmedTag = unescapeSlashes(tag.trim());
         if (!Tag.isValidTagName(trimmedTag)) {
             throw new ParseException(Tag.MESSAGE_CONSTRAINTS);
         }

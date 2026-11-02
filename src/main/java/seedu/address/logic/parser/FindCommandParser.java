@@ -80,7 +80,7 @@ public class FindCommandParser implements Parser<FindCommand> {
         }
 
         // Preserve legacy behaviour
-        String[] legacyKeywords = trimmedArgs.split("\\s+");
+        String[] legacyKeywords = ParserUtil.unescapeSlashes(trimmedArgs).split("\\s+");
 
         return new FindCommand(new NameContainsKeywordsPredicate(List.of(legacyKeywords)));
     }
@@ -90,6 +90,7 @@ public class FindCommandParser implements Parser<FindCommand> {
      */
     private List<String> normaliseSearchPhrases(List<String> phrases) {
         return phrases.stream()
+                .map(ParserUtil::unescapeSlashes)
                 .map(phrase -> phrase.replaceAll(" +", " "))
                 .toList();
     }
