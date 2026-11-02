@@ -122,7 +122,9 @@ How the `Logic` component works:
 1. This results in a `Command` object (more precisely, an object of one of its subclasses e.g., `DeleteCommand`) which is executed by the `LogicManager`.
 1. The command can communicate with the `Model` when it is executed (e.g. to delete a person).<br>
    Note that although this is shown as a single step in the diagram above for simplicity, the code can require several interactions between the command object and the `Model` to complete the operation.
-1. The result of the command execution is encapsulated as a `CommandResult` object which is returned from `Logic`.
+1. The command returns a `CommandResult` to `LogicManager`. The manager records selection-change metadata and requests a save through `Storage` before returning a successful result to the UI.
+   Parsing or command-validation failures skip the save step. Saving failures are reported as `CommandException`;
+   their effects on contact data and history are described under [Persistence and failures](#persistence-and-failures).
 
 Here are the other classes in `Logic` (omitted from the class diagram above) that are used for parsing a user command:
 
@@ -130,7 +132,8 @@ Here are the other classes in `Logic` (omitted from the class diagram above) tha
 
 How the parsing works:
 * When called upon to parse a user command, the `AddressBookParser` class creates an `XYZCommandParser` (`XYZ` is a placeholder for the specific command name, e.g., `AddCommandParser`). The parser uses the other classes shown above to parse the user command and create an `XYZCommand` object (e.g., `AddCommand`). The `AddressBookParser` returns that object as a `Command` object.
-* All `XYZCommandParser` classes, such as `AddCommandParser` and `DeleteCommandParser`, implement the `Parser` interface so they can be treated similarly where appropriate, for example during testing.
+* Command parsers such as `AddCommandParser`, `DeleteCommandParser`, and `ExitCommandParser` implement `Parser<T>`.
+  Optional `help` arguments are parsed inside `AddressBookParser`. These paths return a `Command` for execution by `LogicManager`.
 
 ### Model component
 **API** : [`Model.java`](https://github.com/AY2627S1-CS2103T-F11-1/tp/tree/master/src/main/java/seedu/address/model/Model.java)
@@ -140,7 +143,9 @@ How the parsing works:
 
 The `Model` component,
 
-* stores the address book data i.e., all `Person` objects (which are contained in a `UniquePersonList` object). Each `Person` contains a `Name`, `Phone`, `Email`, `Address`, `Role`, a set of `Tag` objects, and an optional `FollowUp`.
+* owns a `VersionedAddressBook`, which extends `AddressBook` with session history. Its `UniquePersonList` contains immutable `Person` objects.
+  Each contact contains a `Name`, `Phone`, `Email`, `Address`, custom `Role`, a set of `Tag` objects, and an optional `FollowUp`.
+  The history snapshots and pointer remain in memory; storage serializes the current contact data.
 * maintains a `FilteredList<Person>` backed by the address book's contact list, and a `SortedList<Person>` wrapping that filtered view. The `getFilteredPersonList()` API exposes the filtered and sorted displayed list as an unmodifiable `ObservableList<Person>`. The UI and index-based commands use the same displayed ordering, while the underlying contact order remains unchanged.
 * stores a `UserPrefs` object that represents the user’s preferences (currently, just the GUI settings). This is exposed to the outside as a `ReadOnlyUserPrefs` object.
 * does not depend on any of the other three components (as the `Model` represents data entities of the domain, they should make sense on their own without depending on other components)
@@ -161,8 +166,10 @@ The `Model` component,
 The `Storage` component,
 * can save both address book data and user preference data in JSON format, and read them back into corresponding objects.
 * is implemented by `StorageManager`, which delegates the actual JSON file access to `JsonAddressBookStorage` and `JsonUserPrefsStorage` (one class per data file).
-* can create a timestamped backup copy of the address book data file when corrupted or invalid data is encountered on launch.
-* writes files atomically using `FileUtil#writeToFile`, writing to a temporary sibling file before replacing the target file to prevent data corruption.
+* can create timestamped backup copies of existing invalid contact-data and preference files during startup recovery.
+  See [Startup loading and recovery](#startup-loading-and-recovery) for missing-file and failed-backup behaviour.
+* writes through a temporary sibling file using `FileUtil#writeToFile`. Replacement requests an atomic move, with a non-atomic fallback when unsupported;
+  see [Atomic file persistence](#atomic-file-persistence) for the guarantee boundary.
 * depends on some classes in the `Model` component (because the `Storage` component's job is to save/retrieve objects that belong to the `Model`).
 
 The sequence diagram below shows how the application recovers when a corrupted data file is encountered at startup:
@@ -177,7 +184,8 @@ Classes used by multiple components are in the `seedu.address.commons` package.
 
 ## **Implementation**
 
-This section describes some noteworthy details on how certain features are implemented.
+This section describes the v1.6 implementation in the project working directory, ahead of its GitHub release.
+Shared explanations distinguish contact data, displayed views, session history, and saved files; command-specific flows build on these mechanisms.
 
 ### Adding a contact
 
@@ -199,7 +207,7 @@ How the command parsing and execution works:
    * Checks that the preamble is empty.
    * `ArgumentMultimap#verifyNoDuplicatePrefixesFor()` rejects repeated compulsory prefixes.
    * Parses individual fields into domain value objects (`Name`, `Phone`, `Email`, `Address`, `Role`, and a set of `Tag` objects) via `ParserUtil`.
-4. A new `Person` entity `toAdd` is constructed, and `AddCommandParser` returns an `AddCommand` object (labeled `command`). Because `AddCommandParser` is a transient parser instance created solely to parse a single command string, it is discarded immediately after `parse()` completes, as indicated by the destroy marker (`X`).
+4. A new `Person` entity `toAdd` is constructed, and `AddCommandParser` returns an `AddCommand` object (labeled `command`). The parser instance is no longer needed after parsing. The diagram's destroy marker (`X`) represents the end of its role in this interaction; Java garbage collection does not have a specified immediate destruction time.
 5. `LogicManager` executes `AddCommand#execute(Model)`.
 6. `AddCommand` queries `Model` to verify uniqueness:
    * `Model#hasPhone(toAdd.getPhone())`
@@ -227,7 +235,7 @@ adapters never decode escapes. Phone, email and date values do not use slash dec
 
 `FindCommandParser.normaliseSearchPhrases()` applies `normalizeSpaces()` to prefixed queries, retaining
 substring matching, OR within fields and AND across fields. Queries have no whole-field validation or
-length limit. Legacy name search retains whitespace-based keyword splitting.
+length limit. Simple name search retains whitespace-based keyword splitting.
 
 #### Email and phone validation
 
@@ -236,6 +244,10 @@ length limit. Legacy name search retains whitespace-based keyword splitting.
 case. Validation checks syntax only, without mailbox verification or IDN conversion.
 
 `Phone.VALIDATION_REGEX` accepts 3–20 ASCII digits, preserving leading zeroes.
+
+Contact identity is separate from full value equality: `Person#isSamePerson()` matches either the phone number or email,
+while `Person#equals()` compares all stored fields, including tags and the optional follow-up. Duplicate checks examine
+all stored contacts, including those hidden by a filter. A role is custom validated text rather than an enumeration of fixed categories.
 
 #### Execution flow
 
@@ -303,8 +315,10 @@ shared syntax described under [Name, role, and tag formatting](#name-role-and-ta
 #### Predicate composition and execution
 
 `NameContainsKeywordsPredicate`, `RoleContainsKeywordsPredicate`, and
-`TagContainsKeywordsPredicate` implement `Predicate<Person>`. They use `Locale.ROOT`
-to lowercase both field values and search criteria, then apply `String#contains()`.
+`TagContainsKeywordsPredicate` implement `Predicate<Person>`. They apply `StringUtil.normalizeCase()`
+to field values and search criteria before using `String#contains()`. The helper maps each Unicode code point through
+`Character.toUpperCase()` and then `Character.toLowerCase()`, supporting case equivalents such as `σ` and `ς`
+without changing stored spelling or removing accents. The shared [text-processing explanation](#contact-text-validation-formatting-and-searching) describes validation and spacing.
 Each predicate uses `anyMatch()` to implement OR within its field. The tag predicate
 matches when at least one tag contains at least one supplied phrase; a contact with
 no tags cannot satisfy a tag criterion.
@@ -521,7 +535,8 @@ When adding a user command, define its help constants, register its `COMMAND_USA
 
 ### Adding and deleting contact tags
 
-The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_ADD]... [dt/TAG_TO_DELETE]...`, alongside the existing contact fields. Additions preserve existing tags, and deletions remove only explicitly named tags. The complete edit succeeds or leaves all contact details and the displayed list unchanged.
+The `edit` command supports incremental tag changes using `edit INDEX [t/TAG_TO_ADD]... [dt/TAG_TO_DELETE]...`, alongside the existing contact fields. Additions preserve existing tags, and deletions remove only explicitly named tags. Parsing and command-validation failures leave all contact details and the displayed view unchanged. A successful edit displays all contacts;
+if its subsequent save fails, contact data is rolled back and the restored view also displays all contacts, as described under [Persistence and failures](#persistence-and-failures).
 
 #### Parsing and descriptor
 
@@ -607,7 +622,7 @@ How the command parsing and execution works:
    * `ParserUtil#parseIndex()` parses the target contact index.
    * `ParserUtil#parseFollowUpDate()` parses the due date into a `LocalDate`.
    * `ParserUtil#unescapeSlashes()` and `FollowUp#isValidDescription()` validate the description string.
-4. A `SetFollowUpCommand` object (labeled `f`) containing the parsed index and new `FollowUp` is returned. The transient `FollowUpCommandParser` is discarded immediately after `parse()` completes, as indicated by the destroy marker (`X`).
+4. A `SetFollowUpCommand` object (labeled `f`) containing the parsed index and new `FollowUp` is returned. The parser is no longer needed after parsing; the destroy marker (`X`) marks its role ending in the illustrated interaction rather than a guaranteed Java garbage-collection event.
 5. `LogicManager` executes `SetFollowUpCommand#execute(Model)`:
    * The command retrieves `personToUpdate` from the filtered list using the zero-based index.
    * `createPersonWithFollowUp()` constructs a replacement `Person` entity `updatedPerson` containing the new `FollowUp`.
@@ -623,7 +638,9 @@ The command replaces the model's current contact predicate, searching the entire
 * `OVERDUE` accepts follow-ups due strictly before today.
 * `BY_DATE` accepts follow-ups due on or before the cutoff.
 
-The overdue query uses an injectable `Clock`. Today's date is captured when the command executes and remains fixed in the predicate until the query is rerun. Results retain address-book order.
+The overdue query uses an injectable `Clock`. Today's date is captured when the command executes and remains fixed in the predicate until the query is rerun.
+Results retain the comparator on the model's wrapping `SortedList<Person>`; without a comparator they follow insertion order.
+Queries replace the filter over the complete contact list, so an earlier search does not restrict their input.
 
 Queries do not commit snapshots or alter contact data. An empty result displays `No follow-ups found.`
 
@@ -633,8 +650,11 @@ is selected. Contacts without follow-ups hide the section and set it unmanaged s
 The compact `PersonCard` shows only a `Follow-up`, `Due today`, or `Overdue` badge beside the role when a follow-up is
 present, leaving its date and description in the details panel. Replacement contacts rebuild the card through the
 existing list-cell factory, so setting, replacing, clearing, undoing, or redoing a follow-up refreshes the badge without
-new model state. The shared `UiDateTracker` also updates badge urgency and the selected details panel as the day changes.
-The `followups overdue` query keeps the date captured when the command executes; rerun it to update result membership.
+new model state. The shared `UiDateTracker` exposes a `ReadOnlyObjectProperty<LocalDate>` to the cards and details panel on the JavaFX application thread.
+It checks the injected clock once per minute while the window is shown and immediately when the window is shown or regains focus.
+It notifies observers only when the date changes. These presentation updates preserve the command draft, selection, and scroll positions;
+they do not mutate contacts, commit history, or trigger a save. The `followups overdue` query keeps its separately captured date;
+rerun it to update result membership.
 
 The command selection handling described under contact details and selection tracks replacement contacts and refreshes
 the details panel after follow-up changes. A contact that no longer matches a follow-up filter clears selection.
@@ -689,9 +709,9 @@ adding to the previous sorting criteria.
 `updateSortedPersonList()` changes the comparator on the sorted view. Neither operation rearranges stored contacts.
 With no comparator, the sorted view follows its source order.
 
-`sort clear` calls `updateSortedPersonList(null)`. Since a `SortedList` without
-a comparator follows its source order, this restores the original insertion
-order without rearranging the stored contact list.
+`sort clear` takes a separate branch before comparator construction. It first resets the filter to `PREDICATE_SHOW_ALL_PERSONS`,
+then calls `updateSortedPersonList(null)` and returns clearing feedback. A `SortedList` without a comparator follows its source order,
+so this displays all contacts in insertion order without rearranging stored data.
 
 ![Partial class diagram of the model's filtered and sorted contact views](images/SortModelClassDiagram.png)
 
@@ -746,17 +766,21 @@ Filtering remains independent: users can run find afterwards to narrow the sorte
 
 #### Implementation
 
-The proposed undo/redo mechanism is facilitated by `VersionedAddressBook`. It extends `AddressBook` with an undo/redo history, stored internally as an `addressBookStateList` and `currentStatePointer`. Additionally, it implements the following operations:
+The implemented undo/redo mechanism is facilitated by `VersionedAddressBook`. It extends `AddressBook` with an undo/redo history, stored internally as an `addressBookStateList` and `currentStatePointer`. Additionally, it implements the following operations:
 
 * `VersionedAddressBook#commit()` — Saves the current address book state in its history.
 * `VersionedAddressBook#undo()` — Restores the previous address book state from its history.
 * `VersionedAddressBook#redo()` — Restores a previously undone address book state from its history.
-* `canUndoAddressBook()` — Indicates whether a previous snapshot exists.
-* `canRedoAddressBook()` — Indicates whether a next snapshot exists.
+* `VersionedAddressBook#canUndo()` — Indicates whether a previous snapshot exists.
+* `VersionedAddressBook#canRedo()` — Indicates whether a next snapshot exists.
+* `VersionedAddressBook#rollbackCommit()` — Discards a newly committed state after a failed save and reinstates the redo states that commit displaced.
 
-These operations are exposed in the `Model` interface as `Model#commitAddressBook()`, `Model#undoAddressBook()` and `Model#redoAddressBook()` respectively.
+`ModelManager` delegates these operations through the `Model` API: `commitAddressBook()`, `undoAddressBook()`, `redoAddressBook()`,
+`canUndoAddressBook()`, `canRedoAddressBook()`, and `rollbackAddressBook()`. Undo, redo, and rollback reset the displayed filter to show all contacts;
+they retain the current sort comparator. History is cleared when the application closes.
 
-`AddCommand`, `DeleteCommand`, `EditCommand`, `ClearCommand`, `SetFollowUpCommand` and `ClearFollowUpCommand` commit once after successful execution, immediately before returning their result. Validation failures do not commit. Successful modifying commands commit even when the resulting contact data is unchanged.
+`AddCommand`, `DeleteCommand`, `EditCommand`, `ClearCommand`, `SetFollowUpCommand` and `ClearFollowUpCommand` commit once after successful execution, immediately before returning their result. Validation failures do not commit. A valid edit or follow-up replacement can commit even when its result equals the previous data. Clearing an already-empty book is an exception:
+it returns feedback without committing, so any available redo history is preserved.
 
 `UndoCommandParser` and `RedoCommandParser` accept empty or whitespace-only arguments and reject additional arguments. Their commands check availability before requesting the corresponding model operation. Undo and redo do not create new snapshots.
 
@@ -824,18 +848,23 @@ The following activity diagram summarizes what happens when a user executes a ne
 
 #### Persistence and failures
 
-After successful command execution, `LogicManager` saves the current contact
-data through `Storage`. Only contact data is serialized; snapshots and the
-history pointer remain in memory.
+After successful command execution, `LogicManager` requests a save of `model.getAddressBook()` through `Storage`.
+This includes browsing and help commands. Parsing and command-validation failures exit before the save step.
+Only the current contact data is serialized; filters, sorting, selection, snapshots, and the history pointer remain in memory.
 
-If saving a modifying command fails after it commits a new state, `LogicManager` uses `Model#rollbackAddressBook()`
-to discard that state and restore the previous committed snapshot. The displayed filter resets to show all contacts.
-Selection metadata from the discarded change is reset before the UI reconciles the restored list. Failed saves for
-commands that do not advance the history pointer do not roll back an earlier successful change.
+The manager records the history pointer before execution. Its error handling depends on whether the command committed a new state:
 
-If saving after undo or redo throws `IOException`, `LogicManager` reports a
-`CommandException`. The restored contact data and moved history pointer remain
-in memory; no rollback is performed.
+Outcome | Contact data and history | Display and selection
+--------|--------------------------|----------------------
+A modifying command commits, but saving fails | `rollbackAddressBook()` delegates to `rollbackCommit()`: the previous snapshot is restored, the new state is removed, and displaced redo states are reinstated. | The filter resets to all contacts while sorting is retained. Replacement metadata is cleared; the UI retains the original selected object when it is present in the restored view.
+Saving after `undo` or `redo` fails | No rollback is performed. The restored data and moved history pointer remain in memory. | The all-contact view and selection reset from the executed undo/redo remain applied.
+Saving a command that did not advance the history pointer fails | No earlier contact-data change is rolled back. | The command's view effects remain. For example, a valid explicit selection request is retained.
+
+`AccessDeniedException` and other `IOException` failures are converted to `CommandException` feedback.
+`MainWindow` reconciles selection in its `finally` block even when execution reports an error. Selection resets take precedence over an explicit request;
+an explicit request takes precedence over retaining the previous contact or its recorded replacement. The UI then checks that the chosen object is still visible.
+
+Memory rollback and file-replacement guarantees are separate concerns. See [Atomic file persistence](#atomic-file-persistence) for filesystem limitations.
 
 #### Design considerations:
 
@@ -859,32 +888,60 @@ _{Explain here how the data archiving feature will be implemented}_
 ### Atomic file persistence
 
 #### Overview
-To prevent data corruption during unexpected process terminations or disk write failures, file persistence uses atomic replacement through `FileUtil#writeToFile`.
+File persistence uses `FileUtil#writeToFile` to write a complete temporary file before replacing the destination.
+It requests atomic replacement where supported. If the filesystem rejects atomic moves, the fallback replaces the file without requesting atomicity;
+the application therefore cannot guarantee atomic replacement on every filesystem.
 
 #### Implementation details
-When `LogicManager` executes a command, it requests `Storage` to persist the updated address book:
+After a command executes successfully, `LogicManager` requests `Storage` to persist the current address book.
+The following steps describe a contact-data save; preference JSON uses the same file-writing utility.
+
 1. `JsonAddressBookStorage` serializes the address book into JSON via `JsonUtil#saveJsonFile`.
 2. `JsonUtil` delegates writing to `FileUtil#writeToFile(Path file, String content)`.
 3. `FileUtil#writeToFile` creates any missing parent directories, then creates a temporary file in the same parent directory (`tmp_<filename>.<rand>.tmp`). Using the same directory ensures the temporary file resides on the same filesystem volume, enabling atomic file replacement.
 4. The serialized JSON content is written to the temporary file using UTF-8 encoding.
 5. `FileUtil#writeToFile` atomically replaces the destination file using `Files.move(..., StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)`.
 6. If the filesystem does not support atomic moves (`AtomicMoveNotSupportedException`), it falls back to `StandardCopyOption.REPLACE_EXISTING`.
-7. If an error occurs during writing or moving, a `finally` block deletes the temporary file and the `IOException` is re-thrown.
-8. `LogicManager` catches `AccessDeniedException` or `IOException`, converts it into a `CommandException`, and `MainWindow` displays the save error to the user in the command result display. The original file on disk remains untouched.
+7. A `finally` block attempts to delete any remaining temporary file using `Files.deleteIfExists()`. I/O failures propagate to the caller.
+8. For contact-data saves during command execution, `LogicManager` converts `AccessDeniedException` or another `IOException` into `CommandException` feedback.
+   In-memory recovery follows [Persistence and failures](#persistence-and-failures). Preference-save errors are handled separately by `MainApp`.
 
-The sequence diagram below illustrates the interactions across components during an atomic write operation:
+Failures before replacement leave the destination unmodified. The non-atomic fallback does not provide the same all-or-nothing replacement guarantee;
+callers must not assume every reported failure means the old file is intact. This mechanism also does not establish a power-loss durability guarantee.
+
+The sequence diagram below illustrates the successful atomic-move path across components. The fallback and failure paths are described above:
 
 ![AtomicWriteSequenceDiagram](images/AtomicWriteSequenceDiagram.png)
 
 #### Design considerations
 **Aspect: How file writes are performed**
 * **Alternative 1 (current choice):** Write to a sibling temporary file and atomically replace the destination file.
-  * Pros: Guarantees file integrity. A crash during serialization or disk writing leaves the existing data file intact.
+  * Pros: Keeps serialization and temporary-file writing separate from the destination file; an atomic move, when supported, prevents a partially replaced destination.
+  * Limitation: The fallback move is not guaranteed atomic, and the implementation does not explicitly flush file or directory metadata for power-loss durability.
   * Cons: Requires temporary disk space equal to the size of the saved file during the write operation.
 * **Alternative 2:** Direct in-place file write using `Files.writeString` with standard truncation.
   * Pros: Simpler implementation without temporary files.
   * Cons: The file is truncated before new content is written. A crash or disk error mid-write leaves the data file empty or partially written, corrupting user data.
 
+
+### Startup loading and recovery
+
+`MainApp` initializes preferences and contact data independently. Paths are relative to the launch folder:
+`preferences.json` and `data/addressbook.json`.
+
+File state | Contact data | Preferences
+-----------|--------------|------------
+Missing | Load sample contacts into memory. A contact-data save is attempted only after a successfully executed command. | Use defaults and attempt to save the initialized preferences during startup.
+Existing but invalid | Attempt a timestamped backup, report the backup path or failure, and initialize an empty contact book. One invalid contact rejects the whole file. | Attempt a timestamped backup, report the outcome, and use default preferences. Startup still attempts to save those initialized preferences.
+Valid | Load the saved contacts, including optional follow-ups. | Load saved GUI settings.
+
+Backup copies are made beside the original file using `FileUtil#createTimestampedBackup()`. They preserve the existing file contents,
+including invalid content, and are not a history of successful saves. Failed backup creation does not prevent fallback initialization.
+Warnings from preferences and contact loading are combined for display when the main window opens.
+
+An empty fallback contact book can overwrite the saved contact file after any successful command, including a browsing command or `exit`.
+Recovery therefore requires preserving the available backup or original file and closing the window without entering more commands.
+See the [User Guide recovery procedure](UserGuide.md#recovering-data-that-fails-to-load) for the user-facing steps.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -1386,7 +1443,7 @@ Argument and index errors leave contact data, the displayed view, and undo/redo 
 * **Contact**: A person or commercial entity stored in the address book.
 * **Duplicate contact**: Two contact entries that share either the same phone number or the same email address.
 * **Private contact detail**: A contact detail that is not meant to be shared with others
-* **Primary role**: The required top-level classification assigned to a contact (`employee`, `supplier`, or `service provider`). Every contact has exactly one primary role.
+* **Primary role**: The required custom-text classification assigned to a contact. Examples include `Employee`, `Supplier`, and `Service Provider`; these are not an exhaustive set of permitted values. Every contact has exactly one role.
 * **Tag**: An optional label added to a contact to record categories, supplied parts (such as `switches` or `keycaps`), or services. A contact can have zero or more tags.
 
 #### Technical terms
