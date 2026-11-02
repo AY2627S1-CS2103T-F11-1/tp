@@ -6,6 +6,7 @@ import static seedu.address.commons.util.AppUtil.checkArgument;
 import java.time.LocalDate;
 import java.util.Objects;
 
+import seedu.address.commons.util.StringUtil;
 import seedu.address.commons.util.ToStringBuilder;
 
 /**
@@ -23,9 +24,6 @@ public class FollowUp {
 
     public static final String DATE_MESSAGE_CONSTRAINTS =
             "Follow-up due dates must have a year between 0000 and 9999.";
-
-    private static final int UNICODE_LINE_SEPARATOR = 0x2028;
-    private static final int UNICODE_PARAGRAPH_SEPARATOR = 0x2029;
 
     private static final int MIN_YEAR = 0;
     private static final int MAX_YEAR = 9999;
@@ -62,10 +60,7 @@ public class FollowUp {
         String trimmedDescription = description.strip();
 
         return trimmedDescription.length() <= MAX_DESCRIPTION_LENGTH
-                && trimmedDescription.codePoints().anyMatch(codePoint -> !Character.isWhitespace(codePoint)
-                        && !Character.isSpaceChar(codePoint)
-                        && Character.getType(codePoint) != Character.FORMAT)
-                && trimmedDescription.codePoints().noneMatch(FollowUp::isDisallowedDescriptionCharacter);
+                && StringUtil.isValidText(trimmedDescription);
     }
 
     /**
@@ -74,20 +69,6 @@ public class FollowUp {
     public static boolean isValidDueDate(LocalDate dueDate) {
         requireNonNull(dueDate);
         return dueDate.getYear() >= MIN_YEAR && dueDate.getYear() <= MAX_YEAR;
-    }
-
-    /**
-     * Returns whether a Unicode character is prohibited in a description.
-     * ISO control characters include tabs, carriage returns and newlines.
-     * Unicode also defines separate line and paragraph separators, which
-     * are not ISO control characters and must be checked explicitly.
-     *
-     * @param codePoint the numeric Unicode value of a character.
-     */
-    private static boolean isDisallowedDescriptionCharacter(int codePoint) {
-        return Character.isISOControl(codePoint)
-                || codePoint == UNICODE_LINE_SEPARATOR
-                || codePoint == UNICODE_PARAGRAPH_SEPARATOR;
     }
 
     public LocalDate getDueDate() {

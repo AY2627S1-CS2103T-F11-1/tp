@@ -13,6 +13,37 @@ import java.util.Arrays;
 public class StringUtil {
 
     /**
+     * Returns whether text contains meaningful content and no control characters or Unicode line/paragraph separators.
+     * Whitespace, Unicode spaces and formatting characters alone do not count as meaningful content.
+     * Callers apply any field-specific trimming and length limits separately.
+     */
+    public static boolean isValidText(String text) {
+        requireNonNull(text);
+        return text.codePoints().anyMatch(codePoint -> !Character.isWhitespace(codePoint)
+                && !Character.isSpaceChar(codePoint)
+                && Character.getType(codePoint) != Character.FORMAT)
+                && text.codePoints().noneMatch(StringUtil::isDisallowedTextCharacter);
+    }
+
+    /**
+     * Returns whether a code point is an ISO control character or a Unicode line/paragraph separator.
+     */
+    private static boolean isDisallowedTextCharacter(int codePoint) {
+        return Character.isISOControl(codePoint)
+                || Character.getType(codePoint) == Character.LINE_SEPARATOR
+                || Character.getType(codePoint) == Character.PARAGRAPH_SEPARATOR;
+    }
+
+    /**
+     * Trims surrounding whitespace and collapses repeated ordinary spaces, preserving other internal characters.
+     * This does not validate text; callers must still reject prohibited characters.
+     */
+    public static String normalizeSpaces(String text) {
+        requireNonNull(text);
+        return text.strip().replaceAll(" {2,}", " ");
+    }
+
+    /**
      * Returns true if the {@code sentence} contains the {@code word}.
      *   Ignores case, but a full word match is required.
      *   <br>examples:<pre>

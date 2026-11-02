@@ -1,5 +1,6 @@
 package seedu.address.commons.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -9,6 +10,73 @@ import java.io.FileNotFoundException;
 import org.junit.jupiter.api.Test;
 
 public class StringUtilTest {
+
+    @Test
+    public void isValidText_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> StringUtil.isValidText(null));
+    }
+
+    @Test
+    public void isValidText_blankOrInvisibleOnly_returnsFalse() {
+        // EP: empty (BVA: zero characters), whitespace, Unicode spaces and formatting-only text.
+        String[] invalidTexts = {"", " ", "\t\n", "\u2003", "\u00A0", "\u200B", "\u2060",
+            " \u200B\u00A0\u2003\u2060 "};
+        for (String text : invalidTexts) {
+            assertFalse(StringUtil.isValidText(text));
+        }
+    }
+
+    @Test
+    public void isValidText_prohibitedCharacters_returnsFalse() {
+        // EP: all ISO controls, including C1 controls, and Unicode line/paragraph separators.
+        for (int codePoint = 0; codePoint <= 0x9F; codePoint++) {
+            if (Character.isISOControl(codePoint)) {
+                assertFalse(StringUtil.isValidText("a" + (char) codePoint + "b"));
+            }
+        }
+        assertFalse(StringUtil.isValidText("a\u2028b"));
+        assertFalse(StringUtil.isValidText("a\u2029b"));
+        // EP: validation itself does not trim prohibited characters at the edges.
+        assertFalse(StringUtil.isValidText("\tText"));
+        assertFalse(StringUtil.isValidText("Text\n"));
+    }
+
+    @Test
+    public void isValidText_meaningfulContent_returnsTrue() {
+        // EP: Unicode, punctuation, literal backslashes, and formatting/spaces alongside visible content.
+        // BVA: one meaningful character is sufficient; this helper imposes no maximum length.
+        String[] validTexts = {"!", "John A. Tan", "Jos\u00E9 Tan", "\u738B\u5C0F\u660E", "Supplier (PCB)",
+            "62.5g", "PCB v1.6", "Switches (5-pin)", "C:\\Parts", "a/b", "\uD83D\uDE00",
+            " \u200BText\u00A0\u2060 ", "a".repeat(201)};
+        for (String text : validTexts) {
+            assertTrue(StringUtil.isValidText(text));
+        }
+    }
+
+    @Test
+    public void normalizeSpaces_null_throwsNullPointerException() {
+        assertThrows(NullPointerException.class, () -> StringUtil.normalizeSpaces(null));
+    }
+
+    @Test
+    public void normalizeSpaces_trimsAndCollapsesOrdinarySpaces() {
+        // EP: empty/blank, surrounding Unicode whitespace, and repeated ordinary spaces.
+        assertEquals("", StringUtil.normalizeSpaces(""));
+        assertEquals("", StringUtil.normalizeSpaces("   "));
+        assertEquals("John A. Tan", StringUtil.normalizeSpaces("\u2003 John   A.  Tan \u2003"));
+        // BVA: a single ordinary space remains a single space.
+        assertEquals("PCB v1.6", StringUtil.normalizeSpaces("PCB v1.6"));
+    }
+
+    @Test
+    public void normalizeSpaces_preservesOtherInternalCharacters() {
+        // EP: casing, Unicode, punctuation and literal backslashes remain unchanged.
+        String text = "Jos\u00E9 (PCB) \\ Parts / \u738B";
+        assertEquals(text, StringUtil.normalizeSpaces(text));
+        // EP: internal non-ordinary spaces and prohibited characters are not silently collapsed.
+        String internalCharacters = "A\tB\nC\u00A0D\u2003E\u200BF\u2028G\u2029H";
+        assertEquals(internalCharacters, StringUtil.normalizeSpaces(internalCharacters));
+    }
 
     //---------------- Tests for isNonZeroUnsignedInteger --------------------------------------
 
