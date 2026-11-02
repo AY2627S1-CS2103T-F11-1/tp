@@ -125,4 +125,51 @@ public class MainAppTest {
         assertTrue(warningMessage.endsWith("Starting with an empty contact book."));
         assertEquals(new AddressBook(), new AddressBook(model.getAddressBook()));
     }
+
+    @Test
+    public void initPrefs_corruptedPrefsFile_createsBackupAndSetsWarning() throws Exception {
+        Path corruptedPrefsPath = testFolder.resolve("corrupted_prefs.json");
+        Files.writeString(corruptedPrefsPath, "invalid json content");
+        JsonUserPrefsStorage prefsStorage = new JsonUserPrefsStorage(corruptedPrefsPath);
+
+        UserPrefs resultPrefs = mainApp.initPrefs(prefsStorage);
+
+        assertEquals(new UserPrefs(), resultPrefs);
+        String warningMessage = mainApp.getInitialStatusMessage();
+        assertTrue(warningMessage != null && !warningMessage.isBlank());
+        assertTrue(warningMessage.startsWith("Warning: Preference file "));
+        assertTrue(warningMessage.contains("is corrupted"));
+        assertTrue(warningMessage.contains("A backup was created at "));
+        assertTrue(warningMessage.endsWith("Using default preferences."));
+
+        boolean backupFound = false;
+        try (var stream = Files.list(testFolder)) {
+            backupFound = stream.anyMatch(path ->
+                    path.getFileName().toString().startsWith("corrupted_prefs.json.backup."));
+        }
+        assertTrue(backupFound);
+    }
+
+    @Test
+    public void initPrefs_corruptedPrefsFileBackupThrowsIoException_setsFallbackWarning() throws Exception {
+        Path corruptedPrefsPath = testFolder.resolve("corrupted_prefs_io_error.json");
+        Files.writeString(corruptedPrefsPath, "invalid json content");
+
+        JsonUserPrefsStorage faultyPrefsStorage = new JsonUserPrefsStorage(corruptedPrefsPath) {
+            @Override
+            public Path backupUserPrefsFile(Path filePath) throws IOException {
+                throw new IOException("Disk failure during prefs backup");
+            }
+        };
+
+        UserPrefs resultPrefs = mainApp.initPrefs(faultyPrefsStorage);
+
+        assertEquals(new UserPrefs(), resultPrefs);
+        String warningMessage = mainApp.getInitialStatusMessage();
+        assertTrue(warningMessage != null && !warningMessage.isBlank());
+        assertTrue(warningMessage.startsWith("Warning: Preference file "));
+        assertTrue(warningMessage.contains("is corrupted"));
+        assertTrue(warningMessage.contains("creating a backup failed: Disk failure during prefs backup"));
+        assertTrue(warningMessage.endsWith("Using default preferences."));
+    }
 }
