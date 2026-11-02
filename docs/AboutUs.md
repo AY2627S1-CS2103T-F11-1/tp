@@ -16,7 +16,7 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 [[portfolio](team/kimame04.md)]
 
 * Role: Developer
-* Responsibilities: Documentation, UI & Integration
+* Responsibilities: Role classification, Duplicate detection, UI layout & Theming
 
 ### Xavier
 
