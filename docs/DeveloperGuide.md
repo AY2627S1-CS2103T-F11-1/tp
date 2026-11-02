@@ -435,6 +435,15 @@ The activity diagram below illustrates the duplicate resolution and defensive er
   * Pros: Simpler lookup logic.
   * Cons: Disallows contacts sharing a name and allows duplicate phone numbers and email addresses to enter the pipeline undetected.
 
+**Aspect: Phone number representation and future work**
+
+The current release stores one `Phone` per contact and uses exact-string equality for the phone part of
+duplicate detection. This simplifies comparison but excludes useful formats and multiple contact numbers.
+Simply accepting separators would let `91234567` and `9123 4567` bypass a phone match.
+Future support should define canonical comparison values, country-code and extension handling while
+preserving display formatting. Multiple numbers would also require model, command and storage changes,
+with duplicate checks across all numbers. These enhancements are deferred beyond the current tP release.
+
 **Aspect: Input prefix validation**
 
 * **Alternative 1 (current choice):** Strict rejection of unrecognized prefixes via `ArgumentTokenizer#verifyNoUnrecognizedPrefixes()`.

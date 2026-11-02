@@ -183,6 +183,13 @@ Addresses and follow-up descriptions preserve internal spacing. Names, roles and
 Duplicate tags are combined, ignoring case, preserving the first stored spelling.
 Tag length uses Java string characters: most ordinary characters count as one; some, such as emoji, count as two.
 
+**Phone number limitation**
+
+Each contact currently supports one digits-only phone number. We recognise that formatted numbers,
+extensions and separate mobile/office numbers can be useful, but these are unsupported in this release.
+Phone duplicate checks compare the stored digit strings exactly; local/international forms are not normalised.
+Support for formatted or multiple numbers is possible future work.
+
 <a id="supported-email-syntax"></a>
 
 **Supported email syntax**
