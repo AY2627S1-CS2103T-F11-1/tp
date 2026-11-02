@@ -6,23 +6,25 @@ skinparam ArrowFontSize 12
 start
 :Parse help input;
 
-if (Command target provided?) then ([no])
+if () then ([No command specified])
     :Create CommandResult with opening feedback\nand showHelp = true;
-else ([yes])
-    if (Target supported?) then ([yes])
+else ([Command specified])
+    if () then ([Command supported])
         :Look up the target command's COMMAND_USAGE;
         :Create CommandResult with usage feedback\nand showHelp = false;
-    else ([no])
+    else ([Command unsupported])
         :Create CommandResult with guidance\nand showHelp = false;
     endif
 endif
 
 :Display feedback in ResultDisplay;
 
-if (showHelp is true?) then ([yes])
+'Use a two-case layout to separate the guards on the left and right paths.
+switch ()
+case ([Help window requested])
     :Open or focus HelpWindow;
-else ([no])
-endif
+case ([Help window not requested])
+endswitch
 
 stop
 @enduml

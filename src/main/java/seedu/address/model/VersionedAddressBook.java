@@ -11,6 +11,7 @@ public class VersionedAddressBook extends AddressBook {
 
     private final List<ReadOnlyAddressBook> addressBookStateList;
     private int currentStatePointer;
+    private List<ReadOnlyAddressBook> discardedRedoStates = List.of();
 
     /**
      * Creates a {@code VersionedAddressBook} using the given {@code initialState}.
@@ -28,6 +29,8 @@ public class VersionedAddressBook extends AddressBook {
      * Undone states after the current pointer are removed from the state list.
      */
     public void commit() {
+        discardedRedoStates = new ArrayList<>(
+                addressBookStateList.subList(currentStatePointer + 1, addressBookStateList.size()));
         removeStatesAfterCurrentPointer();
         addressBookStateList.add(new AddressBook(this));
         currentStatePointer++;
@@ -60,7 +63,8 @@ public class VersionedAddressBook extends AddressBook {
     }
 
     /**
-     * Discards the most recently committed state and restores the previous state.
+     * Discards the most recently committed state and restores the previous state,
+     * reinstating any redo states that were discarded during the rolled-back commit.
      */
     public void rollbackCommit() {
         if (!canUndo()) {
@@ -69,6 +73,8 @@ public class VersionedAddressBook extends AddressBook {
         currentStatePointer--;
         resetData(addressBookStateList.get(currentStatePointer));
         removeStatesAfterCurrentPointer();
+        addressBookStateList.addAll(discardedRedoStates);
+        discardedRedoStates = List.of();
     }
 
     /**
