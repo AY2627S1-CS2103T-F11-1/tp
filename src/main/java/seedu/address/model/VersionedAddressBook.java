@@ -66,10 +66,12 @@ public class VersionedAddressBook extends AddressBook {
     }
 
     /**
-     * Discards the most recently committed state and restores the previous state.
+     * Discards the most recently committed state and restores the previous state,
+     * reinstating any redo states that were discarded during the rolled-back commit.
      */
     public void rollbackCommit() {
         if (!canUndo()) {
+            discardedRedoStates.clear();
             return;
         }
         currentStatePointer--;

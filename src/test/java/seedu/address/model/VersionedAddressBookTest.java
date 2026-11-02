@@ -209,6 +209,18 @@ public class VersionedAddressBookTest {
                 Collections.singletonList(addressBookWithBob));
         assertTrue(versionedAddressBook.canUndo());
         assertTrue(versionedAddressBook.canRedo());
+        versionedAddressBook.redo();
+        assertEquals(addressBookWithBob, versionedAddressBook);
+    }
+
+    @Test
+    public void rollbackCommit_atBeginningOfStateList_clearsDiscardedRedoStates() {
+        VersionedAddressBook versionedAddressBook = prepareAddressBookList(emptyAddressBook);
+        versionedAddressBook.rollbackCommit();
+        assertAddressBookListStatus(versionedAddressBook,
+                Collections.emptyList(),
+                emptyAddressBook,
+                Collections.emptyList());
     }
 
     @Test

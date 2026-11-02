@@ -290,6 +290,7 @@ public class LogicManagerTest {
 
         Assertions.assertThrows(CommandException.class, () -> logic.execute("delete 1"));
         assertTrue(model.hasPerson(ALICE));
+        assertTrue(model.canUndoAddressBook());
         assertTrue(model.canRedoAddressBook());
 
         // Redo remains available and functions normally
