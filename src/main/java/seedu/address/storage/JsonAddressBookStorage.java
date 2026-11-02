@@ -2,12 +2,8 @@ package seedu.address.storage;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -112,25 +108,7 @@ public class JsonAddressBookStorage {
      */
     public Path backupAddressBookFile(Path filePath) throws IOException {
         requireNonNull(filePath);
-
-        if (!Files.exists(filePath)) {
-            throw new FileNotFoundException("Cannot backup non-existent file: " + filePath);
-        }
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
-        String timestamp = LocalDateTime.now().format(formatter);
-        String baseBackupName = filePath.getFileName().toString() + ".backup." + timestamp;
-        Path parent = filePath.getParent();
-        Path backupPath = parent == null ? Path.of(baseBackupName) : parent.resolve(baseBackupName);
-
-        int counter = 1;
-        while (Files.exists(backupPath)) {
-            String collisionName = baseBackupName + "_" + counter;
-            backupPath = parent == null ? Path.of(collisionName) : parent.resolve(collisionName);
-            counter++;
-        }
-
-        Files.copy(filePath, backupPath);
+        Path backupPath = FileUtil.createTimestampedBackup(filePath);
         logger.info("Created backup of data file from " + filePath + " to " + backupPath);
         return backupPath;
     }

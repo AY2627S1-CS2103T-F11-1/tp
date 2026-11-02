@@ -66,6 +66,10 @@ public class MainApp extends Application {
         return initialStatusMessage;
     }
 
+    private void appendInitialStatusMessage(String message) {
+        initialStatusMessage = initialStatusMessage == null ? message : initialStatusMessage + "\n" + message;
+    }
+
     /**
      * Returns a {@code ModelManager} with the data from {@code storage}'s address book and {@code userPrefs}. <br>
      * The data from the sample address book will be used instead if {@code storage}'s address book is not found,
@@ -98,17 +102,13 @@ public class MainApp extends Application {
                             + "A backup was created at %3$s. Starting with an empty contact book.",
                             filePath, causeMsg, backupPath);
                     logger.warning(warning);
-                    initialStatusMessage = initialStatusMessage == null
-                            ? warning
-                            : initialStatusMessage + "\n" + warning;
+                    appendInitialStatusMessage(warning);
                 } catch (IOException ioe) {
                     String warning = String.format("Warning: Data file %1$s is corrupted (%2$s), and creating "
                             + "a backup failed: %3$s. Starting with an empty contact book.",
                             filePath, causeMsg, ioe.getMessage());
                     logger.severe(warning);
-                    initialStatusMessage = initialStatusMessage == null
-                            ? warning
-                            : initialStatusMessage + "\n" + warning;
+                    appendInitialStatusMessage(warning);
                 }
             }
         }
@@ -133,9 +133,29 @@ public class MainApp extends Application {
             }
             initializedPrefs = prefsOptional.orElse(new UserPrefs());
         } catch (DataLoadingException e) {
-            logger.warning("Preference file at " + prefsFilePath + " could not be loaded."
-                    + " Using default preferences.");
             initializedPrefs = new UserPrefs();
+            if (!Files.exists(prefsFilePath)) {
+                logger.warning("Preference file at " + prefsFilePath + " could not be loaded."
+                        + " Using default preferences.");
+            } else {
+                String cause = e.getCause() != null && e.getCause().getMessage() != null
+                        ? e.getCause().getMessage() : e.getMessage();
+                String causeMsg = cause != null && !cause.isBlank() ? cause : "unrecognized format";
+                try {
+                    Path backup = storage.backupUserPrefsFile();
+                    String warning = String.format("Warning: Preference file %1$s is corrupted (%2$s). "
+                            + "A backup was created at %3$s. Using default preferences.",
+                            prefsFilePath, causeMsg, backup);
+                    logger.warning(warning);
+                    appendInitialStatusMessage(warning);
+                } catch (IOException ioe) {
+                    String warning = String.format("Warning: Preference file %1$s is corrupted (%2$s), and creating "
+                            + "a backup failed: %3$s. Using default preferences.",
+                            prefsFilePath, causeMsg, ioe.getMessage());
+                    logger.severe(warning);
+                    appendInitialStatusMessage(warning);
+                }
+            }
         }
 
         //Update prefs file in case it was missing to begin with or there are new/unused fields

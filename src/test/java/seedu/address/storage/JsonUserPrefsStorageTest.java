@@ -2,9 +2,12 @@ package seedu.address.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -142,6 +145,47 @@ public class JsonUserPrefsStorageTest {
         jsonUserPrefsStorage.saveUserPrefs(original);
         readBack = jsonUserPrefsStorage.readUserPrefs().get();
         assertEquals(original, readBack);
+    }
+
+    @Test
+    public void backupUserPrefsFile_nullFilePath_throwsNullPointerException() {
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(testFolder.resolve("prefs.json"));
+        assertThrows(NullPointerException.class, () -> storage.backupUserPrefsFile(null));
+    }
+
+    @Test
+    public void backupUserPrefsFile_nonExistentFile_throwsFileNotFoundException() {
+        Path nonExistent = testFolder.resolve("non_existent_prefs.json");
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(nonExistent);
+        assertThrows(FileNotFoundException.class, storage::backupUserPrefsFile);
+    }
+
+    @Test
+    public void backupUserPrefsFile_existingFile_backupCreatedSuccessfully() throws Exception {
+        Path original = testFolder.resolve("original_prefs.json");
+        Files.writeString(original, "{\"guiSettings\": null}");
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(original);
+
+        Path backupPath = storage.backupUserPrefsFile();
+
+        assertTrue(Files.exists(backupPath));
+        assertTrue(backupPath.getFileName().toString().startsWith("original_prefs.json.backup."));
+        assertEquals("{\"guiSettings\": null}", Files.readString(backupPath));
+    }
+
+    @Test
+    public void backupUserPrefsFile_filenameCollision_appendsCounter() throws Exception {
+        Path original = testFolder.resolve("collision_prefs.json");
+        Files.writeString(original, "test content");
+        JsonUserPrefsStorage storage = new JsonUserPrefsStorage(original);
+
+        Path backup1 = storage.backupUserPrefsFile();
+        Path backup2 = storage.backupUserPrefsFile();
+
+        assertTrue(Files.exists(backup1));
+        assertTrue(Files.exists(backup2));
+        assertFalse(backup1.equals(backup2));
+        assertTrue(backup2.getFileName().toString().contains("_1"));
     }
 
 }
