@@ -867,7 +867,10 @@ Similarly, `help select` explains how to select a displayed contact, while `help
 
 ![Help window showing commands for managing contacts](images/UGHelpWindowPt1.png)
 
-![Help window showing browsing commands, including SELECT](images/UGHelpWindowPt2.png)
+The screenshot below illustrates the Help window layout. Its `find` wording is from an earlier revision;
+see [Locating contacts](#locating-contacts-find) for the current syntax and examples.
+
+![Help window layout showing browsing commands, with find wording from an earlier revision](images/UGHelpWindowPt2.png)
 
 ![Help window scrolled down to follow-up queries, undo and redo, and application commands](images/UGHelpWindowPt3.png)
 
