@@ -89,29 +89,26 @@ public class MainApp extends Application {
             initialData = new AddressBook();
             Path filePath = storage.getAddressBookFilePath();
             if (Files.exists(filePath)) {
-                String rawCause = e.getCause() != null && e.getCause().getMessage() != null
-                        ? e.getCause().getMessage()
-                        : e.getMessage();
-                String causeMessage = rawCause != null && !rawCause.isBlank()
-                        ? rawCause
-                        : "unrecognized format error";
+                String cause = e.getCause() != null && e.getCause().getMessage() != null
+                        ? e.getCause().getMessage() : e.getMessage();
+                String causeMsg = cause != null && !cause.isBlank() ? cause : "unrecognized format error";
                 try {
                     Path backupPath = storage.backupAddressBookFile();
-                    String dataWarning = String.format(
-                            "Warning: Data file %1$s is corrupted (%2$s). A backup was created at %3$s. "
-                                    + "Starting with an empty contact book.", filePath, causeMessage, backupPath);
-                    logger.warning(dataWarning);
+                    String warning = String.format("Warning: Data file %1$s is corrupted (%2$s). "
+                            + "A backup was created at %3$s. Starting with an empty contact book.",
+                            filePath, causeMsg, backupPath);
+                    logger.warning(warning);
                     initialStatusMessage = initialStatusMessage == null
-                            ? dataWarning
-                            : initialStatusMessage + "\n" + dataWarning;
+                            ? warning
+                            : initialStatusMessage + "\n" + warning;
                 } catch (IOException ioe) {
-                    String dataWarning = String.format(
-                            "Warning: Data file %1$s is corrupted (%2$s), and creating a backup failed: %3$s. "
-                                    + "Starting with an empty contact book.", filePath, causeMessage, ioe.getMessage());
-                    logger.severe(dataWarning);
+                    String warning = String.format("Warning: Data file %1$s is corrupted (%2$s), and creating "
+                            + "a backup failed: %3$s. Starting with an empty contact book.",
+                            filePath, causeMsg, ioe.getMessage());
+                    logger.severe(warning);
                     initialStatusMessage = initialStatusMessage == null
-                            ? dataWarning
-                            : initialStatusMessage + "\n" + dataWarning;
+                            ? warning
+                            : initialStatusMessage + "\n" + warning;
                 }
             }
         }
