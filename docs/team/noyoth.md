@@ -46,14 +46,8 @@ Given below are my contributions to the project.
   * **Developer Guide**: Authored the storage component architecture section, detailing atomic saving and backup generation mechanisms. Added domain and technical terms to the glossary ([#26](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/26)).
   * **UML diagrams**: Created PlantUML sequence diagrams for atomic file saving (`SaveAddressBookSequenceDiagram.puml`) and corrupted data file backups (`BackupAddressBookSequenceDiagram.puml`) ([#130](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/130)).
 
-* **Team tasks and reviews**:
-  * Reviewed team pull requests with detailed feedback:
-    * PR [#32](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/32): Role field integration across model, storage, and UI.
-    * PR [#54](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/54): Duplicate contact detection refactoring.
-    * PR [#56](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/56): Delete command validation and user feedback.
-    * PR [#94](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/94): Role validation, normalization, and equality handling.
-    * PR [#108](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/108): Versioned address book integration in ModelManager.
-    * PR [#115](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/115): Mutating command state commit hooks.
-    * PR [#154](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/154): Contact sorting documentation.
-    * PR [#202](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/202): Standardizing messages and index validation.
-    * PR [#211](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/211): Follow-up command messages.
+* **Team contributions and reviews**:
+  * Maintained storage component architecture, file persistence models, and related team documentation.
+  * Collaborated on integrating `VersionedAddressBook` across Model and Logic components, coordinating with teammates implementing mutating commands ([#108](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/108), [#115](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/115)).
+  * Helped integrate teammates' changes and resolve merge conflicts across feature branches, including undo/redo state committing, sorting documentation, and shared validation messages.
+  * Reviewed teammates' PRs covering role management and validation ([#32](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/32), [#94](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/94)), duplicate contact detection ([#54](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/54)), command validation and index diagnostics ([#56](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/56), [#202](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/202), [#211](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/211)), and sorting documentation ([#154](https://github.com/AY2627S1-CS2103T-F11-1/tp/pull/154)).
