@@ -2175,8 +2175,3 @@ This appendix documents architectural and functional defects identified during t
 * **Current defect:** The contact list card (`PersonCard.java`) renders the contact's role as a styled, color-coded badge pill using CSS classes `role-badge` and dynamic hashed color classes `role-color-*`. In contrast, the details panel (`PersonDetailsPanel.java`) renders the role as unstyled plain text (`Role: <role>`), creating a visual discrepancy across panels.
 * **Planned enhancement:** Update `PersonDetailsPanel.java` to instantiate a styled `Label` with `role-badge` and corresponding `role-color-*` classes matching `PersonCard`, creating consistent visual cues across both panels.
 
-### 7. Two-phase verification for atomic writes across unsupported filesystems
-
-* **Current defect:** In `FileUtil#writeToFile(Path, String, FileMover)`, file persistence attempts an atomic rename using `StandardCopyOption.ATOMIC_MOVE`. On external drives, network file systems (NFS/SMB), or certain non-POSIX file systems where atomic move is unsupported, it catches `AtomicMoveNotSupportedException` and falls back to `StandardCopyOption.REPLACE_EXISTING`. However, if the system crashes or loses power during this non-atomic replacement, the destination file may be left partially written or truncated with no automated recovery.
-* **Planned enhancement:** Implement a two-phase write verification protocol when falling back to non-atomic move: verify target file integrity (via checksum or file size comparison against the staged temporary file) before unlinking the temporary staging file.
-
