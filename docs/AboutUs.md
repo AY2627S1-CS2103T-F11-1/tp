@@ -33,7 +33,7 @@ We are team **CS2103T-F11-1** based in the [School of Computing, National Univer
 <img src="images/chester-wong-33.png" width="200px">
 
 [[github](https://github.com/chester-wong-33)]
-[[portfolio](team/johndoe.md)]
+[[portfolio](team/chester-wong-33.md)]
 
 * Role: Developer
 * Responsibilities: Follow-up Management, Undo/Redo Integration & Model Integration
