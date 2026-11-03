@@ -60,11 +60,15 @@ Notable uses of AI:
 * OpenAI Codex was used to draft and refine the User Guide, Developer Guide, project portfolio,
   and pull request descriptions.
 
-### @Noyoth
+#### @Noyoth
 
-* Google Gemini and OpenAI ChatGPT were used to implement and refine atomic file persistence, corrupted data and preferences backup mechanisms, startup diagnostic warnings, and undo/redo state management.
-* Google Gemini and OpenAI ChatGPT were used to generate and expand unit and integration tests, design and style storage PlantUML sequence diagrams, and debug edge cases.
-* Google Gemini and OpenAI ChatGPT were used to draft and refine Developer Guide sections, User Guide documentation, and pull request reviews.
+* Google Gemini and OpenAI ChatGPT were used to implement and refine atomic file persistence,
+  corrupted data and preferences backup mechanisms, startup diagnostic warnings, and undo/redo
+  state management.
+* Google Gemini and OpenAI ChatGPT were used to generate and expand unit and integration tests,
+  design and style storage PlantUML sequence diagrams, and debug edge cases.
+* Google Gemini and OpenAI ChatGPT were used to draft and refine Developer Guide sections, User
+  Guide documentation, and pull request reviews.
 
 --------------------------------------------------------------------------------------------------------------------
 
