@@ -2,29 +2,35 @@
 skin rose
 skinparam ActivityFontSize 15
 skinparam ArrowFontSize 12
-
 start
-:Parse help input;
-
-if () then ([No command specified])
-    :Create CommandResult with opening feedback\nand showHelp = true;
-else ([Command specified])
-    if () then ([Command supported])
-        :Look up the target command's COMMAND_USAGE;
-        :Create CommandResult with usage feedback\nand showHelp = false;
-    else ([Command unsupported])
-        :Create CommandResult with guidance\nand showHelp = false;
-    endif
+:Validate help arguments;
+if (More than one argument?) then (yes)
+    :Report ParseException;
+    stop
+else (no)
 endif
-
-:Display feedback in ResultDisplay;
-
-'Use a two-case layout to separate the guards on the left and right paths.
-switch ()
-case ([Help window requested])
+if (Command name supplied?) then (yes)
+    if (Supported command?) then (yes)
+        :Create usage feedback
+with showHelp = false;
+    else (no)
+        :Create guidance feedback
+with showHelp = false;
+    endif
+else (no)
+    :Create opening feedback
+with showHelp = true;
+endif
+:LogicManager requests a contact-data save;
+if (Save succeeds?) then (yes)
+    :Display feedback in ResultDisplay;
+else (no)
+    :Report CommandException;
+    stop
+endif
+if (showHelp?) then (yes)
     :Open or focus HelpWindow;
-case ([Help window not requested])
-endswitch
-
+else (no)
+endif
 stop
 @enduml

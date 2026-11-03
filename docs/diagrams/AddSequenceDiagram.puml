@@ -7,17 +7,16 @@ participant ":LogicManager" as LogicManager LOGIC_COLOR
 participant ":AddressBookParser" as AddressBookParser LOGIC_COLOR
 participant ":AddCommandParser" as AddCommandParser LOGIC_COLOR
 participant "command:AddCommand" as AddCommand LOGIC_COLOR
-participant "result:CommandResult" as CommandResult LOGIC_COLOR
 end box
 
 box Model MODEL_COLOR_T1
 participant ":Model" as Model MODEL_COLOR
 end box
 
-[-> LogicManager : execute("add n/John Doe ... r/Supplier")
+[-> LogicManager : execute("add ...")
 activate LogicManager
 
-LogicManager -> AddressBookParser : parseCommand("add n/John Doe ... r/Supplier")
+LogicManager -> AddressBookParser : parseCommand(input)
 activate AddressBookParser
 
 create AddCommandParser
@@ -27,7 +26,7 @@ activate AddCommandParser
 AddCommandParser --> AddressBookParser
 deactivate AddCommandParser
 
-AddressBookParser -> AddCommandParser : parse(" n/John Doe ... r/Supplier")
+AddressBookParser -> AddCommandParser : parse(arguments)
 activate AddCommandParser
 
 create AddCommand
@@ -40,14 +39,7 @@ deactivate AddCommand
 AddCommandParser --> AddressBookParser : command
 deactivate AddCommandParser
 
-note over AddCommandParser
-Transient parser instance is
-discarded after parse() completes
-end note
 
-'Hidden arrow to position the destroy marker below the end of the activation bar.
-AddCommandParser -[hidden]-> AddressBookParser
-destroy AddCommandParser
 
 AddressBookParser --> LogicManager : command
 deactivate AddressBookParser
@@ -55,18 +47,14 @@ deactivate AddressBookParser
 LogicManager -> AddCommand : execute(m)
 activate AddCommand
 
-note right of AddCommand
-toAdd is the Person entity
-constructed from the parsed arguments
-end note
 
-AddCommand -> Model : hasPhone(toAdd.getPhone())
+AddCommand -> Model : hasPhone(phone)
 activate Model
 
 Model --> AddCommand : false
 deactivate Model
 
-AddCommand -> Model : hasEmail(toAdd.getEmail())
+AddCommand -> Model : hasEmail(email)
 activate Model
 
 Model --> AddCommand : false
@@ -84,12 +72,6 @@ activate Model
 Model --> AddCommand
 deactivate Model
 
-create CommandResult
-AddCommand -> CommandResult
-activate CommandResult
-
-CommandResult --> AddCommand
-deactivate CommandResult
 
 AddCommand --> LogicManager : result
 deactivate AddCommand

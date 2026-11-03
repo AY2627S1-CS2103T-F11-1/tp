@@ -1,12 +1,12 @@
 @startuml
 !include style.puml
+!pragma layout smetana
 skinparam arrowThickness 1.1
 skinparam arrowColor UI_COLOR_T4
 skinparam classBackgroundColor UI_COLOR
 
 package UI <<Rectangle>>{
 Class "<<interface>>\nUi" as Ui
-Class "{abstract}\nUiPart" as UiPart
 Class UiManager
 Class MainWindow
 Class HelpWindow
@@ -38,22 +38,14 @@ MainWindow *-down-> "1" PersonListPanel
 MainWindow *-down-> "1" PersonDetailsPanel
 MainWindow *-down-> "1" UiDateTracker
 MainWindow *-down-> "1" StatusBarFooter
-MainWindow --> "0..1" HelpWindow
+MainWindow --> "1" HelpWindow
 
 PersonListPanel -down-> "*" PersonCard
 PersonListPanel --> UiDateTracker
 PersonDetailsPanel --> UiDateTracker
 PersonCard ..> UiDateTracker
 
-MainWindow -left-|> UiPart
 
-ResultDisplay --|> UiPart
-CommandBox --|> UiPart
-PersonListPanel --|> UiPart
-PersonDetailsPanel --|> UiPart
-PersonCard --|> UiPart
-StatusBarFooter --|> UiPart
-HelpWindow --|> UiPart
 
 PersonCard ..> Model
 PersonDetailsPanel ..> Model
@@ -65,5 +57,4 @@ HelpWindow -[hidden]left- CommandBox
 CommandBox -[hidden]left- ResultDisplay
 ResultDisplay -[hidden]left- StatusBarFooter
 
-MainWindow -[hidden]-|> UiPart
 @enduml

@@ -3,16 +3,11 @@ skin rose
 skinparam ActivityFontSize 15
 skinparam ArrowFontSize 12
 start
-:User executes command;
-
-'Since the beta syntax does not support placing the condition outside the
-'diamond we place it as the true branch instead.
-
-if () then ([command commits AddressBook])
-    :Purge redundant states;
-    :Save AddressBook to
-    addressBookStateList;
-else ([else])
-endif
+:VersionedAddressBook.commit();
+:Remember redo snapshots after the pointer
+(possibly an empty list);
+:Remove those snapshots from active history;
+:Append a copy of the current AddressBook;
+:Advance currentStatePointer by one;
 stop
 @enduml

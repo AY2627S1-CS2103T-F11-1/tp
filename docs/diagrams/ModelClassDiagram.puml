@@ -1,61 +1,42 @@
 @startuml
 !include style.puml
-skinparam arrowThickness 1.1
+!pragma layout smetana
 skinparam arrowColor MODEL_COLOR
 skinparam classBackgroundColor MODEL_COLOR
 
-Package Model as ModelPackage <<Rectangle>>{
-Class "<<interface>>\nReadOnlyAddressBook" as ReadOnlyAddressBook
-Class "<<interface>>\nReadOnlyUserPrefs" as ReadOnlyUserPrefs
-Class "<<interface>>\nModel" as Model
-Class AddressBook
-Class ModelManager
-Class UserPrefs
-
-Class UniquePersonList
-Class Person
-Class Address
-Class Email
-Class Name
-Class Phone
-Class Role
-Class FollowUp
-Class Tag
-
-Class I #FFFFFF
+package Model as ModelPackage {
+interface Model <<interface>>
+interface ReadOnlyAddressBook <<interface>>
+interface ReadOnlyUserPrefs <<interface>>
+class ModelManager
+class VersionedAddressBook
+class AddressBook
+class UserPrefs
+class UniquePersonList
+class Person
+class Name
+class Phone
+class Email
+class Address
+class Role
+class FollowUp
+class Tag
 }
 
-Class HiddenOutside #FFFFFF
-HiddenOutside ..> Model
-
-AddressBook .up.|> ReadOnlyAddressBook
-
-ModelManager .up.|> Model
-Model .right.> ReadOnlyUserPrefs
-Model .left.> ReadOnlyAddressBook
-ModelManager -left-> "1" AddressBook
-ModelManager -right-> "1" UserPrefs
-UserPrefs .up.|> ReadOnlyUserPrefs
-
+ModelManager ..|> Model
+ModelManager --> "1" VersionedAddressBook : addressBook
+ModelManager --> "1" UserPrefs : userPrefs
+UserPrefs ..|> ReadOnlyUserPrefs
+VersionedAddressBook --|> AddressBook
+AddressBook ..|> ReadOnlyAddressBook
 AddressBook *--> "1" UniquePersonList
-UniquePersonList --> "~* all" Person
-Person *--> Name
-Person *--> Phone
-Person *--> Email
-Person *--> Address
-Person *--> Role
-Person *--> "0..1" FollowUp
-Person *--> "*" Tag
+UniquePersonList --> "0..*" Person
+Person --> "1" Name
+Person --> "1" Phone
+Person --> "1" Email
+Person --> "1" Address
+Person --> "1" Role
+Person --> "0..1" FollowUp
+Person --> "0..*" Tag
 
-Person -[hidden]up--> I
-UniquePersonList -[hidden]right-> I
-
-Name -[hidden]right-> Phone
-Phone -[hidden]right-> Address
-Address -[hidden]right-> Email
-Email -[hidden]right-> Role
-Role -[hidden]right-> FollowUp
-FollowUp -[hidden]right-> Tag
-
-ModelManager --> "~* displayed" Person
 @enduml

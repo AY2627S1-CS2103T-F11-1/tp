@@ -19,21 +19,23 @@ end box
 [-> LogicManager : execute("delete 1")
 activate LogicManager
 
-LogicManager -> StorageManager : saveAddressBook(addressBook)
+
+LogicManager -> StorageManager : saveAddressBook(...)
 activate StorageManager
 
-StorageManager -> JsonAddressBookStorage : saveAddressBook(addressBook)
+StorageManager -> JsonAddressBookStorage : saveAddressBook(...)
 activate JsonAddressBookStorage
 
-JsonAddressBookStorage -> JsonUtil : saveJsonFile(serializableAddressBook, filePath)
+JsonAddressBookStorage -> JsonUtil : saveJsonFile(...)
 activate JsonUtil
 
-JsonUtil -> FileUtil : writeToFile(filePath, jsonContent)
+JsonUtil -> FileUtil : writeToFile(...)
 activate FileUtil
 
-FileUtil -> FileUtil : Files.createTempFile(dir, prefix, ".tmp")
+FileUtil -> FileUtil : Files.createTempFile(...)
 FileUtil -> FileUtil : Files.write(tempFile, bytes)
-FileUtil -> FileUtil : Files.move(tempFile, filePath, ATOMIC_MOVE, ...)
+FileUtil -> FileUtil : Files.move(tempFile, filePath,\nATOMIC_MOVE, REPLACE_EXISTING)
+FileUtil -> FileUtil : Files.deleteIfExists(tempFile)\n(finally)
 
 FileUtil --> JsonUtil
 deactivate FileUtil

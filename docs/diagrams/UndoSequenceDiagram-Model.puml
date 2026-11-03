@@ -1,23 +1,23 @@
 @startuml
 !include style.puml
 skinparam ArrowFontStyle plain
-
 box Model MODEL_COLOR_T1
-participant ":Model" as Model MODEL_COLOR
-participant ":VersionedAddressBook" as VersionedAddressBook MODEL_COLOR
+participant ":ModelManager" as MM MODEL_COLOR
+participant ":VersionedAddressBook" as Book MODEL_COLOR
 end box
-
-[-> Model : undoAddressBook()
-activate Model
-
-Model -> VersionedAddressBook : undo()
-activate VersionedAddressBook
-
-VersionedAddressBook -> VersionedAddressBook :resetData(ReadOnlyAddressBook)
-VersionedAddressBook --> Model :
-deactivate VersionedAddressBook
-
-[<-- Model
-deactivate Model
-
+[-> MM : undoAddressBook()
+activate MM
+MM -> Book : undo()
+activate Book
+Book -> Book : decrement currentStatePointer
+Book -> Book : resetData(snapshot at currentStatePointer)
+Book --> MM
+deactivate Book
+MM -> MM : updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS)
+note right of MM
+  The sort comparator is retained.
+  UI selection reconciliation is outside this diagram.
+end note
+[<-- MM
+deactivate MM
 @enduml

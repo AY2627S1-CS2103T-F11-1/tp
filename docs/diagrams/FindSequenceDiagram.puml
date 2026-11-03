@@ -7,50 +7,36 @@ participant ":LogicManager" as LogicManager LOGIC_COLOR
 participant ":AddressBookParser" as AddressBookParser LOGIC_COLOR
 participant ":FindCommandParser" as FindCommandParser LOGIC_COLOR
 participant "command:FindCommand" as FindCommand LOGIC_COLOR
-participant "result:CommandResult" as CommandResult LOGIC_COLOR
 end box
 
 box Model MODEL_COLOR_T1
 participant "m:Model" as Model MODEL_COLOR
 end box
 
-[-> LogicManager : execute("find n/Alice n/Bob r/Supplier")
+[-> LogicManager : execute("find ...")
 activate LogicManager
 
-LogicManager -> AddressBookParser : parseCommand("find n/Alice n/Bob r/Supplier")
+LogicManager -> AddressBookParser : parseCommand(input)
 activate AddressBookParser
 
 create FindCommandParser
-AddressBookParser -> FindCommandParser : FindCommandParser()
+AddressBookParser -> FindCommandParser
 activate FindCommandParser
 FindCommandParser --> AddressBookParser
 deactivate FindCommandParser
 
-AddressBookParser -> FindCommandParser : parse(" n/Alice n/Bob r/Supplier")
+AddressBookParser -> FindCommandParser : parse(arguments)
 activate FindCommandParser
 
-note right of FindCommandParser
-    Validation, tokenization and normalisation succeed.
-    The parser creates:
-    * namePredicate: NameContainsKeywordsPredicate
-      containing ["Alice", "Bob"]
-    * rolePredicate: RoleContainsKeywordsPredicate
-      containing ["Supplier"]
-
-    Both n/ values go into the same name predicate.
-end note
 
 create FindCommand
-FindCommandParser -> FindCommand : FindCommand(namePredicate, rolePredicate)
+FindCommandParser -> FindCommand
 activate FindCommand
 FindCommand --> FindCommandParser
 deactivate FindCommand
 
 FindCommandParser --> AddressBookParser : command
 deactivate FindCommandParser
-'Hidden arrow to position the destroy marker below the end of the activation bar.
-FindCommandParser -[hidden]-> AddressBookParser
-destroy FindCommandParser
 
 AddressBookParser --> LogicManager : command
 deactivate AddressBookParser
@@ -58,11 +44,6 @@ deactivate AddressBookParser
 LogicManager -> FindCommand : execute(m)
 activate FindCommand
 
-note right of FindCommand
-    filter is a combined Predicate<Person>
-    that requires namePredicate and rolePredicate
-    to both match a contact for it to be displayed.
-end note
 
 FindCommand -> Model : updateFilteredPersonList(filter)
 activate Model
@@ -74,11 +55,6 @@ activate Model
 Model --> FindCommand : matchingContacts
 deactivate Model
 
-create CommandResult
-FindCommand -> CommandResult
-activate CommandResult
-CommandResult --> FindCommand
-deactivate CommandResult
 
 FindCommand --> LogicManager : result
 deactivate FindCommand
