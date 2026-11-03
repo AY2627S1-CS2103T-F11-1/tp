@@ -276,4 +276,9 @@ public class MainAppTest {
 
         assertEquals(new UserPrefs(), resultPrefs);
     }
+
+    @Test
+    public void version_isCorrect() {
+        assertEquals("V1.6", MainApp.VERSION);
+    }
 }

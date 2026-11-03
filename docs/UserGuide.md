@@ -9,7 +9,7 @@ KeyBossWarriorsPro is a desktop contact manager for artisan mechanical keyboard 
 Use typed commands to manage suppliers, distributors, employees, and other shop contacts, organise them by role and tags,
 and track pending follow-ups. The graphical interface displays your contact list and each contact's full details.
 
-**Guide version:** 0.5.1. Use the guide that matches your application version when working with a different release.
+**Guide version:** 1.6. Use the guide that matches your application version when working with a different release.
 
 * Table of Contents
 {:toc}
