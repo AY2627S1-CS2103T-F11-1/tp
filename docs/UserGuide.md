@@ -1173,26 +1173,6 @@ then relaunch. This resets saved window size and position. Keep `data/addressboo
 
 **Workaround:** No action is required to use the contact. Select it to read the role as plain text in the details panel.
 
-#### Simple name search uses full-word matching
-
-**Severity:** Low.
-
-**Trigger:** Search for a contact using a partial name keyword in simple find mode (e.g., `find Ale`).
-
-**User impact:** Simple name search compares whole words, so entering an incomplete name returns no matching contacts.
-
-**Workaround:** Enter complete words (e.g., `find Alex`), or use prefixed search `find n/Ale` which supports substring matching within names.
-
-#### Large index values trigger format error instead of out-of-bounds error
-
-**Severity:** Low.
-
-**Trigger:** Pass an index number greater than 2,147,483,647 (the maximum 32-bit signed integer) to an index-based command (e.g., `delete 2147483648`).
-
-**User impact:** The application displays an invalid command format message rather than explicitly indicating the index exceeds valid list bounds.
-
-**Workaround:** Use ordinary positive integers matching the current displayed list numbers.
-
 #### Help window does not close via Escape key
 
 **Severity:** Low.

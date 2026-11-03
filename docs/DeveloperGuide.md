@@ -2145,38 +2145,38 @@ see [Atomic file persistence](#atomic-file-persistence) and NFR13 for the filesy
 
 This appendix documents architectural and functional defects identified during testing that could not be addressed before the v1.6 feature freeze, along with their planned remedies for future releases.
 
-### 1. Robust handling of `null` root values in JSON data and preferences files
+### 1. Protection against destructive overwriting of unreadable storage files after recovery
 
-* **Current defect:** If `data/addressbook.json` or `preferences.json` contains a literal `null` root (or if `preferences.json` contains `{"guiSettings": null}`), `JsonUtil#readJsonFile` executes `Optional.of(jsonFile)` on a `null` deserialized object. This throws an unhandled `NullPointerException`, crashing the application immediately upon launch without initiating the corrupted-file backup procedure or displaying a warning banner.
-* **Planned enhancement:** Replace `Optional.of(jsonFile)` with `Optional.ofNullable(jsonFile)` in `JsonUtil.java` and convert `null` root entities into a `DataLoadingException`. In addition, add defensive null checks when reading `guiSettings` in `UserPrefs.java` so that default GUI settings are loaded instead of crashing.
+* **Current defect:** When application launch encounters unreadable or corrupted contact data in `data/addressbook.json`, `MainApp#initModelManager` logs a warning, creates a timestamped backup, and initializes an in-memory fallback with an empty contact book. If the user subsequently issues any mutating command (such as `add` or `delete`), `LogicManager` commits the change directly to `data/addressbook.json`, immediately overwriting the file with the minimal fallback contents without prompting for user confirmation or requiring explicit acknowledgment.
+* **Planned enhancement:** Introduce a confirmation or read-only mode upon corrupted-file recovery. When running with an empty recovery fallback, require explicit user confirmation (e.g., prompting or requiring a confirmation flag) before allowing the first write command to overwrite `data/addressbook.json`.
 
-### 2. Protection against destructive overwriting of unreadable storage files
+### 2. Keyboard-driven dismissal of the Help window via Escape key
 
-* **Current defect:** When application launch encounters unreadable or duplicate contact data in `data/addressbook.json`, the application initializes an in-memory fallback with an empty contact book. If the user subsequently issues any mutating command (such as `add` or `delete`), the application commits the change directly to `data/addressbook.json`, permanently overwriting the original file without prompting for confirmation.
-* **Planned enhancement:** Introduce a read-only or confirmation mode upon corrupted-file recovery. When running with an empty recovery fallback, warn the user before executing the first mutating operation, or automatically preserve a secondary snapshot of the unreadable file prior to the first write operation.
+* **Current defect:** In `HelpWindow.java`, the keyboard event filter configures scrolling shortcuts (`UP`, `DOWN`, `PAGE_UP`, `PAGE_DOWN`, `HOME`, `END`), but does not capture `KeyCode.ESCAPE`. Pressing `Esc` while the Help window is focused has no effect, forcing the user to switch to mouse navigation or OS window management shortcuts (`Alt+F4` or `Cmd+W`) to dismiss the window.
+* **Planned enhancement:** Add a key event filter for `KeyCode.ESCAPE` in `HelpWindow.java` that invokes `hide()`, restoring seamless keyboard-only navigation for CLI users.
 
-### 3. Preservation of redo history upon persistence failure following undo
+### 3. Restoring minimised Help window on re-query
 
-* **Current defect:** When `VersionedAddressBook#commitAddressBook()` is called, the pre-existing redo branch (`addressBookStateList` beyond `currentStatePointer`) is immediately discarded. If persisting the change to disk subsequently fails, `rollbackAddressBook()` decrements the state pointer to restore contact data, but the discarded redo history is not reinstated, permanently purging redo availability.
-* **Planned enhancement:** Stash discarded redo states in `VersionedAddressBook` during `commitAddressBook()`. In `rollbackAddressBook()`, reinstate the stashed redo states if the commit was rolled back due to a storage failure, preserving full undo and redo navigation.
+* **Current defect:** When the Help window is minimised to the OS taskbar/dock and the user subsequently executes `help`, clicks Help in the menu bar, or presses `F1`, `MainWindow#handleHelp()` checks `helpWindow.isShowing()`, which returns `true`. It then calls `helpWindow.focus()`, which executes `getRoot().requestFocus()`. Because JavaFX `requestFocus()` does not de-iconify a minimised stage, the window remains minimised on the taskbar/dock and does not reappear, giving the impression that the command failed.
+* **Planned enhancement:** Update `HelpWindow#focus()` to invoke `getRoot().setIconified(false)` before requesting focus, ensuring minimised help windows are restored to the active screen.
 
-### 4. Substring and partial-name matching in simple find
+### 4. Coordinate bounds validation for multi-monitor window positioning
 
-* **Current defect:** Simple name keyword search (`find KEYWORD [KEYWORD]...`) evaluates tokens using a strict word-boundary regular expression (`\bkeyword\b`). Consequently, searching for a partial name (such as `find Ale` or `find Yeo`) yields zero results for a contact named `Alex Yeoh`. Only full words match.
-* **Planned enhancement:** Update `NameContainsKeywordsPredicate` in simple search mode to use case-insensitive substring matching (`String#contains`) rather than strict word-boundary matching, matching the flexible substring behavior of prefixed searches (`find n/Ale`).
+* **Current defect:** If KeyBossWarriorsPro is closed while positioned on a secondary external monitor and later relaunched after disconnecting that monitor, `MainWindow#setWindowDefaultSize` restores the saved `x` and `y` coordinates from `preferences.json` directly onto `primaryStage` without validating whether those coordinates fall within any active screen in `Screen.getScreens()`. As a result, the application can open completely off-screen and remain inaccessible until the user manually deletes `preferences.json`.
+* **Planned enhancement:** Check the restored window coordinates in `MainWindow#setWindowDefaultSize` against `javafx.stage.Screen#getScreens()`. If the window bounding box does not intersect any active display, center the window on the primary screen.
 
-### 5. Dedicated out-of-bounds error handling for integer overflow on large index arguments
+### 5. Support for international phone number prefixes and formatted numbers
 
-* **Current defect:** Index-based commands (`delete`, `edit`, `select`, `followup`) parse indices via `ParserUtil#parseIndex(String)`, which delegates to `Integer#parseInt(String)`. When an index greater than `2147483647` (the maximum 32-bit signed integer) is entered (e.g., `delete 2147483648`), `NumberFormatException` is caught and translated to a generic `MESSAGE_INVALID_COMMAND_FORMAT`. This misleads users into believing the command syntax is malformed rather than recognizing that the index is out of bounds.
-* **Planned enhancement:** Catch `NumberFormatException` in `ParserUtil` and verify if the input is a valid digits-only number exceeding `Integer.MAX_VALUE`. If so, throw a `ParseException` with a dedicated error message (e.g., `The index provided exceeds the maximum supported number.`).
+* **Current defect:** `Phone.java` enforces a strict validation regex `\d{3,20}`. Any international prefix (e.g., `+65`), spaces, hyphens, or parentheses (e.g., `+65 9123-4567` or `(65) 91234567`) are rejected with `Phone numbers should only contain digits, and should be 3 to 20 digits long`.
+* **Planned enhancement:** Update `Phone` to permit standard international prefix symbols (`+`) and common formatting delimiters (spaces, hyphens, parentheses), canonicalizing numbers to an E.164-compatible format or digits-only internal storage while displaying readable formatting.
 
-### 6. Keyboard-driven dismissal of the Help window via Escape key
+### 6. Unified role badge styling in Details Panel
 
-* **Current defect:** When the full Help window is open, pressing the `Esc` key does not dismiss the window. The user is forced to switch to the mouse to click the close button or use OS-level window shortcuts (`Alt+F4` or `Cmd+W`).
-* **Planned enhancement:** Attach an `onKeyPressed` event handler to the root scene or stage in `HelpWindow.java` that listens for `KeyCode.ESCAPE` and invokes `hide()`, restoring seamless keyboard-first navigation.
+* **Current defect:** The contact list card (`PersonCard.java`) renders the contact's role as a styled, color-coded badge pill using CSS classes `role-badge` and dynamic hashed color classes `role-color-*`. In contrast, the details panel (`PersonDetailsPanel.java`) renders the role as unstyled plain text (`Role: <role>`), creating a visual discrepancy across panels.
+* **Planned enhancement:** Update `PersonDetailsPanel.java` to instantiate a styled `Label` with `role-badge` and corresponding `role-color-*` classes matching `PersonCard`, creating consistent visual cues across both panels.
 
-### 7. Coordinate bounds validation for multi-monitor window positioning
+### 7. Two-phase verification for atomic writes across unsupported filesystems
 
-* **Current defect:** If KeyBossWarriorsPro is closed while positioned on a secondary external monitor and subsequently relaunched after the monitor is disconnected, the application restores the saved `x` and `y` coordinates from `preferences.json`. This can position the window entirely outside the visible desktop bounds of the primary screen, rendering controls inaccessible.
-* **Planned enhancement:** In `UiManager#init()` or `MainWindow`, check the restored coordinates against `javafx.stage.Screen#getScreens()`. If the saved window bounding box does not intersect any active screen, center the window on the primary screen.
+* **Current defect:** In `FileUtil#writeToFile(Path, String, FileMover)`, file persistence attempts an atomic rename using `StandardCopyOption.ATOMIC_MOVE`. On external drives, network file systems (NFS/SMB), or certain non-POSIX file systems where atomic move is unsupported, it catches `AtomicMoveNotSupportedException` and falls back to `StandardCopyOption.REPLACE_EXISTING`. However, if the system crashes or loses power during this non-atomic replacement, the destination file may be left partially written or truncated with no automated recovery.
+* **Planned enhancement:** Implement a two-phase write verification protocol when falling back to non-atomic move: verify target file integrity (via checksum or file size comparison against the staged temporary file) before unlinking the temporary staging file.
 
