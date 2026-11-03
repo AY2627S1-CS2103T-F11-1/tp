@@ -11,7 +11,8 @@ is the reference for unreleased v1.6 behaviour.
 
 Start with [Design](#design) for the architecture, [Implementation](#implementation) for command
 behaviour and shared mechanisms, [Requirements](#appendix-requirements) for current and future needs,
-and [Instructions for manual testing](#appendix-instructions-for-manual-testing) for test scenarios.
+[Instructions for manual testing](#appendix-instructions-for-manual-testing) for test scenarios, and
+[Planned Enhancements](#appendix-planned-enhancements) for known-issue remedies.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -2137,3 +2138,45 @@ The temporarily moved file is a test fixture, rather than an application-generat
 
 These checks cover in-memory failure handling. They do not establish crash or power-loss durability;
 see [Atomic file persistence](#atomic-file-persistence) and NFR13 for the filesystem limitation.
+
+--------------------------------------------------------------------------------------------------------------------
+
+## **Appendix: Planned Enhancements**
+
+This appendix documents architectural and functional defects identified during testing that could not be addressed before the v1.6 feature freeze, along with their planned remedies for future releases.
+
+### 1. Robust handling of `null` root values in JSON data and preferences files
+
+* **Current defect:** If `data/addressbook.json` or `preferences.json` contains a literal `null` root (or if `preferences.json` contains `{"guiSettings": null}`), `JsonUtil#readJsonFile` executes `Optional.of(jsonFile)` on a `null` deserialized object. This throws an unhandled `NullPointerException`, crashing the application immediately upon launch without initiating the corrupted-file backup procedure or displaying a warning banner.
+* **Planned enhancement:** Replace `Optional.of(jsonFile)` with `Optional.ofNullable(jsonFile)` in `JsonUtil.java` and convert `null` root entities into a `DataLoadingException`. In addition, add defensive null checks when reading `guiSettings` in `UserPrefs.java` so that default GUI settings are loaded instead of crashing.
+
+### 2. Protection against destructive overwriting of unreadable storage files
+
+* **Current defect:** When application launch encounters unreadable or duplicate contact data in `data/addressbook.json`, the application initializes an in-memory fallback with an empty contact book. If the user subsequently issues any mutating command (such as `add` or `delete`), the application commits the change directly to `data/addressbook.json`, permanently overwriting the original file without prompting for confirmation.
+* **Planned enhancement:** Introduce a read-only or confirmation mode upon corrupted-file recovery. When running with an empty recovery fallback, warn the user before executing the first mutating operation, or automatically preserve a secondary snapshot of the unreadable file prior to the first write operation.
+
+### 3. Preservation of redo history upon persistence failure following undo
+
+* **Current defect:** When `VersionedAddressBook#commitAddressBook()` is called, the pre-existing redo branch (`addressBookStateList` beyond `currentStatePointer`) is immediately discarded. If persisting the change to disk subsequently fails, `rollbackAddressBook()` decrements the state pointer to restore contact data, but the discarded redo history is not reinstated, permanently purging redo availability.
+* **Planned enhancement:** Stash discarded redo states in `VersionedAddressBook` during `commitAddressBook()`. In `rollbackAddressBook()`, reinstate the stashed redo states if the commit was rolled back due to a storage failure, preserving full undo and redo navigation.
+
+### 4. Substring and partial-name matching in simple find
+
+* **Current defect:** Simple name keyword search (`find KEYWORD [KEYWORD]...`) evaluates tokens using a strict word-boundary regular expression (`\bkeyword\b`). Consequently, searching for a partial name (such as `find Ale` or `find Yeo`) yields zero results for a contact named `Alex Yeoh`. Only full words match.
+* **Planned enhancement:** Update `NameContainsKeywordsPredicate` in simple search mode to use case-insensitive substring matching (`String#contains`) rather than strict word-boundary matching, matching the flexible substring behavior of prefixed searches (`find n/Ale`).
+
+### 5. Dedicated out-of-bounds error handling for integer overflow on large index arguments
+
+* **Current defect:** Index-based commands (`delete`, `edit`, `select`, `followup`) parse indices via `ParserUtil#parseIndex(String)`, which delegates to `Integer#parseInt(String)`. When an index greater than `2147483647` (the maximum 32-bit signed integer) is entered (e.g., `delete 2147483648`), `NumberFormatException` is caught and translated to a generic `MESSAGE_INVALID_COMMAND_FORMAT`. This misleads users into believing the command syntax is malformed rather than recognizing that the index is out of bounds.
+* **Planned enhancement:** Catch `NumberFormatException` in `ParserUtil` and verify if the input is a valid digits-only number exceeding `Integer.MAX_VALUE`. If so, throw a `ParseException` with a dedicated error message (e.g., `The index provided exceeds the maximum supported number.`).
+
+### 6. Keyboard-driven dismissal of the Help window via Escape key
+
+* **Current defect:** When the full Help window is open, pressing the `Esc` key does not dismiss the window. The user is forced to switch to the mouse to click the close button or use OS-level window shortcuts (`Alt+F4` or `Cmd+W`).
+* **Planned enhancement:** Attach an `onKeyPressed` event handler to the root scene or stage in `HelpWindow.java` that listens for `KeyCode.ESCAPE` and invokes `hide()`, restoring seamless keyboard-first navigation.
+
+### 7. Coordinate bounds validation for multi-monitor window positioning
+
+* **Current defect:** If KeyBossWarriorsPro is closed while positioned on a secondary external monitor and subsequently relaunched after the monitor is disconnected, the application restores the saved `x` and `y` coordinates from `preferences.json`. This can position the window entirely outside the visible desktop bounds of the primary screen, rendering controls inaccessible.
+* **Planned enhancement:** In `UiManager#init()` or `MainWindow`, check the restored coordinates against `javafx.stage.Screen#getScreens()`. If the saved window bounding box does not intersect any active screen, center the window on the primary screen.
+

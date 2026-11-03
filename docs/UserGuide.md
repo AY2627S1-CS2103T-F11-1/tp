@@ -1173,6 +1173,36 @@ then relaunch. This resets saved window size and position. Keep `data/addressboo
 
 **Workaround:** No action is required to use the contact. Select it to read the role as plain text in the details panel.
 
+#### Simple name search uses full-word matching
+
+**Severity:** Low.
+
+**Trigger:** Search for a contact using a partial name keyword in simple find mode (e.g., `find Ale`).
+
+**User impact:** Simple name search compares whole words, so entering an incomplete name returns no matching contacts.
+
+**Workaround:** Enter complete words (e.g., `find Alex`), or use prefixed search `find n/Ale` which supports substring matching within names.
+
+#### Large index values trigger format error instead of out-of-bounds error
+
+**Severity:** Low.
+
+**Trigger:** Pass an index number greater than 2,147,483,647 (the maximum 32-bit signed integer) to an index-based command (e.g., `delete 2147483648`).
+
+**User impact:** The application displays an invalid command format message rather than explicitly indicating the index exceeds valid list bounds.
+
+**Workaround:** Use ordinary positive integers matching the current displayed list numbers.
+
+#### Help window does not close via Escape key
+
+**Severity:** Low.
+
+**Trigger:** Open the full Help window and press the `Esc` key.
+
+**User impact:** The Help window remains open instead of dismissing.
+
+**Workaround:** Close the window using the window close button (`X`) or standard keyboard shortcuts (`Alt+F4` on Windows/Linux, `Cmd+W` on macOS).
+
 ### Intentional limitations
 
 These are supported-behaviour limits, separate from the defects above:
@@ -1183,6 +1213,7 @@ One digits-only phone number per contact | Use 3–20 digits without spaces, pun
 One pending follow-up per contact | Setting a follow-up replaces the previous one. Clear it when completed; completed follow-ups have no retained history.
 Undo and redo apply within the current session | Reverse changes before closing. Keep separate file backups for recovery across sessions.
 Sorting resets on restart | Run `sort` again when starting a new session.
+Corrupted file overwrites after recovery | Starting after file corruption uses an empty contact book; subsequent modifying commands will write over the original file. Keep separate copies of the automatic backup before saving changes.
 
 <a id="archiving-data-files-coming-in-v20"></a>
 
