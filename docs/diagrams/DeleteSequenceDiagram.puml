@@ -65,9 +65,9 @@ Model --> DeleteCommand
 deactivate Model
 
 
-DeleteCommand --> LogicManager : r
+DeleteCommand --> LogicManager : result
 deactivate DeleteCommand
 
-[<--LogicManager
+[<--LogicManager : result
 deactivate LogicManager
 @enduml

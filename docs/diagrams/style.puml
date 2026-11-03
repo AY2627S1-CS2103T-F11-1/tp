@@ -76,7 +76,7 @@ skinparam packageStyle Rectangle
 <style>
 sequenceDiagram {
     participant {
-        Margin 0 10
+        Margin 0 0
     }
 }
 </style>

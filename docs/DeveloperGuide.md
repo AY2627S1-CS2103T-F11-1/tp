@@ -60,6 +60,12 @@ Notable uses of AI:
 * OpenAI Codex was used to draft and refine the User Guide, Developer Guide, project portfolio,
   and pull request descriptions.
 
+### @Noyoth
+
+* Google Gemini and OpenAI ChatGPT were used to implement and refine atomic file persistence, corrupted data and preferences backup mechanisms, startup diagnostic warnings, and undo/redo state management.
+* Google Gemini and OpenAI ChatGPT were used to generate and expand unit and integration tests, design and style storage PlantUML sequence diagrams, and debug edge cases.
+* Google Gemini and OpenAI ChatGPT were used to draft and refine Developer Guide sections, User Guide documentation, and pull request reviews.
+
 --------------------------------------------------------------------------------------------------------------------
 
 ## **Setting up, getting started**
@@ -1436,8 +1442,8 @@ meaning: High (must have) — `* * *`; Medium (nice to have) — `* *`; Low (unl
 Priority expresses importance, not implementation status.
 
 Story IDs US01–US35 follow the original story order so that moved rows remain traceable.
-US36–US43 capture existing v1.6 behaviour missing from the original list; they are **not ranked**
-until the team assigns priorities. This documentation update does not change the product backlog's priorities.
+US36–US43 capture existing v1.6 behaviour missing from the original list and are assigned
+Medium priority (`* *`). The original priorities for US01–US35 are retained.
 
 #### Supported in v1.6
 
@@ -1451,10 +1457,10 @@ to match is not supported.
 |----|----------|-------------|----------------|
 | US01 | `* * *` | add contacts with their names, phone numbers, emails, addresses, and primary roles | keep all shop contacts in one place. |
 | US03 | `* * *` | edit contact details | reach the right people using updated communication details. |
-| US38 | Not ranked | set or replace a contact's pending follow-up date and description | record the next action needed for that contact. |
-| US39 | Not ranked | remove a contact's pending follow-up | clear an action that is no longer needed. |
+| US38 | `* *` | set or replace a contact's pending follow-up date and description | record the next action needed for that contact. |
+| US39 | `* *` | remove a contact's pending follow-up | clear an action that is no longer needed. |
 | US02 | `* * *` | delete outdated contacts by their displayed indices | have a contact list that stays relevant. |
-| US36 | Not ranked | clear all contacts | reset my contact book when I no longer need its contents. |
+| US36 | `* *` | clear all contacts | reset my contact book when I no longer need its contents. |
 | US04 | `* * *` | list all contacts as compact contact cards | quickly review staff, suppliers, and service providers. |
 | US05 | `* * *` | assign primary roles such as Employee, Supplier, or Service Provider | distinguish staff from external partners. |
 | US14 | `* *` | tag contacts with finer-grain details like suppliers by the components supplied | find suitable suppliers and service providers for custom keyboard builds. |
@@ -1463,15 +1469,15 @@ to match is not supported.
 | US07 | `* * *` | filter contacts by component tags | find alternative suppliers when stock is low. |
 | US08 | `* * *` | combine name, role, and tag search criteria | narrow my search to relevant staff or suppliers. |
 | US13 | `* *` | sort contacts by name, role, or both in my chosen priority | browse contacts alphabetically or group contacts with matching roles. |
-| US37 | Not ranked | select a contact by its displayed index and view its full details | read contact fields and follow-up information in the details panel. |
-| US40 | Not ranked | view all pending follow-ups, overdue follow-ups, or those due on or before a date | identify contacts that need attention. |
-| US41 | Not ranked | undo a committed contact-data change in the current session | recover from an unwanted change. |
-| US42 | Not ranked | redo an undone contact-data change in the current session | reapply a change when appropriate. |
+| US37 | `* *` | select a contact by its displayed index and view its full details | read contact fields and follow-up information in the details panel. |
+| US40 | `* *` | view all pending follow-ups, overdue follow-ups, or those due on or before a date | identify contacts that need attention. |
+| US41 | `* *` | undo a committed contact-data change in the current session | recover from an unwanted change. |
+| US42 | `* *` | redo an undone contact-data change in the current session | reapply a change when appropriate. |
 | US11 | `* * *` | view command syntax and parameters using the help command | learn commands within the application. |
 | US12 | `* * *` | exit the desktop application using a command | close the application from the command input. |
 | US09 | `* * *` | contact and tag changes to be saved automatically to a local JSON file | persist changes between sessions. |
 | US10 | `* * *` | load saved contacts automatically at startup | begin work without re-entering all details. |
-| US43 | Not ranked | receive a warning and a recovery option when saved data cannot be loaded | preserve the available original or backup before continuing. |
+| US43 | `* *` | receive a warning and a recovery option when saved data cannot be loaded | preserve the available original or backup before continuing. |
 
 #### Future and partially supported needs
 
@@ -1508,10 +1514,9 @@ corresponding structured feature.
 running. **MSS** means main success scenario. A displayed index is a one-based position in the
 current filtered and sorted contact list, rather than a permanent contact identifier.
 
-The flows below follow the User Guide's task order. Existing UC numbers are retained for traceability:
-UC4 now covers editing fields as well as tags; UC9 is a removal variant of UC8; UC5 and UC10 are
-browsing variants of UC2; UC7 is a clearing variant of UC6; and UC12 is the redo variant of UC11.
-This avoids repeating the same validation and persistence steps in separate two-step cases.
+Use cases are listed in numerical order, from UC1 to UC12, with their existing numbers retained.
+UC4 covers editing fields as well as tags. Related variants reference their main flows rather than
+repeating shared validation and persistence steps.
 Help, exit, and startup behaviour are covered by the user stories and their implementation sections.
 
 #### Common failure outcomes
@@ -1549,47 +1554,28 @@ See [Persistence and failures](#persistence-and-failures) and
 
 **Implementation reference:** [Adding a contact](#adding-a-contact).
 
-#### UC4 — Edit contact details and tags
+#### UC2 — Find and browse contacts
 
-**Precondition:** The target contact is visible in the current list.
-
-**MSS**
-
-1. The user submits `edit` with the target's displayed index and the field replacements or tag additions/removals.
-2. The system validates the index and all requested changes, including duplicate identity and tag conflicts.
-3. The system replaces the contact, preserving omitted fields and its follow-up, commits one snapshot,
-   and resets the filter to show all contacts while retaining sorting.
-4. The system saves the contact data and confirms the edit.
-
-**Extensions**
-
-* **1a.** No changes are supplied, the syntax is invalid, or the index is unavailable: apply the common validation failure outcome.
-* **2a.** A changed phone/email duplicates another contact, the same tag is added and removed, or a requested removal tag is absent: reject the whole edit. No partial tag or field changes are applied.
-* **4a.** Saving fails: apply the common new-commit save failure outcome.
-
-**Implementation reference:** [Editing a contact](#adding-and-deleting-contact-tags).
-
-#### UC8 — Set or replace a follow-up
-
-**Precondition:** The target contact is visible in the current list.
+**Precondition:** None beyond the common precondition; an empty contact book is permitted.
 
 **MSS**
 
-1. The user submits `followup` with the target's displayed index, a date, and a description.
-2. The system validates the index, date, and description. Dates use `YYYY-MM-DD` with years 0000–9999;
-   past dates are permitted. Descriptions must be nonblank and at most 200 UTF-16 units after decoding and stripping.
-3. The system sets the contact's single pending follow-up, replacing both fields if one already exists,
-   commits a snapshot, and refreshes the displayed contact information while retaining the filter and sorting.
-4. The system saves the contact data and confirms the change.
+1. The user submits `find` with simple name keywords or prefixed name, role, and/or tag phrases.
+2. The system validates the criteria and searches the whole contact book, replacing the previous filter.
+   Matching is case-insensitive substring matching; repeated phrases within a field use OR, and different
+   fields use AND. Simple name keywords also use OR.
+3. The system displays the matching contacts and a result count while retaining sorting, then saves the contact data.
 
 **Extensions**
 
-* **1a–2a.** Syntax, index, date, or description is invalid: apply the common validation failure outcome.
-* **3a.** The changed contact no longer matches the current follow-up query: it leaves the displayed list and its selection clears.
-* **4a.** Saving fails: apply the common new-commit save failure outcome.
-* **UC9 — Remove a follow-up:** In step 1, the user submits `followup INDEX clear` instead. The system validates the index and presence of a pending follow-up, removes it, then follows steps 3–4. If none exists, it reports an error without changing data or history. Removal does not create a completed-follow-up record.
+* **1a–2a.** Criteria are missing, blank, or unsupported, or simple keywords are mixed with prefixes: apply the common validation failure outcome.
+* **3a.** No contacts match: show an empty list and zero-result feedback. This is a successful query.
+* **3b.** Saving fails: apply the common save failure outcome for commands without a new contact-data commit.
+* **Select-details variant:** After browsing, the user submits `select INDEX`. The system validates the current displayed index, requests selection and display of that contact's full details, and saves. An empty list or unavailable index is rejected. Contact data, filter, sorting, and history are unchanged.
 
-**Implementation reference:** [Contact follow-up management](#contact-follow-up-management).
+**Implementation references:** [Finding contacts](#finding-contacts),
+[Listing all contacts](#listing-all-contacts-list), [Querying follow-ups](#querying-follow-ups), and
+[Selecting contacts](#selecting-contacts-with-select-index).
 
 #### UC3 — Delete contacts
 
@@ -1611,30 +1597,31 @@ See [Persistence and failures](#persistence-and-failures) and
 **Implementation references:** [Deleting a contact](#deleting-a-contact) and
 [Clearing all contacts](#clearing-all-contacts-clear).
 
-#### UC2 — Find and browse contacts
+#### UC4 — Edit contact details and tags
 
-**Precondition:** None beyond the common precondition; an empty contact book is permitted.
+**Precondition:** The target contact is visible in the current list.
 
 **MSS**
 
-1. The user submits `find` with simple name keywords or prefixed name, role, and/or tag phrases.
-2. The system validates the criteria and searches the whole contact book, replacing the previous filter.
-   Matching is case-insensitive substring matching; repeated phrases within a field use OR, and different
-   fields use AND. Simple name keywords also use OR.
-3. The system displays the matching contacts and a result count while retaining sorting, then saves the contact data.
+1. The user submits `edit` with the target's displayed index and the field replacements or tag additions/removals.
+2. The system validates the index and all requested changes, including duplicate identity and tag conflicts.
+3. The system replaces the contact, preserving omitted fields and its follow-up, commits one snapshot,
+   and resets the filter to show all contacts while retaining sorting.
+4. The system saves the contact data and confirms the edit.
 
 **Extensions**
 
-* **1a–2a.** Criteria are missing, blank, or unsupported, or simple keywords are mixed with prefixes: apply the common validation failure outcome.
-* **3a.** No contacts match: show an empty list and zero-result feedback. This is a successful query.
-* **3b.** Saving fails: apply the common save failure outcome for commands without a new contact-data commit.
-* **UC5 — List contacts:** The user submits `list` instead. The system shows all contacts, retaining sorting, and requests a save. Extra arguments are ignored with a warning.
-* **UC10 — View follow-ups:** The user submits `followups`, `followups overdue`, or `followups by/DATE` instead. The system replaces the filter using the whole contact book: all pending follow-ups, dates strictly before today, or dates on/before the cutoff, respectively. Invalid modes or dates are rejected. The overdue query captures the local date when run; badge refreshes do not rerun it.
-* **Select-details variant:** After browsing, the user submits `select INDEX`. The system validates the current displayed index, requests selection and display of that contact's full details, and saves. An empty list or unavailable index is rejected. Contact data, filter, sorting, and history are unchanged.
+* **1a.** No changes are supplied, the syntax is invalid, or the index is unavailable: apply the common validation failure outcome.
+* **2a.** A changed phone/email duplicates another contact, the same tag is added and removed, or a requested removal tag is absent: reject the whole edit. No partial tag or field changes are applied.
+* **4a.** Saving fails: apply the common new-commit save failure outcome.
 
-**Implementation references:** [Finding contacts](#finding-contacts),
-[Listing all contacts](#listing-all-contacts-list), [Querying follow-ups](#querying-follow-ups), and
-[Selecting contacts](#selecting-contacts-with-select-index).
+**Implementation reference:** [Editing a contact](#adding-and-deleting-contact-tags).
+
+#### UC5 — List contacts
+
+This is a variant of [UC2](#uc2--find-and-browse-contacts).
+
+The user submits `list` instead. The system shows all contacts, retaining sorting, and requests a save. Extra arguments are ignored with a warning.
 
 #### UC6 — Sort contacts
 
@@ -1651,9 +1638,47 @@ See [Persistence and failures](#persistence-and-failures) and
 
 * **1a–2a.** Keys are unsupported, repeated, or mixed with invalid arguments: apply the common validation failure outcome.
 * **3a.** Saving fails: apply the common save failure outcome for commands without a new contact-data commit.
-* **UC7 — Clear sort order:** The user submits `sort clear` instead. The system resets both the filter and comparator, showing all contacts in insertion order, then confirms and saves. This does not restore an earlier filter or change history. Sorting is session-only and is also reset on restart.
 
 **Implementation reference:** [Sorting contacts](#sorting-contacts).
+
+#### UC7 — Clear sort order
+
+This is a variant of [UC6](#uc6--sort-contacts).
+
+The user submits `sort clear` instead. The system resets both the filter and comparator, showing all contacts in insertion order, then confirms and saves. This does not restore an earlier filter or change history. Sorting is session-only and is also reset on restart.
+
+#### UC8 — Set or replace a follow-up
+
+**Precondition:** The target contact is visible in the current list.
+
+**MSS**
+
+1. The user submits `followup` with the target's displayed index, a date, and a description.
+2. The system validates the index, date, and description. Dates use `YYYY-MM-DD` with years 0000–9999;
+   past dates are permitted. Descriptions must be nonblank and at most 200 UTF-16 units after decoding and stripping.
+3. The system sets the contact's single pending follow-up, replacing both fields if one already exists,
+   commits a snapshot, and refreshes the displayed contact information while retaining the filter and sorting.
+4. The system saves the contact data and confirms the change.
+
+**Extensions**
+
+* **1a–2a.** Syntax, index, date, or description is invalid: apply the common validation failure outcome.
+* **3a.** The changed contact no longer matches the current follow-up query: it leaves the displayed list and its selection clears.
+* **4a.** Saving fails: apply the common new-commit save failure outcome.
+
+**Implementation reference:** [Contact follow-up management](#contact-follow-up-management).
+
+#### UC9 — Remove a follow-up
+
+This is a variant of [UC8](#uc8--set-or-replace-a-follow-up).
+
+In step 1 of UC8, the user submits `followup INDEX clear` instead. The system validates the index and presence of a pending follow-up, removes it, then follows steps 3–4 of UC8. If none exists, it reports an error without changing data or history. Removal does not create a completed-follow-up record.
+
+#### UC10 — View follow-ups
+
+This is a variant of [UC2](#uc2--find-and-browse-contacts).
+
+The user submits `followups`, `followups overdue`, or `followups by/DATE` instead. The system replaces the filter using the whole contact book: all pending follow-ups, dates strictly before today, or dates on/before the cutoff, respectively. Invalid modes or dates are rejected. The overdue query captures the local date when run; badge refreshes do not rerun it.
 
 #### UC11 — Undo a contact-data change
 
@@ -1670,9 +1695,14 @@ See [Persistence and failures](#persistence-and-failures) and
 
 * **1a.** Additional arguments are supplied, or no previous snapshot exists: report an error without changing contacts, the view, or history.
 * **3a.** Saving fails: apply the common undo/redo save failure outcome; the applied undo remains in memory.
-* **UC12 — Redo a contact-data change:** The user submits `redo` instead. When a later snapshot exists, the system moves the pointer forward and follows steps 2–3 with that snapshot. Otherwise it reports that no more changes can be redone. A new committed change discards redo states; browsing commands, validation failures, and an already empty `clear` do not. History is not retained after restart.
 
 **Implementation reference:** [Undo/redo feature](#undoredo-feature).
+
+#### UC12 — Redo a contact-data change
+
+This is a variant of [UC11](#uc11--undo-a-contact-data-change).
+
+The user submits `redo` instead. When a later snapshot exists, the system moves the pointer forward and follows steps 2–3 of UC11 with that snapshot. Otherwise it reports that no more changes can be redone. A new committed change discards redo states; browsing commands, validation failures, and an already empty `clear` do not. History is not retained after restart.
 
 ### Non-Functional Requirements
 

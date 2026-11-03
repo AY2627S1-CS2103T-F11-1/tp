@@ -19,16 +19,8 @@ Class StatusBarFooter
 Class CommandBox
 }
 
-package Model <<Rectangle>> {
-Class HiddenModel #FFFFFF
-}
-
-package Logic <<Rectangle>> {
-Class HiddenLogic #FFFFFF
-}
-
-Class HiddenOutside #FFFFFF
-HiddenOutside ..> Ui
+interface Logic <<interface>> LOGIC_COLOR
+class Person MODEL_COLOR
 
 UiManager .left.|> Ui
 UiManager -down-> "1" MainWindow
@@ -47,8 +39,8 @@ PersonCard ..> UiDateTracker
 
 
 
-PersonCard ..> Model
-PersonDetailsPanel ..> Model
+PersonCard ..> Person
+PersonDetailsPanel ..> Person
 UiManager -right-> Logic
 MainWindow -left-> Logic
 
