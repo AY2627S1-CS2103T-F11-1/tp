@@ -276,4 +276,56 @@ public class MainAppTest {
 
         assertEquals(new UserPrefs(), resultPrefs);
     }
+
+    @Test
+    public void version_isCorrect() {
+        assertEquals("V1.6", MainApp.VERSION);
+    }
+
+    @Test
+    public void init_executesSuccessfully() throws Exception {
+        Path prefsFile = Path.of("preferences.json");
+        boolean prefsExisted = Files.exists(prefsFile);
+        byte[] originalPrefs = prefsExisted ? Files.readAllBytes(prefsFile) : null;
+        try {
+            mainApp.init();
+        } finally {
+            if (prefsExisted) {
+                Files.write(prefsFile, originalPrefs);
+            } else {
+                Files.deleteIfExists(prefsFile);
+            }
+        }
+    }
+
+    @Test
+    public void start_logsVersionAndDelegatesToUi() {
+        boolean[] uiStarted = new boolean[1];
+        mainApp.ui = new seedu.address.ui.Ui() {
+            @Override
+            public void start(javafx.stage.Stage primaryStage) {
+                uiStarted[0] = true;
+            }
+        };
+
+        mainApp.start(null);
+
+        assertTrue(uiStarted[0]);
+    }
+
+    @Test
+    public void stop_savesUserPrefs() throws Exception {
+        Path prefsPath = testFolder.resolve("stop_prefs.json");
+        Path addressBookPath = testFolder.resolve("stop_addressbook.json");
+        StorageManager storageManager = new StorageManager(
+                new JsonAddressBookStorage(addressBookPath),
+                new JsonUserPrefsStorage(prefsPath));
+        UserPrefs prefs = new UserPrefs();
+        mainApp.storage = storageManager;
+        mainApp.model = new seedu.address.model.ModelManager(new AddressBook(), prefs);
+
+        mainApp.stop();
+
+        assertTrue(Files.exists(prefsPath));
+    }
 }
