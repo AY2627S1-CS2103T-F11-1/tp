@@ -65,9 +65,9 @@ Model --> SetFollowUpCommand
 deactivate Model
 
 
-SetFollowUpCommand --> LogicManager : r
+SetFollowUpCommand --> LogicManager : result
 deactivate SetFollowUpCommand
 
-[<--LogicManager
+[<--LogicManager : result
 deactivate LogicManager
 @enduml

@@ -5,7 +5,7 @@ skinparam arrowColor LOGIC_COLOR_T4
 skinparam classBackgroundColor LOGIC_COLOR
 
 package "Parser classes" {
-interface "Parser<T>" as Parser <<interface>>
+interface Parser <<interface>>
 class AddressBookParser
 class XYZCommandParser
 class ArgumentTokenizer
