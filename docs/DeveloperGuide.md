@@ -1119,10 +1119,10 @@ Optional help arguments are parsed directly in `AddressBookParser`. No target re
 
 `AddressBookParser` parses the optional command name after `help` and creates a `HelpCommand`. Bare `help` opens the full help window, while `help COMMAND` displays usage for a supported command in the result area.
 
-The activity diagram covers help argument validation, response selection, the shared save request,
-and UI handling. If parsing or saving fails, the requested Help window is not opened.
+The activity diagram shows help response selection and UI handling. Argument-validation failures
+and the shared save request are omitted. If parsing or saving fails, the requested Help window is not opened.
 
-<a href="images/HelpActivityDiagram.png"><img src="images/HelpActivityDiagram.png" alt="Help validation, response, save request, and window handling" /></a>
+<a href="images/HelpActivityDiagram.png"><img src="images/HelpActivityDiagram.png" alt="Help response selection and window handling" /></a>
 
 * Bare `help` returns opening feedback in a `CommandResult` with `showHelp` set to `true`.
 * For a supported target, `HelpCommand` retrieves the command's `COMMAND_USAGE` from `COMMAND_USAGE_BY_NAME` and returns it as feedback with `showHelp` set to `false`.
