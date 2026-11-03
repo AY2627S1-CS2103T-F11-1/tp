@@ -1515,198 +1515,309 @@ corresponding structured feature.
 ### Use cases
 
 **System:** KeyBossWarriorsPro. **Actor:** the user. **Common precondition:** the application is
-running. **MSS** means main success scenario. A displayed index is a one-based position in the
-current filtered and sorted contact list, rather than a permanent contact identifier.
-
-Use cases are listed in numerical order, from UC1 to UC12, with their existing numbers retained.
-UC4 covers editing fields as well as tags. Related variants reference their main flows rather than
-repeating shared validation and persistence steps.
-Help, exit, and startup behaviour are covered by the user stories and their implementation sections.
+running. **MSS** means main success scenario. Use cases are listed in numerical order, UC1–UC12.
+They describe user intentions and observable outcomes; command syntax and detailed input rules
+belong in the [User Guide](UserGuide.md#command-reference).
 
 #### Common failure outcomes
 
-These outcomes apply at the relevant validation or save step of each flow. A save error is distinct
-from an invalid command: execution may already have changed the view or in-memory state.
+A rejected request leaves contact data unchanged. Each use case identifies its relevant validation
+errors below. A saving error during browsing (UC2, UC5–UC7, UC10, or viewing contact details) is
+reported to the user without reversing the displayed results, ordering, or selection.
 
-| Failure | System response and resulting state |
-|---------|-------------------------------------|
-| Invalid syntax, field value, duplicate identity, or displayed index detected before mutation | Show an error. Contact data, the displayed view, and undo/redo history remain unchanged. No save is attempted. |
-| Saving fails after a new contact-data commit | Show a save error and roll back the new snapshot, restoring any displaced redo states. Show all contacts while retaining sorting; retain the original selection if it is present in the restored view. |
-| Saving fails after undo or redo | Show a save error. The restored contact data and moved history pointer remain in memory; the all-contact view and cleared selection remain applied. |
-| Saving fails after a command without a new contact-data commit | Show a save error. The command's view effects remain applied; a valid explicit selection request can still be applied. |
-
-Every successfully executed command requests a contact-data save, including browsing commands.
+Data-changing use cases describe their distinct saving-error responses individually. These responses
+refer to the running application; a saving error does not guarantee unchanged file contents.
 See [Persistence and failures](#persistence-and-failures) and
-[Atomic file persistence](#atomic-file-persistence) for the implementation and filesystem limitations.
+[Atomic file persistence](#atomic-file-persistence) for technical details.
 
 #### UC1 — Add a contact
 
-**Precondition:** The user has the contact's required details.
-
 **MSS**
 
-1. The user submits `add` with a name, phone number, email, address, role, and any optional tags.
-2. The system validates the fields and checks phone and email uniqueness against all stored contacts,
-   including those hidden by the current filter.
-3. The system adds the contact, commits a history snapshot, saves the contact data, and confirms the addition.
+1. The user provides the new contact's details.
+2. The system validates the details and checks that the phone number and email are not already used.
+3. The system adds the contact and confirms the addition.
+
+   Use case ends.
 
 **Extensions**
 
-* **1a.** Required fields are missing, repeated, or invalid, or arguments are unsupported: apply the common validation failure outcome.
-* **2a.** The phone number or email is already in use: reject the addition using the common validation failure outcome.
-* **3a.** Saving fails: apply the common new-commit save failure outcome.
+* **2a.** The supplied details are incomplete or invalid.
+  * **2a1.** The system reports the problem without adding a contact.
+  * Use case ends.
+* **2b.** The phone number or email is already used by another stored contact.
+  * **2b1.** The system reports the duplicate details without adding a contact.
+  * Use case ends.
+* **3a.** The system cannot save the addition.
+  * **3a1.** The system restores the previous contact data in the running application and reports the saving error.
+  * Use case ends.
 
 **Implementation reference:** [Adding a contact](#adding-a-contact).
 
 #### UC2 — Find and browse contacts
 
-**Precondition:** None beyond the common precondition; an empty contact book is permitted.
-
 **MSS**
 
-1. The user submits `find` with simple name keywords or prefixed name, role, and/or tag phrases.
-2. The system validates the criteria and searches the whole contact book, replacing the previous filter.
-   Matching is case-insensitive substring matching; repeated phrases within a field use OR, and different
-   fields use AND. Simple name keywords also use OR.
-3. The system displays the matching contacts and a result count while retaining sorting, then saves the contact data.
+1. The user specifies criteria for finding contacts by name, role, or tag.
+2. The system validates the request and searches all stored contacts.
+3. The system displays the matching contacts and their count.
+
+   Use case ends.
 
 **Extensions**
 
-* **1a–2a.** Criteria are missing, blank, or unsupported, or simple keywords are mixed with prefixes: apply the common validation failure outcome.
-* **3a.** No contacts match: show an empty list and zero-result feedback. This is a successful query.
-* **3b.** Saving fails: apply the common save failure outcome for commands without a new contact-data commit.
-* **Select-details variant:** After browsing, the user submits `select INDEX`. The system validates the current displayed index, requests selection and display of that contact's full details, and saves. An empty list or unavailable index is rejected. Contact data, filter, sorting, and history are unchanged.
+* **2a.** The search criteria are missing or invalid.
+  * **2a1.** The system reports the problem without changing the displayed results.
+  * Use case ends.
+* **3a.** No contacts match the criteria.
+  * **3a1.** The system displays an empty result and reports that no contacts were found.
+  * Use case ends.
 
-**Implementation references:** [Finding contacts](#finding-contacts),
-[Listing all contacts](#listing-all-contacts-list), [Querying follow-ups](#querying-follow-ups), and
+**Related flow — View contact details:** The user identifies a contact in the displayed results.
+The system selects it and displays its full details. If the requested contact is unavailable or
+the selection request is invalid, the system reports an error without changing the selection.
+
+**Related use cases:** [UC5](#uc5--list-contacts) lists all contacts;
+[UC10](#uc10--view-follow-ups) finds contacts with follow-ups.
+
+**Implementation references:** [Finding contacts](#finding-contacts) and
 [Selecting contacts](#selecting-contacts-with-select-index).
 
 #### UC3 — Delete contacts
 
-**Precondition:** For single-contact deletion, the target is visible in the current list.
-
 **MSS**
 
-1. The user submits `delete` with the target's displayed index.
-2. The system validates the index, removes the contact and its pending follow-up, commits one snapshot,
-   and retains the filter and sorting.
-3. The system saves the contact data and confirms the deletion.
+1. The user identifies the contact to delete.
+2. The system validates the request and identifies the stored contact.
+3. The system removes the contact and its pending follow-up, and confirms the deletion.
+
+   Use case ends.
 
 **Extensions**
 
-* **1a–2a.** Syntax or index is invalid, including an empty displayed list: apply the common validation failure outcome.
-* **3a.** Saving fails: apply the common new-commit save failure outcome.
-* **Clear-all variant:** The user submits `clear` instead of an index-based deletion. The system immediately removes all stored contacts, including hidden contacts and their follow-ups, without a confirmation prompt, then commits and saves. An already empty book produces no new snapshot and preserves redo history, although a save is still requested. Additional arguments are ignored, with a warning when contacts are cleared.
+* **2a.** The request is invalid or the contact is unavailable.
+  * **2a1.** The system reports an error without deleting any contact.
+  * Use case ends.
+* **3a.** The system cannot save the deletion.
+  * **3a1.** The system restores the deleted contact and its follow-up in the running application and reports the saving error.
+  * Use case ends.
+
+**Related flow — Clear all contacts:** The user requests removal of the entire contact book.
+The system removes all contacts and pending follow-ups, including hidden contacts, without requesting
+confirmation, then confirms the clearing. If the book is already empty, the system reports that
+nothing was cleared. If saving fails, the system restores the previous contacts and follow-ups
+in the running application and reports the error.
 
 **Implementation references:** [Deleting a contact](#deleting-a-contact) and
 [Clearing all contacts](#clearing-all-contacts-clear).
 
 #### UC4 — Edit contact details and tags
 
-**Precondition:** The target contact is visible in the current list.
-
 **MSS**
 
-1. The user submits `edit` with the target's displayed index and the field replacements or tag additions/removals.
-2. The system validates the index and all requested changes, including duplicate identity and tag conflicts.
-3. The system replaces the contact, preserving omitted fields and its follow-up, commits one snapshot,
-   and resets the filter to show all contacts while retaining sorting.
-4. The system saves the contact data and confirms the edit.
+1. The user identifies a contact and supplies changes to its details or tags.
+2. The system validates the requested changes.
+3. The system updates the supplied details, preserves omitted details and the pending follow-up,
+   and confirms the edit.
+
+   Use case ends.
 
 **Extensions**
 
-* **1a.** No changes are supplied, the syntax is invalid, or the index is unavailable: apply the common validation failure outcome.
-* **2a.** A changed phone/email duplicates another contact, the same tag is added and removed, or a requested removal tag is absent: reject the whole edit. No partial tag or field changes are applied.
-* **4a.** Saving fails: apply the common new-commit save failure outcome.
+* **2a.** The request is incomplete or invalid, or the contact is unavailable.
+  * **2a1.** The system reports the problem without changing the contact.
+  * Use case ends.
+* **2b.** The new phone number or email duplicates another contact, or the tag changes conflict
+  or request removal of a tag the contact does not have.
+  * **2b1.** The system reports the problem and rejects the entire edit; no partial changes are applied.
+  * Use case ends.
+* **3a.** The system cannot save the edit.
+  * **3a1.** The system restores the contact's previous details in the running application and reports the saving error.
+  * Use case ends.
 
 **Implementation reference:** [Editing a contact](#adding-and-deleting-contact-tags).
 
 #### UC5 — List contacts
 
-This is a variant of [UC2](#uc2--find-and-browse-contacts).
-
-The user submits `list` instead. The system shows all contacts, retaining sorting, and requests a save. Extra arguments are ignored with a warning.
-
-#### UC6 — Sort contacts
-
-**Precondition:** None beyond the common precondition; an empty contact book is permitted.
-
 **MSS**
 
-1. The user submits `sort` with no keys, one supported key, or name and role keys in the desired priority.
-2. The system validates the keys, shows all contacts, and sorts them in ascending, case-insensitive order.
-   With no keys, the system sorts by name.
-3. The system confirms the sort and saves contact data. Stored contact order and undo/redo history are unchanged.
+1. The user requests the full contact list.
+2. The system displays all stored contacts in the current sort order.
+
+   Use case ends.
 
 **Extensions**
 
-* **1a–2a.** Keys are unsupported, repeated, or mixed with invalid arguments: apply the common validation failure outcome.
-* **3a.** Saving fails: apply the common save failure outcome for commands without a new contact-data commit.
+* **2a.** No contacts are stored.
+  * **2a1.** The system displays an empty list and reports that no contacts were found.
+  * Use case ends.
+
+**Implementation reference:** [Listing all contacts](#listing-all-contacts-list).
+
+#### UC6 — Sort contacts
+
+**MSS**
+
+1. The user requests sorting by name, role, or both in a chosen priority.
+2. The system validates the sorting request.
+3. The system displays all contacts in ascending, case-insensitive order and confirms the sorting.
+
+   Use case ends.
+
+**Extensions**
+
+* **1a.** The user requests sorting without specifying a field.
+  * **1a1.** The system uses name as the sorting field.
+  * Use case resumes from step 2.
+* **2a.** The sorting request is invalid.
+  * **2a1.** The system reports an error without changing the displayed order.
+  * Use case ends.
+* **3a.** No contacts are stored.
+  * **3a1.** The system displays an empty list and explains that the chosen order will apply to contacts added later.
+  * Use case ends.
+
+**Related flow:** [UC7](#uc7--clear-sort-order) restores insertion order.
 
 **Implementation reference:** [Sorting contacts](#sorting-contacts).
 
 #### UC7 — Clear sort order
 
-This is a variant of [UC6](#uc6--sort-contacts).
-
-The user submits `sort clear` instead. The system resets both the filter and comparator, showing all contacts in insertion order, then confirms and saves. This does not restore an earlier filter or change history. Sorting is session-only and is also reset on restart.
-
-#### UC8 — Set or replace a follow-up
-
-**Precondition:** The target contact is visible in the current list.
-
 **MSS**
 
-1. The user submits `followup` with the target's displayed index, a date, and a description.
-2. The system validates the index, date, and description. Dates use `YYYY-MM-DD` with years 0000–9999;
-   past dates are permitted. Descriptions must be nonblank and at most 200 UTF-16 units after decoding and stripping.
-3. The system sets the contact's single pending follow-up, replacing both fields if one already exists,
-   commits a snapshot, and refreshes the displayed contact information while retaining the filter and sorting.
-4. The system saves the contact data and confirms the change.
+1. The user requests to remove the selected sorting order.
+2. The system validates the request.
+3. The system displays all contacts in insertion order and confirms the change.
+
+   Use case ends.
 
 **Extensions**
 
-* **1a–2a.** Syntax, index, date, or description is invalid: apply the common validation failure outcome.
-* **3a.** The changed contact no longer matches the current follow-up query: it leaves the displayed list and its selection clears.
-* **4a.** Saving fails: apply the common new-commit save failure outcome.
+* **2a.** The request is invalid.
+  * **2a1.** The system reports an error without changing the displayed list.
+  * Use case ends.
+
+**Implementation reference:** [Sorting contacts](#sorting-contacts).
+
+#### UC8 — Set or replace a follow-up
+
+**MSS**
+
+1. The user identifies a contact and supplies a follow-up date and description.
+2. The system validates the request.
+3. The system sets the pending follow-up, replacing any existing one, and confirms the change.
+
+   Use case ends.
+
+**Extensions**
+
+* **2a.** The date or description is missing or invalid, the contact is unavailable, or the request is otherwise invalid.
+  * **2a1.** The system reports the problem without changing the contact or its follow-up.
+  * Use case ends.
+* **3a.** The updated contact no longer matches the current follow-up query.
+  * **3a1.** The system excludes it from the results and confirms the follow-up change; the contact remains stored.
+  * Use case ends.
+* **3b.** The system cannot save the change.
+  * **3b1.** The system restores the previous follow-up details in the running application and reports the saving error.
+  * Use case ends.
 
 **Implementation reference:** [Contact follow-up management](#contact-follow-up-management).
 
 #### UC9 — Remove a follow-up
 
-This is a variant of [UC8](#uc8--set-or-replace-a-follow-up).
-
-In step 1 of UC8, the user submits `followup INDEX clear` instead. The system validates the index and presence of a pending follow-up, removes it, then follows steps 3–4 of UC8. If none exists, it reports an error without changing data or history. Removal does not create a completed-follow-up record.
-
-#### UC10 — View follow-ups
-
-This is a variant of [UC2](#uc2--find-and-browse-contacts).
-
-The user submits `followups`, `followups overdue`, or `followups by/DATE` instead. The system replaces the filter using the whole contact book: all pending follow-ups, dates strictly before today, or dates on/before the cutoff, respectively. Invalid modes or dates are rejected. The overdue query captures the local date when run; badge refreshes do not rerun it.
-
-#### UC11 — Undo a contact-data change
-
-**Precondition:** A previous contact-data snapshot exists in the current session.
-
 **MSS**
 
-1. The user submits `undo` without additional arguments.
-2. The system restores the previous snapshot and moves the history pointer back, showing all contacts,
-   clearing selection, and retaining sorting.
-3. The system saves the restored contact data and confirms the undo.
+1. The user identifies a contact and requests removal of its pending follow-up.
+2. The system validates the request and checks that a pending follow-up exists.
+3. The system removes the follow-up and confirms its removal.
+
+   Use case ends.
 
 **Extensions**
 
-* **1a.** Additional arguments are supplied, or no previous snapshot exists: report an error without changing contacts, the view, or history.
-* **3a.** Saving fails: apply the common undo/redo save failure outcome; the applied undo remains in memory.
+* **2a.** The request is invalid or the contact is unavailable.
+  * **2a1.** The system reports an error without changing the contact or its follow-up.
+  * Use case ends.
+* **2b.** The contact has no pending follow-up.
+  * **2b1.** The system reports that no follow-up exists and leaves the contact unchanged.
+  * Use case ends.
+* **3a.** The contact no longer matches the current follow-up query.
+  * **3a1.** The system excludes it from the results and confirms the removal; the contact remains stored.
+  * Use case ends.
+* **3b.** The system cannot save the removal.
+  * **3b1.** The system restores the pending follow-up in the running application and reports the saving error.
+  * Use case ends.
+
+**Implementation reference:** [Contact follow-up management](#contact-follow-up-management).
+
+#### UC10 — View follow-ups
+
+**MSS**
+
+1. The user requests all pending follow-ups, overdue follow-ups, or those due on or before a chosen date.
+2. The system validates the query.
+3. The system displays the matching contacts and their count. Follow-ups due today are not overdue;
+   those on a supplied cutoff date are included.
+
+   Use case ends.
+
+**Extensions**
+
+* **2a.** The query is invalid.
+  * **2a1.** The system reports an error without changing the displayed results.
+  * Use case ends.
+* **3a.** No follow-ups match the query.
+  * **3a1.** The system displays an empty result and reports that no follow-ups were found.
+  * Use case ends.
+
+**Implementation reference:** [Querying follow-ups](#querying-follow-ups).
+
+#### UC11 — Undo a contact-data change
+
+**MSS**
+
+1. The user requests to undo the most recent undoable contact-data change in the current session.
+2. The system validates the request and checks that an earlier change is available.
+3. The system restores the previous contact data and confirms the undo.
+
+   Use case ends.
+
+**Extensions**
+
+* **2a.** The request is invalid.
+  * **2a1.** The system reports an error without changing contact data or available undo/redo actions.
+  * Use case ends.
+* **2b.** No earlier change is available to undo.
+  * **2b1.** The system reports that no more changes can be undone and leaves contact data unchanged.
+  * Use case ends.
+* **3a.** The system cannot save the restored contact data.
+  * **3a1.** The system reports a saving error; the undo remains applied in the running application.
+  * Use case ends.
 
 **Implementation reference:** [Undo/redo feature](#undoredo-feature).
 
 #### UC12 — Redo a contact-data change
 
-This is a variant of [UC11](#uc11--undo-a-contact-data-change).
+**MSS**
 
-The user submits `redo` instead. When a later snapshot exists, the system moves the pointer forward and follows steps 2–3 of UC11 with that snapshot. Otherwise it reports that no more changes can be redone. A new committed change discards redo states; browsing commands, validation failures, and an already empty `clear` do not. History is not retained after restart.
+1. The user requests to redo a previously undone contact-data change in the current session.
+2. The system validates the request and checks that a change is available to redo.
+3. The system reapplies the change and confirms the redo.
+
+   Use case ends.
+
+**Extensions**
+
+* **2a.** The request is invalid.
+  * **2a1.** The system reports an error without changing contact data or available undo/redo actions.
+  * Use case ends.
+* **2b.** No change is available to redo, including after a new successful contact-data change following an undo.
+  * **2b1.** The system reports that no more changes can be redone and leaves contact data unchanged.
+  * Use case ends.
+* **3a.** The system cannot save the reapplied change.
+  * **3a1.** The system reports a saving error; the redo remains applied in the running application.
+  * Use case ends.
+
+**Implementation reference:** [Undo/redo feature](#undoredo-feature).
 
 ### Non-Functional Requirements
 
